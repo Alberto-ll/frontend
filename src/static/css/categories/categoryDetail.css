@@ -11,13 +11,13 @@
 
 .info-label {
   font-weight: 600;
-  color: var(#ecf0f1);
+  color: #ecf0f1;
   font-size: 0.95rem;
 }
 
 .info-value {
   font-weight: 500;
-  color: var(#ecf0f1);
+  color: #ecf0f1;
 }
 
 .detail-card {
@@ -56,11 +56,6 @@
   border-bottom: 1px solid #475569;
 }
 
-.detail-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-}
 
 .back-button,
 .edit-button {

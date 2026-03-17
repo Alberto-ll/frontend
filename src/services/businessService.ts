@@ -5,34 +5,46 @@ const baseUrl = "http://localhost:3000/api/business";
 const getAuthHeaders = () => {
   const token = JSON.parse(localStorage.getItem("user") || "{}").token;
   return {
+    'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
   };
 };
 
 export const businessService = {
   getAll: async (): Promise<BusinessData[]> => {
-    const response = await fetch(`${baseUrl}/getAll`, {
+    const response = await fetch(`${baseUrl}/findAll`, {
       method: "GET",
       headers: getAuthHeaders(),
     });
+
     if (!response.ok) {
-      const errors = await response.json();
-      throw errors;
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
     }
-    const json: BusinessData[] = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as BusinessData[];
   },
 
   getOne: async (id: string): Promise<BusinessData> => {
-    const response = await fetch(`${baseUrl}/getOne/${id}`, {
+    const response = await fetch(`${baseUrl}/findOne/${id}`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
-      const errors = await response.json();
-      throw errors;
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
     }
-    const json: BusinessData = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as BusinessData;
   },
 
   add: async (business: BusinessData): Promise<BusinessData> => {
@@ -42,14 +54,18 @@ export const businessService = {
       body: JSON.stringify(business),
     });
     if (!response.ok) {
-      const errors = await response.json();
-      throw errors;
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
     }
 
-    const json: BusinessData = await response.json();
+    const json = await response.json();
 
-    console.log(json)
-    return json;
+    return json.data as BusinessData;
   },
 
   update: async (business: FormData): Promise<BusinessData> => {
@@ -60,11 +76,16 @@ export const businessService = {
     });
 
     if (!response.ok) {
-      const errors = await response.json();
-      throw errors;
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
     }
-    const json: BusinessData = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as BusinessData;
   },
 
   remove: async (id: number): Promise<void> => {
@@ -73,8 +94,13 @@ export const businessService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) {
-      const errors = await response.json();
-      throw errors;
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
     }
   },
 };

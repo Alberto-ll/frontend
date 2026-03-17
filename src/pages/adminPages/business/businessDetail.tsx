@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/categories/categoryDetail.css';
-
-interface Business {
-  id: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt?: Date;
-  openingAt: string;
-  closingAt: string;
-  locality: number | { id: number; name: string };
-  owner: number | { id: number; name: string; email: string };
-}
+import type { BusinessData } from "../../../types/businessType";
+import { businessService } from "../../../services/businessService";
 
 interface Locality {
   id: number;
@@ -30,7 +18,7 @@ interface User {
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [business, setBusiness] = useState<Business | null>(null);
+  const [business, setBusiness] = useState<BusinessData | null>(null);
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [owners, setOwners] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,8 +86,7 @@ const BusinessDetail = () => {
     return 'N/A';
   };
 
-  useEffect(() => {
-    const fetchBusiness = async () => {
+  const fetchAllData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -110,55 +97,30 @@ const BusinessDetail = () => {
           throw new Error('No se encontró token de autenticación');
         }
         
-        // Cargar datos en paralelo
         await Promise.all([
-          fetchBusinessData(token),
+          fetchBusiness(),
           fetchLocalities(token),
           fetchOwners(token)
         ]);
         
       } catch (err) {
-        console.error('Error in fetchBusiness:', err);
+        console.error('Error in fetchAllData:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar negocio');
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchBusinessData = async (token: string) => {
-      const url = `http://localhost:3000/api/business/findOne/${id}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Negocio no encontrado');
-        }
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
+    const fetchBusiness = async () => {
+      if(id){
+        const businessData = await businessService.getOne(id)
+        setBusiness(businessData);
       }
-      
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-      
-      const businessData = responseData.data || responseData;
-      console.log('Business data extracted:', businessData);
-      
-      setBusiness(businessData);
     };
 
-    if (id) {
-      fetchBusiness();
-    } else {
-      setError('No se proporcionó ID de negocio');
-      setLoading(false);
-    }
-  }, [id]);
+  useEffect(() => {
+      fetchAllData()
+  }, []);
 
   // Función para formatear el porcentaje de depósito
   const formatDepositPercentage = (percentage: number) => {
@@ -236,7 +198,7 @@ const BusinessDetail = () => {
           
           <div className="detail-item">
             <label>Dueño:</label>
-            <span className="owner-badge">{getOwnerName(business.owner)}</span>
+            <span className="owner-badge">{getOwnerName(business.owner!)}</span>
           </div>
           
           <div className="detail-item">

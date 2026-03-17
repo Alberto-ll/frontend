@@ -1,21 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryUpdate.css';
-
-interface Business {
-  id: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt?: Date;
-  openingAt: string;
-  closingAt: string;
-  locality: number | { id: number; name: string };
-  owner: number | { id: number; name: string; email: string };
-}
-
+import { businessService } from "../../../services/businessService";
+import type { BusinessData } from "../../../types/businessType";
 interface Locality {
   id: number;
   name: string;
@@ -31,7 +18,7 @@ const BusinessUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const [business, setBusiness] = useState<Business | null>(null);
+  const [business, setBusiness] = useState<BusinessData | null>(null);
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [owners, setOwners] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,27 +51,14 @@ const BusinessUpdate = () => {
         setError(null);
         
         const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
         if (!token) {
           throw new Error('No se encontró token de autenticación');
         }
 
-        // Cargar negocio
-        const businessResponse = await fetch(`http://localhost:3000/api/business/findOne/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!businessResponse.ok) {
-          throw new Error('Error al cargar negocio');
-        }
-
-        const businessData = await businessResponse.json();
-        const business = businessData.data || businessData;
+        const business = await businessService.getOne(id);
         
-        console.log('DATOS DEL NEGOCIO RECIBIDOS:', business);
+        console.log(business)
+
         setBusiness(business);
 
         // Cargar localidades
@@ -118,8 +92,8 @@ const BusinessUpdate = () => {
         }
 
         // Establecer form data con los datos actuales
-        const localityId = typeof business.locality === 'object' ? business.locality.id : business.locality;
-        const ownerId = typeof business.owner === 'object' ? business.owner.id : business.owner;
+        const localityId = business.locality;
+        const ownerId = business.owner;
 
         setFormData({
           businessName: business.businessName || '',
@@ -255,9 +229,9 @@ const BusinessUpdate = () => {
 
   const handleCancel = () => {
     if (id) {
-      navigate(`/admin/businesses/detail/${id}`);
+      navigate(`/admin/business/detail/${id}`);
     } else {
-      navigate('/admin/businesses/getAll');
+      navigate('/admin/business/getAll');
     }
   };
 
@@ -293,7 +267,7 @@ const BusinessUpdate = () => {
         <div className="error-message">
           <p>❌ Error: No se proporcionó un ID válido para el negocio</p>
         </div>
-        <button onClick={() => navigate('/admin/businesses/getAll')} className="cancel-button">
+        <button onClick={() => navigate('/admin/business/getAll')} className="cancel-button">
           Volver a la lista
         </button>
       </div>
@@ -318,7 +292,7 @@ const BusinessUpdate = () => {
         <div className="error-message">
           <p>❌ Error: {error}</p>
         </div>
-        <button onClick={() => navigate('/admin/businesses/getAll')} className="cancel-button">
+        <button onClick={() => navigate('/admin/business/getAll')} className="cancel-button">
           Volver a la lista
         </button>
       </div>
@@ -363,7 +337,7 @@ const BusinessUpdate = () => {
             <div className="info-item">
               <span className="info-label">Dueño:</span>
               <span className="info-value category-highlight">
-                {getOwnerName(business.owner)}
+                {getOwnerName(business.owner!)}
               </span>
             </div>
             <div className="info-item">
@@ -435,7 +409,7 @@ const BusinessUpdate = () => {
             <input
               type="text"
               id="ownerId"
-              value={business ? getOwnerName(business.owner) : ''}
+              value={business ? getOwnerName(business.owner!) : ''}
               className="form-input"
               disabled
               readOnly

@@ -9,4 +9,5 @@ export type BusinessData = {
   locality:number;
   openingAt:string;
   closingAt:string;
+  activatedAt?: Date;
 };

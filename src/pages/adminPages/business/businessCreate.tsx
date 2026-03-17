@@ -143,6 +143,8 @@ const BusinessCreate = () => {
         averageRating: 0.0
       };
 
+      console.log(businessData)
+
       add(businessData)
       
   };
@@ -152,8 +154,8 @@ const BusinessCreate = () => {
       setSaving(true)
       setError('')
       const result = await businessService.add(business)
-      console.log(result)
       alert('Negocio creado con éxito. Debe ser activado por un administrador.');
+      console.log(result)
       navigate('/admin/business/getAll');
       
     } catch (err) {

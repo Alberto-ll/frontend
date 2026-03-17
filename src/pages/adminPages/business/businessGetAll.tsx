@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
+import { businessService } from "../../../services/businessService";
+import type { BusinessData } from "../../../types/businessType";
 
 interface Locality {
   id: number;
@@ -14,22 +16,8 @@ interface User {
   email: string;
 }
 
-interface Business {
-  id?: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt?: Date;
-  openingAt: string;
-  closingAt: string;
-  locality: number | Locality; // Puede ser ID u objeto
-  owner: number | User; // Puede ser ID u objeto
-}
-
 const BusinessGetAll = () => {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [businesses, setBusinesses] = useState<BusinessData[]>([]);
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [owners, setOwners] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +25,7 @@ const BusinessGetAll = () => {
   
   // Estados para el modal de confirmación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
+  const [businessToDelete, setBusinessToDelete] = useState<BusinessData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Contexto para usar la funcion del Toast
@@ -109,61 +97,30 @@ const BusinessGetAll = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
+  const fetchBusinesses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Cargar negocios, localidades y usuarios en paralelo
-        const [businessesResponse] = await Promise.all([
-          fetch('http://localhost:3000/api/business/findAll', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          fetchLocalities(token),
-          fetchOwners(token)
-        ]);
-        
-        if (!businessesResponse.ok) {
-          if (businessesResponse.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${businessesResponse.status} ${businessesResponse.statusText}`);
-        }
-        
-        const responseData = await businessesResponse.json();
-        
-        let businessData: Business[] = [];
-        
-        if (Array.isArray(responseData)) {
-          businessData = responseData;
-        } else if (responseData.businesses && Array.isArray(responseData.businesses)) {
-          businessData = responseData.businesses;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          businessData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
-        }
-        
-        setBusinesses(businessData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar negocios');
-      } finally {
-        setLoading(false);
+      const token = JSON.parse(localStorage.getItem("user") || "{}").token;
+      if (!token) {
+        throw new Error("No se encontró token de autenticación");
       }
-    };
+      fetchLocalities(token);
+      fetchOwners(token);
 
-    fetchData();
+      const response = await businessService.getAll();
+
+      setBusinesses(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar negocios");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBusinesses();
   }, []);
 
   const handleRetry = () => {
@@ -171,7 +128,7 @@ const BusinessGetAll = () => {
   };
 
   // FUNCIÓN PARA MOSTRAR EL MODAL (reemplaza la confirmación antigua)
-  const handleDeleteClick = (business: Business) => {
+  const handleDeleteClick = (business: BusinessData) => {
     setBusinessToDelete(business);
     setShowDeleteModal(true);
   };
@@ -337,7 +294,7 @@ const BusinessGetAll = () => {
                       <td className="table-cell">{business.businessName}</td>
                       <td className="table-cell">{business.address}</td>
                       <td className="table-cell">{getLocalityName(business.locality)}</td>
-                      <td className="table-cell">{getOwnerName(business.owner)}</td>
+                      <td className="table-cell">{getOwnerName(typeof business.owner === 'number' ? business.owner : 0)}</td>
                       <td className="table-cell">{business.averageRating?.toFixed(1) || '0.0'}</td>
                       <td className="table-cell">{formatPercentage(business.reservationDepositPercentage)}</td>
                       <td className="table-cell">{business.openingAt} - {business.closingAt}</td>

@@ -9,6 +9,13 @@ export type PitchResponse = {
 const getAuthHeaders = () => {
   const token = JSON.parse(localStorage.getItem("user") || "{}").token;
   return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+};
+const getAuthHeadersWithFile = () => {
+  const token = JSON.parse(localStorage.getItem("user") || "{}").token;
+  return {
     Authorization: `Bearer ${token}`,
   };
 };
@@ -42,7 +49,7 @@ export const pitchService = {
   add: async (pitch: FormData): Promise<PitchResponse> => {
     const response = await fetch(`${baseUrl}/add`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: getAuthHeadersWithFile(),
       body: pitch,
     });
     if (!response.ok) {

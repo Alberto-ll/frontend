@@ -115,17 +115,6 @@
   border: 1px solid rgba(52, 152, 219, 0.1);
 }
 
-.info-label {
-  font-weight: 600;
-  color: var(--dark-color);
-  font-size: 0.95rem;
-}
-
-.info-value {
-  font-weight: 500;
-  color: var(--dark-color);
-}
-
 .category-highlight {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   color: white;
