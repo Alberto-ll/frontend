@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CourtList from './CourtList';
 import type { Court } from '../../components/CourtCard';
 import '../../static/css/courtPages.css';
-import { useAuth } from '../../components/Auth';
+import { useAuth } from '../../hooks/useAuth';
 
 const CourtsPage: React.FC = () => {
   const [courts, setCourts] = useState<Court[]>([]);

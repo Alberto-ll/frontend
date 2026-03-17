@@ -1,7 +1,7 @@
 import {Link, useNavigate } from "react-router-dom";
 import { FaFutbol } from "react-icons/fa";
 import '../../static/css/homePageNav.css'
-import { useAuth } from "../../components/Auth";
+import { useAuth } from "../../hooks/useAuth";
 
 interface HomePageNavProps {
   showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;

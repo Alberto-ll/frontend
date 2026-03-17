@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type {Pitch} from '../../../types/pitchType.ts'
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService } from '../../../services/pitchService.ts';
 
 export default function PitchGetAll() {
     const [data, setData] = useState<PitchResponse | null>(null);
@@ -13,19 +14,8 @@ export default function PitchGetAll() {
     const getAll = useCallback(async () => {
         try {
             setLoading(true);
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/pitchs/getAll', {
-                method: "GET", 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (!response.ok) {
-                const errors = await response.json();
-                throw errors;
-            }
-            const json: PitchResponse = await response.json();
+            setError(false)
+            const json: PitchResponse = await pitchService.getAll();
             setData(json);
         } catch (error) {
             showNotification(errorHandler(error), 'error');
@@ -45,18 +35,8 @@ export default function PitchGetAll() {
     const remove = async (id: number) => {
         try {
             setLoading(true);
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/pitchs/remove/' + id, {
-                method: "DELETE",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (!response.ok) {
-                const errors = await response.json();
-                throw errors;
-            }
+            setError(false)
+            pitchService.remove(id)
             showNotification('Cancha eliminada con éxito!', 'success');
             getAll();
         } catch (error) {
@@ -79,7 +59,7 @@ export default function PitchGetAll() {
             <pre>
                 <table className='crudTable'>
                     <thead>
-                        <tr> {/* Agregado: envolver th en tr */}
+                        <tr>
                             <th>ID</th>
                             <th>Business ID</th>
                             <th>Rating</th>
@@ -94,7 +74,7 @@ export default function PitchGetAll() {
                         {data?.data.map((pitch) => (
                             <tr key={pitch.id}>
                                 <td>{pitch.id}</td>
-                                <td>{pitch.business?.id ?? '-'}</td>
+                                <td>{typeof pitch.business === 'number' ? pitch.business : pitch.business?.id ?? '-' }</td> {/* evitar error de tipado de ts*/}
                                 <td>{('⭐️').repeat(pitch.rating)}</td>
                                 <td>${pitch.price}</td>
                                 <td>{pitch.size}</td>

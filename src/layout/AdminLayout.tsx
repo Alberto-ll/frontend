@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FaUserShield, FaBars, FaTimes, FaUsers, FaMapMarkerAlt, FaTicketAlt,FaArrowAltCircleLeft,FaFutbol, FaHome, FaStore } from "react-icons/fa";
 import HomeFooter from "../pages/homepage/homeFooter.js";
 import Toast from "../components/Toast.js";
-import { useAuth } from "../components/Auth.js";
+import { useAuth } from "../hooks/useAuth.js";
 
 export function AdminLayout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

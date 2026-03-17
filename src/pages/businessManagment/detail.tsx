@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useOutletContext, useParams, Navigate } from 'react-router';
 
 import '../../static/css/MybusinessDetail.css'
-import { useAuth } from '../../components/Auth.tsx';
+import { useAuth } from '../../hooks/useAuth.tsx';
 import { errorHandler } from '../../types/apiError.ts';
 
 export default function businessPitchDetail() {

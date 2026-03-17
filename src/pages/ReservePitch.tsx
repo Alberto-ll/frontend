@@ -4,7 +4,7 @@ import type { ReservePitch, ReservePitchFilters } from '../types/reservePitchTyp
 import PitchFilters from '../components/filters/PitchFilters';
 import PitchCard from '../components/pitches/PitchCard';
 import '../static/css/ReservePitch.css';
-import { useAuth } from '../components/Auth';
+import { useAuth } from '../hooks/useAuth';
 
 const ReservePitchPage: React.FC = () => {
   const navigate = useNavigate();

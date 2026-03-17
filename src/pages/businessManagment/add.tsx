@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Pitch } from '../../types/pitchType.ts';
 import { useNavigate, useOutletContext, Navigate } from 'react-router';
-import { useAuth } from '../../components/Auth.tsx';
+import { useAuth } from '../../hooks/useAuth.tsx';
 
 export default function PitchAdd() {
     const [data, setData] = useState<PitchResponse | null>(null);
