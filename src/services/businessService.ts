@@ -47,6 +47,8 @@ export const businessService = {
     }
 
     const json: BusinessData = await response.json();
+
+    console.log(json)
     return json;
   },
 

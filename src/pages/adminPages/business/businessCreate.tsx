@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryCreate.css';
 import type { BusinessData } from "../../../types/businessType";
 import { businessService } from "../../../services/businessService";
+import { errorHandler } from "../../../types/apiError";
 
 interface Locality {
   id: number;
@@ -150,12 +151,13 @@ const BusinessCreate = () => {
     try{
       setSaving(true)
       setError('')
-      businessService.add(business)
+      const result = await businessService.add(business)
+      console.log(result)
       alert('Negocio creado con éxito. Debe ser activado por un administrador.');
       navigate('/admin/business/getAll');
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear negocio');
+      setError(errorHandler(err));
     } finally {
       setSaving(false);
     }
