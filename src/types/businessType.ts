@@ -1,5 +1,5 @@
 export type BusinessData = {
-  id: number;
+  id?: number;
   owner:number | undefined;
   businessName: string;
   address: string;

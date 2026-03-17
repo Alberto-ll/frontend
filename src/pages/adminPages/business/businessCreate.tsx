@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryCreate.css';
+import type { BusinessData } from "../../../types/businessType";
+import { businessService } from "../../../services/businessService";
 
 interface Locality {
   id: number;
@@ -101,17 +103,7 @@ const BusinessCreate = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    try {
-      setSaving(true);
-      setError(null);
-
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
+  
       // Validaciones básicas
       if (!formData.businessName.trim()) {
         throw new Error('El nombre del negocio es obligatorio');
@@ -134,13 +126,11 @@ const BusinessCreate = () => {
         throw new Error('El porcentaje de depósito debe ser entre 0 y 1 (0% a 100%)');
       }
 
-      // Validar horarios
       if (formData.openingAt >= formData.closingAt) {
         throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
       }
 
-      // Preparar datos para enviar - CORREGIDO para usar la estructura correcta
-      const createData = {
+      const businessData : BusinessData = {
         businessName: formData.businessName.trim(),
         address: formData.address.trim(),
         locality: parseInt(formData.localityId), // Enviar solo el ID como número
@@ -152,33 +142,15 @@ const BusinessCreate = () => {
         averageRating: 0.0
       };
 
-      console.log(createData)
-
-      // URL CORREGIDA - usar /api/business/add para crear negocio
-      const response = await fetch('http://localhost:3000/api/business/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(createData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      add(businessData)
       
+  };
+
+  const add = async (business : BusinessData) => {
+    try{
+      setSaving(true)
+      setError('')
+      businessService.add(business)
       alert('Negocio creado con éxito. Debe ser activado por un administrador.');
       navigate('/admin/business/getAll');
       
@@ -187,7 +159,7 @@ const BusinessCreate = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   const handleCancel = () => {
     navigate('/admin/business/getAll');

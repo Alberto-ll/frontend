@@ -1,59 +1,33 @@
 import { useState } from 'react';
-import type {Pitch} from '../../../types/pitchType.ts'
 import { useNavigate, useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService, type PitchResponse } from '../../../services/pitchService.ts';
 
 export default function PitchUpdate(){
+
+    const sizeOptions = [
+        { value: '5v5', label: 'Fut 5' },
+        { value: '7v7', label: 'Fut 7' },
+        { value: '11v11', label: 'Fut 11' }
+    ];
+
+    const groundTypeOptions = [
+        { value: 'césped natural', label: 'Césped Natural' },
+        { value: 'césped sintético', label: 'Césped Sintético'},
+        { value: 'cemento', label: 'Cemento' },
+        { value: 'arcilla', label: 'Arcilla' },
+    ];
+
     const [data, setData] = useState<PitchResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
 
-    const update = async (pitch: Partial<Pitch> & { id: number }) => {
+    const update = async (pitch: FormData) => {
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            
-            if (!token) {
-                throw new Error('Token de autenticación no encontrado');
-            }
-            
-            const payload: Record<string, any> = {};
-            
-            if (pitch.rating !== undefined && pitch.rating > 0) {
-                payload.rating = pitch.rating;
-            }
-            if (pitch.price !== undefined && pitch.price > 0) {
-                payload.price = pitch.price;
-            }
-            if (pitch.size !== undefined && pitch.size.trim() !== '') {
-                payload.size = pitch.size.trim();
-            }
-            if (pitch.groundType !== undefined && pitch.groundType.trim() !== '') {
-                payload.groundType = pitch.groundType.trim();
-            }
-            if (pitch.roof !== undefined) {
-                payload.roof = pitch.roof;
-            }
-
-            console.log(' Payload a enviar:', payload); // DEBUG
-
-            const response = await fetch(`http://localhost:3000/api/pitchs/update/${pitch.id}`, {
-                method: "PATCH",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            })
-            
-            if(!response.ok){
-                const errors = await response.json()
-                throw errors
-            }
-            
-            const json: PitchResponse = await response.json()
+            const json: PitchResponse = await pitchService.update(pitch)
             setData(json)
             showNotification('Cancha actualizada con éxito!', 'success')
             navigate('/admin/pitchs/getAll')
@@ -67,62 +41,31 @@ export default function PitchUpdate(){
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const pitchId = Number(formData.get("id"));
-        if (!pitchId || isNaN(pitchId)) {
-            showNotification('El ID de cancha debe ser un número válido', 'error');
-            return;
-        }
-        const pitch: Partial<Pitch> & { id: number } = {
-            id: pitchId
-        };
-        const ratingValue = formData.get("rating");
-        if (ratingValue && ratingValue.toString().trim() !== '') {
-            const rating = Number(ratingValue);
-            if (!isNaN(rating) && rating >= 1 && rating <= 5) {
-                pitch.rating = rating;
-            } else {
-                showNotification('El rating debe ser un número entre 1 y 5', 'error');
-                return;
-            }
-        }
-
-        const priceValue = formData.get("price");
-        if (priceValue && priceValue.toString().trim() !== '') {
-            const price = Number(priceValue);
-            if (!isNaN(price) && price > 0) {
-                pitch.price = price;
-            } else {
-                showNotification('El precio debe ser un número mayor a 0', 'error');
-                return;
-            }
-        }
-
-        const sizeValue = formData.get("size");
-        if (sizeValue && sizeValue.toString().trim() !== '') {
-            pitch.size = sizeValue.toString().trim();
-        }
-
-        const groundTypeValue = formData.get("groundType");
-        if (groundTypeValue && groundTypeValue.toString().trim() !== '') {
-            pitch.groundType = groundTypeValue.toString().trim();
-        }
-
-        const roofValue = formData.get("roof");
-        if (roofValue !== null) {
-            pitch.roof = roofValue === 'on' || roofValue === 'true';
-        }
-
-        console.log(' Datos del formulario:', pitch); // DEBUG
-
-        // Verificar que al menos un campo se va a actualizar
-        const { id, ...fieldsToUpdate } = pitch;
-        if (Object.keys(fieldsToUpdate).length === 0) {
-            showNotification('Debe completar al menos un campo para actualizar', 'warning');
+        
+        const selectedSize = formData.get("size") as string;
+        if (!sizeOptions.some(option => option.value === selectedSize)) {
+            showNotification('Por favor, selecciona un tamaño válido', 'error');
             return;
         }
 
-        update(pitch);
-    };
+        const selectedGroundType = formData.get("groundType") as string;
+        if (!groundTypeOptions.some(option => option.value === selectedGroundType)) {
+            showNotification('Por favor, selecciona un tipo de suelo válido', 'error');
+            return;
+        }
+
+        const pitchData = new FormData();
+        
+        pitchData.append('business', formData.get("business") as string);
+        pitchData.append('rating', formData.get("rating") as string);
+        pitchData.append('price', formData.get("price") as string);
+        pitchData.append('size', selectedSize);
+        pitchData.append('groundType', selectedGroundType);
+        pitchData.append('roof', formData.get("roof") ? 'true' : 'false');
+
+
+        update(pitchData);
+    };;
 
     return (
         <div className='crud-form-container'>
@@ -224,18 +167,18 @@ export default function PitchUpdate(){
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{data.updatedPitch.id}</td>
-                                <td>{data.updatedPitch.business?.id ?? '-'}</td>
-                                <td>{('⭐️').repeat(Math.floor(data.updatedPitch.rating))} ({data.updatedPitch.rating})</td>
-                                <td>${data.updatedPitch.price.toLocaleString()}</td>
+                                <td>{data.data.id}</td>
+                                <td>{typeof data.data.business === 'number' ? data.data.business : data.data.business?.id ?? '-' }</td>
+                                <td>{('⭐️').repeat(Math.floor(data.data.rating))} ({data.data.rating})</td>
+                                <td>${data.data.price.toLocaleString()}</td>
                                 <td>
-                                    {data.updatedPitch.size === '5v5' && '5v5 (20x40m)'}
-                                    {data.updatedPitch.size === '7v7' && '7v7 (40x60m)'}
-                                    {data.updatedPitch.size === '11v11' && '11v11 (90x120m)'}
-                                    {!['5v5', '7v7', '11v11'].includes(data.updatedPitch.size) && data.updatedPitch.size}
+                                    {data.data.size === '5v5' && '5v5 (20x40m)'}
+                                    {data.data.size === '7v7' && '7v7 (40x60m)'}
+                                    {data.data.size === '11v11' && '11v11 (90x120m)'}
+                                    {!['5v5', '7v7', '11v11'].includes(data.data.size) && data.data.size}
                                 </td>
-                                <td>{data.updatedPitch.groundType}</td>
-                                <td>{data.updatedPitch.roof ? '✅ Con techo' : '❌ Sin techo'}</td>
+                                <td>{data.data.groundType}</td>
+                                <td>{data.data.roof ? '✅ Con techo' : '❌ Sin techo'}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -243,8 +186,4 @@ export default function PitchUpdate(){
             )}
         </div>
     )
-}
-
-type PitchResponse = {
-    updatedPitch: Pitch
 }

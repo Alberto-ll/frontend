@@ -2,6 +2,7 @@ import type {Pitch} from '../../../types/pitchType.ts'
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService } from '../../../services/pitchService.ts';
 
 export default function PitchGetOne(){
     const [data, setData] = useState<PitchResponse | null>(null);
@@ -12,16 +13,7 @@ export default function PitchGetOne(){
     const getOne = async (id:string) =>{
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/pitchs/getOne/'+id, {headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }})
-            if(!response.ok){
-                const errors = await response.json()
-                throw errors
-            }
-            const json:PitchResponse = await response.json()
+            const json:PitchResponse = await pitchService.getOne(id)
             setData(json)
         }catch(error){
             showNotification(errorHandler(error),'error');
@@ -69,7 +61,7 @@ export default function PitchGetOne(){
                 <tbody>
                     <tr>
                         <td>{data.data.id}</td>
-                        <td>{data.data.business?.id ?? '-'}</td>
+                        <td>{typeof data.data.business === 'number' ? data.data.business : data.data.business?.id ?? '-' }</td>
                         <td>{('⭐️').repeat(data.data.rating)}</td>
                         <td>${data.data.price}</td>
                         <td>{data.data.size}</td>

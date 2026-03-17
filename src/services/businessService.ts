@@ -1,10 +1,6 @@
-import type { Pitch } from "../types/pitchType";
+import type { BusinessData } from "../types/businessType";
 
-const baseUrl = "http://localhost:3000/api/pitchs";
-
-export type PitchResponse = {
-  data: Pitch;
-};
+const baseUrl = "http://localhost:3000/api/business";
 
 const getAuthHeaders = () => {
   const token = JSON.parse(localStorage.getItem("user") || "{}").token;
@@ -13,8 +9,8 @@ const getAuthHeaders = () => {
   };
 };
 
-export const pitchService = {
-  getAll: async (): Promise<PitchResponse[]> => {
+export const businessService = {
+  getAll: async (): Promise<BusinessData[]> => {
     const response = await fetch(`${baseUrl}/getAll`, {
       method: "GET",
       headers: getAuthHeaders(),
@@ -23,11 +19,11 @@ export const pitchService = {
       const errors = await response.json();
       throw errors;
     }
-    const json: PitchResponse[] = await response.json();
+    const json: BusinessData[] = await response.json();
     return json;
   },
 
-  getOne: async (id: string): Promise<PitchResponse> => {
+  getOne: async (id: string): Promise<BusinessData> => {
     const response = await fetch(`${baseUrl}/getOne/${id}`, {
       headers: getAuthHeaders(),
     });
@@ -35,37 +31,37 @@ export const pitchService = {
       const errors = await response.json();
       throw errors;
     }
-    const json: PitchResponse = await response.json();
+    const json: BusinessData = await response.json();
     return json;
   },
 
-  add: async (pitch: FormData): Promise<PitchResponse> => {
+  add: async (business: BusinessData): Promise<BusinessData> => {
     const response = await fetch(`${baseUrl}/add`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: pitch,
+      body: JSON.stringify(business),
     });
     if (!response.ok) {
       const errors = await response.json();
       throw errors;
     }
 
-    const json: PitchResponse = await response.json();
+    const json: BusinessData = await response.json();
     return json;
   },
 
-  update: async (pitch: FormData): Promise<PitchResponse> => {
-    const response = await fetch(`${baseUrl}/update/${pitch.get('id')}`, {
+  update: async (business: FormData): Promise<BusinessData> => {
+    const response = await fetch(`${baseUrl}/update/${business.get('id')}`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify(pitch),
+      body: JSON.stringify(business),
     });
 
     if (!response.ok) {
       const errors = await response.json();
       throw errors;
     }
-    const json: PitchResponse = await response.json();
+    const json: BusinessData = await response.json();
     return json;
   },
 

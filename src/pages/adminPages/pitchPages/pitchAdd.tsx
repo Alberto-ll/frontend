@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import type {Pitch} from '../../../types/pitchType.ts'
 import { useNavigate, useOutletContext } from 'react-router';
 import type { BusinessData } from '../../../types/businessType.ts';
+import { pitchService, type PitchResponse } from '../../../services/pitchService.ts';
 
 export default function PitchAdd(){
     const [data, setData] = useState<PitchResponse | null>(null);
@@ -53,38 +53,7 @@ export default function PitchAdd(){
     const add = async (pitchData: FormData) => {
         try {
             setLoading(true);
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
-            console.log(pitchData);
-
-            const response = await fetch('http://localhost:3000/api/pitchs/add', {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                    // NO incluir 'Content-Type' cuando usas FormData, el navegador lo establece automáticamente con el boundary
-                }, 
-                body: pitchData
-            });
-
-            // Para debugging: mostrar la respuesta completa
-            console.log('Status:', response.status);
-            console.log('Headers:', Object.fromEntries(response.headers.entries()));
-
-            const responseText = await response.text();
-            console.log('Response body:', responseText);
-
-            if (!response.ok) {
-                let errorMessage = `HTTP Error! status: ${response.status}`;
-                try {
-                    const errorData = JSON.parse(responseText);
-                    errorMessage = errorData.error || errorData.message || errorMessage;
-                } catch (e:unknown) {
-                    errorMessage = responseText || errorMessage;
-                }
-                throw new Error(errorMessage);
-            }
-
-            const json: PitchResponse = JSON.parse(responseText);
+            const json : PitchResponse = await pitchService.add(pitchData)
             setData(json);
             showNotification('Cancha creada con éxito', 'success');
             navigate('/admin/pitchs/getAll');
@@ -101,33 +70,27 @@ export default function PitchAdd(){
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         
-        // Validar que se haya seleccionado un tamaño válido
         const selectedSize = formData.get("size") as string;
         if (!sizeOptions.some(option => option.value === selectedSize)) {
             showNotification('Por favor, selecciona un tamaño válido', 'error');
             return;
         }
 
-        // Validar que se haya seleccionado un tipo de suelo válido
         const selectedGroundType = formData.get("groundType") as string;
         if (!groundTypeOptions.some(option => option.value === selectedGroundType)) {
             showNotification('Por favor, selecciona un tipo de suelo válido', 'error');
             return;
         }
 
-        // Crear FormData
         const pitchData = new FormData();
         
-        // Agregar campos individualmente
         pitchData.append('business', formData.get("business") as string);
         pitchData.append('rating', formData.get("rating") as string);
         pitchData.append('price', formData.get("price") as string);
         pitchData.append('size', selectedSize);
         pitchData.append('groundType', selectedGroundType);
         pitchData.append('roof', formData.get("roof") ? 'true' : 'false');
-        
-        console.log(pitchData);
-        // Agregar la imagen si existe
+
         if (imageFile) {
             pitchData.append('image', imageFile);
         }
@@ -273,7 +236,7 @@ export default function PitchAdd(){
                         <tbody>
                             <tr>
                                 <td>{data.data.id}</td>
-                                <td>{data.data.business?.id || data.data.business}</td>
+                                <td>{typeof data.data.business === 'number' ? data.data.business : data.data.business?.id ?? '-' }</td>
                                 <td>{('⭐️').repeat(data.data.rating)}</td>
                                 <td>${data.data.price}</td>
                                 <td>{data.data.size}</td>
@@ -296,8 +259,4 @@ export default function PitchAdd(){
             </pre>
         </div>
     );
-}
-
-type PitchResponse = {
-    data: Pitch;
 }
