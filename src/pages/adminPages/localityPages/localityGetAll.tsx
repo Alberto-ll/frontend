@@ -2,14 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import '../../../static/css/users/usersGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
-import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
-
-interface Locality {
-  id?: number;
-  name: string;
-  postal_code: number;
-  province: string;
-}
+import Toast from '../../../components/Toast';
+import { localityService } from "../../../services/localityService";
+import type { Locality } from "../../../types/localityType";
 
 const LocalitiesGetAll = () => {
   const [localities, setLocalities] = useState<Locality[]>([]);
@@ -31,47 +26,11 @@ const LocalitiesGetAll = () => {
     type: 'success' as 'success' | 'error' | 'warning' | 'info'
   });
 
-  useEffect(() => {
-    const fetchLocalities = async () => {
+  const fetchLocalities = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/localities/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        
-        let localityData: Locality[] = [];
-        
-        if (Array.isArray(responseData)) {
-          localityData = responseData;
-        } else if (responseData.localities && Array.isArray(responseData.localities)) {
-          localityData = responseData.localities;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          localityData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
-        }
-        
+        const localityData : Locality[] = await localityService.getAll()
         setLocalities(localityData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar localidades');
@@ -80,6 +39,7 @@ const LocalitiesGetAll = () => {
       }
     };
 
+  useEffect(() => {
     fetchLocalities();
   }, []);
 
@@ -121,27 +81,10 @@ const LocalitiesGetAll = () => {
     });
   };
 
-  // Función para confirmar la eliminación
-  const handleConfirmDelete = async () => {
-    if (!deleteModal.localityId) return;
-
-    try {
+  const remove = async () => {
+  try {
       setDeleteModal(prev => ({ ...prev, isLoading: true }));
-
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      const response = await fetch(`http://localhost:3000/api/localities/remove/${deleteModal.localityId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar localidad');
-      }
-
+      await localityService.remove(deleteModal.localityId!)
       // Eliminar la localidad del estado
       setLocalities(localities.filter(locality => locality.id !== deleteModal.localityId));
       
@@ -153,14 +96,18 @@ const LocalitiesGetAll = () => {
         isLoading: false
       });
 
-      // Mostrar toast de éxito
       showToast('Localidad eliminada con éxito', 'success');
       
     } catch (err) {
       setDeleteModal(prev => ({ ...prev, isLoading: false }));
-      // Mostrar toast de error
       showToast('Error al eliminar localidad: ' + (err instanceof Error ? err.message : 'Error desconocido'), 'error');
     }
+  }
+  // Función para confirmar la eliminación
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.localityId) return;
+
+    remove()
   };
 
   if (loading) {

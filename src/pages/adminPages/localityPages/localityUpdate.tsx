@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/users/userUpdate.css';
-import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
-
-interface Locality {
-  id?: number;
-  name: string;
-  postal_code: number;
-  province: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import Toast from '../../../components/Toast';
+import type { Locality } from "../../../types/localityType";
+import { localityService } from "../../../services/localityService";
 
 const LocalityUpdate = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,42 +42,19 @@ const LocalityUpdate = () => {
     setToast(prev => ({ ...prev, isVisible: false }));
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
+        const localityData : Locality = await localityService.getOne(id!)
 
-        // Cargar la localidad
-        const response = await fetch(`http://localhost:3000/api/localities/getOne/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        setLocality(localityData);
 
-        // Procesar localidad
-        if (!response.ok) {
-          throw new Error('Error al cargar localidad');
-        }
-
-        const localityData = await response.json();
-        const locality = localityData.data || localityData;
-        
-        console.log('DATOS DE LA LOCALIDAD RECIBIDOS:', locality);
-        setLocality(locality);
-
-        // Establecer form data
         setFormData({
-          name: locality.name || '',
-          postal_code: locality.postal_code ? String(locality.postal_code) : '',
-          province: locality.province || ''
+          name: localityData.name || '',
+          postal_code: localityData.postal_code ? String(localityData.postal_code) : '',
+          province: localityData.province || ''
         });
 
       } catch (err) {
@@ -95,6 +65,7 @@ const LocalityUpdate = () => {
       }
     };
 
+  useEffect(() => {
     if (id) {
       fetchData();
     }
@@ -115,47 +86,17 @@ const LocalityUpdate = () => {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      // Datos para enviar
-      const updateData = {
+      const updateData : Locality = {
+        id: Number(id),
         name: formData.name.trim(),
         postal_code: parseInt(formData.postal_code),
         province: formData.province.trim()
       };
 
-      console.log('Datos a enviar al backend:', updateData);
+      await localityService.update(updateData)
 
-      const response = await fetch(`http://localhost:3000/api/localities/update/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // Mostrar toast de éxito en lugar de alert
       showToast('Localidad actualizada con éxito', 'success');
       
-      // Navegar después de un breve delay para que se vea el toast
       setTimeout(() => {
         navigate(`/admin/localities/getOne/${id}`);
       }, 1500);

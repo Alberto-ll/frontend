@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import '../../../static/css/users/userCreate.css';
 import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
+import type { Locality } from "../../../types/localityType";
+import { localityService } from "../../../services/localityService";
 
 const LocalityCreate = () => {
   const navigate = useNavigate();
@@ -45,70 +47,35 @@ const LocalityCreate = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
+  const add = () => {
     try {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      // Validaciones básicas
       if (!formData.name.trim()) {
         throw new Error('El nombre de la localidad es obligatorio');
-      }
-      
+      }      
       if (!formData.postal_code.trim()) {
         throw new Error('El código postal es obligatorio');
       }
-
       const postalCode = parseInt(formData.postal_code);
       if (isNaN(postalCode) || postalCode <= 0) {
         throw new Error('El código postal debe ser un número válido');
       }
-      
       if (!formData.province.trim()) {
         throw new Error('La provincia es obligatoria');
       }
 
-      // Preparar datos para enviar
-      const createData = {
+      const locality : Locality = {
         name: formData.name.trim(),
         postal_code: postalCode,
         province: formData.province.trim()
       };
 
-      const response = await fetch('http://localhost:3000/api/localities/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(createData)
-      });
+      localityService.add(locality)
 
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // Mostrar toast de éxito
       showToast('Localidad creada con éxito', 'success');
       
-      // Navegar después de un breve delay para que se vea el toast
       setTimeout(() => {
         navigate('/admin/localities/getAll');
       }, 1500);
@@ -120,6 +87,12 @@ const LocalityCreate = () => {
     } finally {
       setSaving(false);
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    add()
   };
 
   const handleCancel = () => {
