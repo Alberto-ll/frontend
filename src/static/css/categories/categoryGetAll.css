@@ -197,17 +197,6 @@
   background-color: #e67e22;
 }
 
-.delete-button {
-  background-color: var(--danger);
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.delete-button:hover {
-  background-color: #c0392b;
-}
-
 /* Estados de carga */
 .loading-container {
   display: flex;
@@ -371,10 +360,6 @@
   
   .edit-button::before {
     content: '✏️';
-  }
-  
-  .delete-button::before {
-    content: '🗑️';
   }
 }
 

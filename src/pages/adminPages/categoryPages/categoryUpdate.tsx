@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryUpdate.css';
-
-interface Category {
-  id: number;
-  description: string;
-  usertype: string;
-}
+import type { Category } from "../../../types/categoryType";
+import { categoryService } from "../../../services/categoryService";
 
 const CategoryUpdate = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,41 +19,19 @@ const CategoryUpdate = () => {
     usertype: ''
   });
 
-  // Cargar categoría
-  useEffect(() => {
-    const fetchCategory = async () => {
+  const fetchCategory = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-
-        const response = await fetch(`http://localhost:3000/api/category/getOne/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al cargar categoría');
-        }
-
-        const categoryData = await response.json();
-        const category = categoryData.data || categoryData;
-        
-        console.log('DATOS DE LA CATEGORÍA RECIBIDOS:', category);
-        setCategory(category);
-
-        // Establecer form data con los datos actuales
-        setFormData({
+        if(id){
+          const category : Category = await categoryService.getOne(id)
+          setCategory(category)
+          setFormData({
           description: category.description || '',
           usertype: category.usertype || ''
         });
+        }
 
       } catch (err) {
         console.error('ERROR EN FETCH:', err);
@@ -67,10 +41,26 @@ const CategoryUpdate = () => {
       }
     };
 
-    if (id) {
-      fetchCategory();
+    const updateCategory = async (category : Category) => {
+      try {
+      setSaving(true);
+      setError(null);
+
+      categoryService.update(category)
+
+      alert('Categoría actualizada con éxito');
+      navigate(`/admin/categories/detail/${id}`);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar categoría');
+    } finally {
+      setSaving(false);
     }
-  }, [id]);
+    }
+
+    useEffect(() => {
+      fetchCategory()
+    }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -83,53 +73,14 @@ const CategoryUpdate = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    try {
-      setSaving(true);
-      setError(null);
-
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      // Datos para enviar
-      const updateData = {
+    const updatedCategory : Category = {
+        id,
         description: formData.description.trim(),
         usertype: formData.usertype.trim()
       };
 
-      console.log('Datos a enviar al backend:', updateData);
-
-      const response = await fetch(`http://localhost:3000/api/category/update/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      alert('Categoría actualizada con éxito');
-      navigate(`/admin/categories/detail/${id}`);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar categoría');
-    } finally {
-      setSaving(false);
+    if(updatedCategory){
+      updateCategory(updatedCategory)
     }
   };
 

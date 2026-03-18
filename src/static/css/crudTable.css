@@ -433,19 +433,6 @@
   background-color: #e67e22;
 }
 
-.delete-button,
-.action-button.delete {
-  background-color: var(--danger);
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.delete-button:hover,
-.action-button.delete:hover {
-  background-color: #c0392b;
-}
-
 /* Botón personalizado */
 .action-button.custom {
   background-color: var(--primary-color);
@@ -786,3 +773,19 @@
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
 .mt-3 { margin-top: 1.5rem; }
+
+
+.delete-button{
+  padding: 15px;
+  border-radius: 0.5rem;
+  background-color: var(--danger);
+}
+
+.delete-button:hover{
+  background-color: rgb(167, 2, 2);
+}
+
+.action-button:hover{
+  color: white;
+  transform: translateY(-2px);
+}

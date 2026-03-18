@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/categories/categoryDetail.css';
-
-interface Category {
-  id: number;
-  description: string;
-  usertype: string;
-}
+import type { Category } from "../../../types/categoryType";
+import { categoryService } from "../../../services/categoryService";
 
 const CategoryDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,55 +11,26 @@ const CategoryDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCategory = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const url = `http://localhost:3000/api/category/getOne/${id}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Categoría no encontrada');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Response data:', responseData);
-        
-        const categoryData = responseData.data || responseData;
-        console.log('Category data extracted:', categoryData);
-        
-        setCategory(categoryData);
-      } catch (err) {
-        console.error('Error in fetchCategory:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar categoría');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchCategory();
-    } else {
-      setError('No se proporcionó ID de categoría');
+  const fetchCategory = async (id:string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const categoryData : Category = await categoryService.getOne(id);
+      setCategory(categoryData);
+    } catch (err) {
+      console.error("Error in fetchCategory:", err);
+      setError(
+        err instanceof Error ? err.message : "Error al cargar categoría",
+      );
+    } finally {
       setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    if(id){
+      fetchCategory(id);
     }
   }, [id]);
 

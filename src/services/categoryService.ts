@@ -1,0 +1,106 @@
+import type { Category } from "../types/categoryType";
+
+const baseUrl = "http://localhost:3000/api/category";
+
+const getAuthHeaders = () => {
+  const token = JSON.parse(localStorage.getItem("user") || "{}").token;
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+};
+
+export const categoryService = {
+  getAll: async () : Promise<Category[]> => {
+    const response = await fetch(`${baseUrl}/getAll`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
+    }
+    const json = await response.json();
+    return json.data as Category[];
+  },
+
+  getOne: async (id: string) : Promise<Category> => {
+    const response = await fetch(`${baseUrl}/getOne/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
+    }
+    const json = await response.json();
+    return json.data;
+  },
+
+  add: async (category: Category) : Promise<Category>=> {
+    const response = await fetch(`${baseUrl}/add`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(category),
+    });
+    if (!response.ok) {
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
+    }
+
+    const json = await response.json();
+
+    return json.data as Category;
+  },
+
+  update: async (category: Category): Promise<Category> => {
+    const response = await fetch(`${baseUrl}/update/${category.id}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(category),
+    });
+
+    if (!response.ok) {
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
+    }
+    const json = await response.json();
+    return json.data as Category;
+  },
+
+  remove: async (id: string): Promise<void> => {
+    const response = await fetch(`${baseUrl}/remove/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
+    }
+  },
+};

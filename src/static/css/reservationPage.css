@@ -17,10 +17,6 @@
 }
 
 .back-button {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
   background: #6c757d;
   color: white;
   border: none;

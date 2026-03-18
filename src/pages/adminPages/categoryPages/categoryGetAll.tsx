@@ -2,12 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
-
-interface Category {
-  id?: number;
-  description: string;
-  usertype: string;
-}
+import { categoryService } from "../../../services/categoryService";
+import type { Category } from "../../../types/categoryType";
 
 const CategoryGetAll = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -22,55 +18,55 @@ const CategoryGetAll = () => {
   // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  useEffect(() => {
-    const fetchCategories = async () => {
+  const fetchCategories = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
+        const categories : Category[] = await categoryService.getAll()
         
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/category/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        
-        let categoryData: Category[] = [];
-        
-        if (Array.isArray(responseData)) {
-          categoryData = responseData;
-        } else if (responseData.categories && Array.isArray(responseData.categories)) {
-          categoryData = responseData.categories;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          categoryData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
-        }
-        
-        setCategories(categoryData);
+        setCategories(categories);
       } catch (err) {
+        showNotification('Error al cargar categorías', 'error' )
         setError(err instanceof Error ? err.message : 'Error al cargar categorías');
       } finally {
         setLoading(false);
       }
     };
 
+  const deleteCategory = async () => {
+    setIsDeleting(true);
+
+    try {
+      if (!categoryToDelete) {
+        return;
+      }
+      categoryService.remove(categoryToDelete.id!);
+
+      setCategories((prevCategories) =>
+        prevCategories.filter(
+          (category) => category.id !== categoryToDelete.id,
+        ),
+      );
+
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+
+      showNotification(
+        `Categoría "${categoryToDelete.description}" eliminada con éxito`,
+        "success",
+      );
+    } catch (err) {
+      showNotification("Error al eliminar categoría", "error");
+      setError(
+        err instanceof Error ? err.message : "Error al eliminar categoría",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -85,69 +81,8 @@ const CategoryGetAll = () => {
 
   const handleConfirmDelete = async () => {
     if (!categoryToDelete || !categoryToDelete.id) return;
-
-    setIsDeleting(true);
     
-    try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      const response = await fetch(`http://localhost:3000/api/category/remove/${categoryToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        
-        if (response.status === 404) {
-          throw new Error('Categoría no encontrada');
-        } else if (response.status === 403) {
-          throw new Error('No tienes permisos para eliminar esta categoría');
-        } else if (response.status === 409) {
-          throw new Error('No se puede eliminar la categoría porque está siendo utilizada');
-        } else {
-          let errorMessage = `Error: ${response.status}`;
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            errorMessage = responseText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-      }
-
-      setCategories(prevCategories => 
-        prevCategories.filter(category => category.id !== categoryToDelete.id)
-      );
-      
-      setShowDeleteModal(false);
-      setCategoryToDelete(null);
-      
-      showNotification(
-        `Categoría "${categoryToDelete.description}" eliminada con éxito`, 
-        'success'
-      );
-      
-    } catch (err) {
-      console.error('Error al eliminar categoría:', err);
-      
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      
-      showNotification(
-        `Error al eliminar categoría: ${errorMessage}`, 
-        'error'
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteCategory()
   };
 
   const handleCancelDelete = () => {

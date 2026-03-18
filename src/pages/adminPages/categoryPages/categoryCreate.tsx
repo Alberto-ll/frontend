@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryCreate.css';
+import type { Category } from "../../../types/categoryType";
+import { categoryService } from "../../../services/categoryService";
 
 const CategoryCreate = () => {
   const navigate = useNavigate();
@@ -29,12 +31,6 @@ const CategoryCreate = () => {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
       // Validaciones básicas
       if (!formData.description.trim()) {
         throw new Error('La descripción es obligatoria');
@@ -45,32 +41,12 @@ const CategoryCreate = () => {
       }
 
       // Preparar datos para enviar
-      const createData = {
+      const createData : Category = {
         description: formData.description.trim(),
         usertype: formData.usertype.trim()
       };
 
-      const response = await fetch('http://localhost:3000/api/category/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(createData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
+      categoryService.add(createData)
 
       alert('Categoría creada con éxito');
       navigate('/admin/categories/getAll');
