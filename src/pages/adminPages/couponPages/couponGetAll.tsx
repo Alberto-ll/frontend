@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import type {Coupon} from '../../../types/couponType.ts'
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { couponService } from '../../../services/couponService.ts';
 
 export default function CouponGetAll() {
-    const [data, setData] = useState<CouponResponse | null>(null);
+    const [data, setData] = useState<Coupon[] | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [ error, setError ] = useState<boolean>(false);
 
@@ -13,19 +14,7 @@ export default function CouponGetAll() {
     const getAll = useCallback(async () =>{
             try{
                 setLoading(true)
-                const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
-                const response = await fetch('http://localhost:3000/api/coupons/getAll',{
-                    method:"GET",
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                if(!response.ok){
-                    const errors = await response.json();
-                    throw errors
-                }
-                const json:CouponResponse = await response.json()
+                const json : Coupon[] = await couponService.getAll()
                 setData(json)
             }catch(error){
                 showNotification(errorHandler(error), 'error');
@@ -78,7 +67,7 @@ export default function CouponGetAll() {
                     <th></th>
                 </thead>
                 <tbody>
-                    {data?.data.map((coupon) => (
+                    {data?.map((coupon) => (
             <tr key={coupon.id}>
               <td>{coupon.id}</td>
               <td>{coupon.discount}</td>
@@ -93,7 +82,3 @@ export default function CouponGetAll() {
     </div>
   );
 }
-
-type CouponResponse = {
-    data: Coupon[];
-};

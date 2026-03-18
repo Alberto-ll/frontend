@@ -2,6 +2,7 @@ import { useOutletContext } from "react-router";
 import { useCallback, useState, useEffect } from "react";
 import '../../../static/css/crudTable.css'
 import type { BusinessData } from "../../../types/businessType";
+import { businessService } from "../../../services/businessService";
 
 interface Locality {
   id: number;
@@ -99,7 +100,7 @@ export default function InactiveBusinesses() {
 
             // Cargar datos en paralelo
             await Promise.all([
-                fetchBusinesses(token),
+                fetchBusinesses(),
                 fetchLocalities(token),
                 fetchOwners(token)
             ]);
@@ -113,34 +114,8 @@ export default function InactiveBusinesses() {
         }
     }, [showNotification])
 
-    const fetchBusinesses = async (token: string) => {
-        const response = await fetch('http://localhost:3000/api/business/findAll', {
-            method: "GET",
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        if (!response.ok) {
-            if (response.status == 404) {
-                throw new Error("No hay negocios registrados")
-            }
-            throw new Error("HTTP Error! status: " + response.status)
-        }
-        
-        const json = await response.json();
-        
-        // Procesar la respuesta para obtener el array de negocios
-        let businessesData: BusinessData[] = [];
-        if (Array.isArray(json)) {
-            businessesData = json;
-        } else if (json.data && Array.isArray(json.data)) {
-            businessesData = json.data;
-        } else if (json.businesses && Array.isArray(json.businesses)) {
-            businessesData = json.businesses;
-        }
-        
+    const fetchBusinesses = async () => {
+        const businessesData : BusinessData[] = await businessService.getAll()
         setData(businessesData);
         
         // Filtrar negocios inactivos
