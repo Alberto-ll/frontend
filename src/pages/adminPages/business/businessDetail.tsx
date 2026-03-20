@@ -4,104 +4,19 @@ import '../../../static/css/categories/categoryDetail.css';
 import type { BusinessData } from "../../../types/businessType";
 import { businessService } from "../../../services/businessService";
 
-interface Locality {
-  id: number;
-  name: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [business, setBusiness] = useState<BusinessData | null>(null);
-  const [localities, setLocalities] = useState<Locality[]>([]);
-  const [owners, setOwners] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Cargar localidades
-  const fetchLocalities = async (token: string) => {
-    try {
-      const response = await fetch('http://localhost:3000/api/localities/getAll', {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const localitiesData = await response.json();
-        const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                              localitiesData.data || localitiesData.localities || [];
-        setLocalities(localitiesArray);
-      }
-    } catch (err) {
-      console.error('Error cargando localidades:', err);
-    }
-  };
-
-  // Cargar usuarios
-  const fetchOwners = async (token: string) => {
-    try {
-      const response = await fetch('http://localhost:3000/api/users/findAll', {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const ownersData = await response.json();
-        const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                          ownersData.data || ownersData.users || [];
-        setOwners(ownersArray);
-      }
-    } catch (err) {
-      console.error('Error cargando usuarios:', err);
-    }
-  };
-
-  // Función para obtener el nombre de la localidad
-  const getLocalityName = (locality: number | { id: number; name: string }): string => {
-    if (typeof locality === 'object' && locality !== null) {
-      return locality.name;
-    } else if (typeof locality === 'number') {
-      const foundLocality = localities.find(l => l.id === locality);
-      return foundLocality?.name || `ID: ${locality}`;
-    }
-    return 'N/A';
-  };
-
-  // Función para obtener el nombre del dueño
-  const getOwnerName = (owner: number | { id: number; name: string; email: string }): string => {
-    if (typeof owner === 'object' && owner !== null) {
-      return owner.name || owner.email || 'N/A';
-    } else if (typeof owner === 'number') {
-      const foundOwner = owners.find(o => o.id === owner);
-      return foundOwner?.name || foundOwner?.email || `ID: ${owner}`;
-    }
-    return 'N/A';
-  };
 
   const fetchAllData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        await Promise.all([
-          fetchBusiness(),
-          fetchLocalities(token),
-          fetchOwners(token)
-        ]);
+        await fetchBusiness()
         
       } catch (err) {
         console.error('Error in fetchAllData:', err);
@@ -120,7 +35,7 @@ const BusinessDetail = () => {
 
   useEffect(() => {
       fetchAllData()
-  }, []);
+  }, [id]);
 
   // Función para formatear el porcentaje de depósito
   const formatDepositPercentage = (percentage: number) => {
@@ -193,12 +108,12 @@ const BusinessDetail = () => {
           
           <div className="detail-item">
             <label>Localidad:</label>
-            <span className="locality-badge">{getLocalityName(business.locality)}</span>
+            <span className="locality-badge">{typeof business.locality === 'object' ? business.locality.name : business.locality}</span>
           </div>
           
           <div className="detail-item">
             <label>Dueño:</label>
-            <span className="owner-badge">{getOwnerName(business.owner!)}</span>
+            <span className="owner-badge">{typeof business.owner === 'object' ? business.owner.name : business.owner}</span>
           </div>
           
           <div className="detail-item">
@@ -257,7 +172,7 @@ const BusinessDetail = () => {
           ← Volver a la lista
         </button>
         <Link 
-          to={`/admin/businesses/update/${business.id}`}
+          to={`/admin/business/update/${business.id}`}
           className="edit-button"
         >
           ✏️ Editar Negocio

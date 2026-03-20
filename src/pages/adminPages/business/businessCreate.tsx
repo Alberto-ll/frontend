@@ -4,17 +4,10 @@ import '../../../static/css/categories/categoryCreate.css';
 import type { BusinessData } from "../../../types/businessType";
 import { businessService } from "../../../services/businessService";
 import { errorHandler } from "../../../types/apiError";
-
-interface Locality {
-  id: number;
-  name: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+import type { Locality } from "../../../types/localityType";
+import type { UserData } from "../../../types/userData";
+import { localityService } from "../../../services/localityService";
+import { userService } from "../../../services/userService";
 
 const BusinessCreate = () => {
   const navigate = useNavigate();
@@ -35,54 +28,19 @@ const BusinessCreate = () => {
 
   // Estados para datos de selección
   const [localities, setLocalities] = useState<Locality[]>([]);
-  const [owners, setOwners] = useState<User[]>([]);
+  const [owners, setOwners] = useState<UserData[]>([]);
 
-  // Cargar localidades y dueños disponibles
-  useEffect(() => {
-    const fetchInitialData = async () => {
+  const fetchInitialData = async () => {
       try {
         setLoadingData(true);
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
         
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
+        const localitiesData : Locality[] = await localityService.getAll() 
 
-        // Cargar localidades
-        const localitiesResponse = await fetch('http://localhost:3000/api/localities/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        setLocalities(localitiesData)
 
-        if (localitiesResponse.ok) {
-          const localitiesData = await localitiesResponse.json();
-          const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                                localitiesData.data || localitiesData.localities || [];
-          setLocalities(localitiesArray);
-        } else {
-          throw new Error(`Error al cargar localidades: ${localitiesResponse.status}`);
-        }
+        const ownersData : UserData[] = await userService.getAll()
 
-        // Cargar usuarios
-        const ownersResponse = await fetch('http://localhost:3000/api/users/findAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (ownersResponse.ok) {
-          const ownersData = await ownersResponse.json();
-          const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                            ownersData.data || ownersData.users || [];
-          setOwners(ownersArray);
-        } else {
-          throw new Error(`Error al cargar usuarios: ${ownersResponse.status}`);
-        }
+        setOwners(ownersData)
 
       } catch (err) {
         setError('Error al cargar datos necesarios: ' + (err instanceof Error ? err.message : 'Error desconocido'));
@@ -91,6 +49,8 @@ const BusinessCreate = () => {
       }
     };
 
+  // Cargar localidades y dueños disponibles
+  useEffect(() => {
     fetchInitialData();
   }, []);
 
@@ -142,8 +102,6 @@ const BusinessCreate = () => {
         active: false, // Por defecto inactivo hasta que un admin lo active
         averageRating: 0.0
       };
-
-      console.log(businessData)
 
       add(businessData)
       

@@ -4,107 +4,23 @@ import '../../../static/css/crudTable.css'
 import type { BusinessData } from "../../../types/businessType";
 import { businessService } from "../../../services/businessService";
 
-interface Locality {
-  id: number;
-  name: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
 export default function InactiveBusinesses() {
     const [data, setData] = useState<BusinessData[]>([]);
     const [inactiveBusinesses, setInactiveBusinesses] = useState<BusinessData[]>([]);
-    const [localities, setLocalities] = useState<Locality[]>([]);
-    const [owners, setOwners] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<boolean>(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-    // Cargar localidades
-    const fetchLocalities = async (token: string) => {
-        try {
-            const response = await fetch('http://localhost:3000/api/localities/getAll', {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const localitiesData = await response.json();
-                const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                                    localitiesData.data || localitiesData.localities || [];
-                setLocalities(localitiesArray);
-            }
-        } catch (error) {
-            console.error('Error cargando localidades:', error);
-        }
-    };
-
-    // Cargar usuarios
-    const fetchOwners = async (token: string) => {
-        try {
-            const response = await fetch('http://localhost:3000/api/users/findAll', {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const ownersData = await response.json();
-                const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                                ownersData.data || ownersData.users || [];
-                setOwners(ownersArray);
-            }
-        } catch (error) {
-            console.error('Error cargando usuarios:', error);
-        }
-    };
-
-    // Función para obtener el nombre de la localidad
-    const getLocalityName = (locality: number | Locality): string => {
-        if (typeof locality === 'object' && locality !== null) {
-            return locality.name;
-        } else if (typeof locality === 'number') {
-            const foundLocality = localities.find(l => l.id === locality);
-            return foundLocality?.name || `ID: ${locality}`;
-        }
-        return 'N/A';
-    };
-
-    // Función para obtener el nombre del dueño
-    const getOwnerName = (owner: number | User): string => {
-        if (typeof owner === 'object' && owner !== null) {
-            return owner.name || owner.email || 'N/A';
-        } else if (typeof owner === 'number') {
-            const foundOwner = owners.find(o => o.id === owner);
-            return foundOwner?.name || foundOwner?.email || `ID: ${owner}`;
-        }
-        return 'N/A';
-    };
-
     const getAll = useCallback(async () => {
         try {
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            
-            if (!token) {
-                throw new Error('No se encontró token de autenticación');
-            }
-
-            // Cargar datos en paralelo
-            await Promise.all([
-                fetchBusinesses(),
-                fetchLocalities(token),
-                fetchOwners(token)
-            ]);
-            
+            const businessesData : BusinessData[] = await businessService.getAll()
+            setData(businessesData);
+        
+            // Filtrar negocios inactivos
+            const inactive = businessesData.filter(business => !business.active);
+            setInactiveBusinesses(inactive);
         } catch (error) {
             showNotification('' + error, 'error')
             setError(true)
@@ -114,39 +30,18 @@ export default function InactiveBusinesses() {
         }
     }, [showNotification])
 
-    const fetchBusinesses = async () => {
-        const businessesData : BusinessData[] = await businessService.getAll()
-        setData(businessesData);
-        
-        // Filtrar negocios inactivos
-        const inactive = businessesData.filter(business => !business.active);
-        setInactiveBusinesses(inactive);
-    };
-
     useEffect(() => {
         if (!error) {
             getAll();
         }
     }, [error, getAll])
 
-    // Función simplificada para activar el negocio
     const activateBusiness = async (id: number) => {
         try {
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
             
-            const response = await fetch(`http://localhost:3000/api/business/activate/${id}`, {
-                method: "PUT",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-            })
-            
-            if (!response.ok) {
-                throw new Error("HTTP Error! status: " + response.status)
-            }
-            
+            await businessService.activate(id)
+
             showNotification('Negocio habilitado con éxito!', 'success');
             
             // Recargar los datos después de activar
@@ -227,21 +122,17 @@ export default function InactiveBusinesses() {
                                         <td style={{ fontWeight: 'bold' }}>{business.businessName}</td>
                                         <td>
                                             <div>
-                                                <div><strong>{getOwnerName(business.owner)}</strong></div>
+                                                <div><strong>{typeof business.owner === 'object' ? business.owner.name : business.owner}</strong></div>
                                                 <small style={{ color: '#6b7280', fontSize: '0.8rem' }}>
-                                                    {typeof business.owner === 'object' 
-                                                        ? `ID: ${business.owner.id}`
-                                                        : `ID: ${business.owner}`}
+                                                    {`ID: ${typeof business.owner === 'object' ? business.owner.id : business.owner}`}
                                                 </small>
                                             </div>
                                         </td>
                                         <td>
                                             <div>
-                                                <div><strong>{getLocalityName(business.locality)}</strong></div>
+                                                <div><strong>{typeof business.locality === 'object' ? business.locality.name : business.locality}</strong></div>
                                                 <small style={{ color: '#6b7280', fontSize: '0.8rem' }}>
-                                                    {typeof business.locality === 'object' 
-                                                        ? `ID: ${business.locality.id}`
-                                                        : `ID: ${business.locality}`}
+                                                    {`ID: ${typeof business.locality === 'object' ? business.locality.id : business.locality}`}
                                                 </small>
                                             </div>
                                         </td>

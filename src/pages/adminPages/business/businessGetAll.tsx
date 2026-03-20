@@ -5,21 +5,8 @@ import DeleteConfirm from '../../../components/deleteConfirm';
 import { businessService } from "../../../services/businessService";
 import type { BusinessData } from "../../../types/businessType";
 
-interface Locality {
-  id: number;
-  name: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
 const BusinessGetAll = () => {
   const [businesses, setBusinesses] = useState<BusinessData[]>([]);
-  const [localities, setLocalities] = useState<Locality[]>([]);
-  const [owners, setOwners] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -31,84 +18,10 @@ const BusinessGetAll = () => {
   // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  // Función para obtener el nombre de la localidad
-  const getLocalityName = (locality: number | Locality): string => {
-    if (typeof locality === 'object' && locality !== null) {
-      return locality.name;
-    } else if (typeof locality === 'number') {
-      const foundLocality = localities.find(l => l.id === locality);
-      return foundLocality?.name || 'N/A';
-    }
-    return 'N/A';
-  };
-
-  // Función para obtener el nombre del dueño
-  const getOwnerName = (owner: number | User): string => {
-    if (typeof owner === 'object' && owner !== null) {
-      return owner.name || owner.email || 'N/A';
-    } else if (typeof owner === 'number') {
-      const foundOwner = owners.find(o => o.id === owner);
-      return foundOwner?.name || foundOwner?.email || 'N/A';
-    }
-    return 'N/A';
-  };
-
-  // Cargar localidades
-  const fetchLocalities = async (token: string) => {
-    try {
-      const response = await fetch('http://localhost:3000/api/localities/getAll', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const localitiesData = await response.json();
-        const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                              localitiesData.data || localitiesData.localities || [];
-        setLocalities(localitiesArray);
-      }
-    } catch (err) {
-      console.error('Error cargando localidades:', err);
-    }
-  };
-
-  // Cargar usuarios
-  const fetchOwners = async (token: string) => {
-    try {
-      const response = await fetch('http://localhost:3000/api/users/findAll', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const ownersData = await response.json();
-        const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                          ownersData.data || ownersData.users || [];
-        setOwners(ownersArray);
-      }
-    } catch (err) {
-      console.error('Error cargando usuarios:', err);
-    }
-  };
-
   const fetchBusinesses = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const token = JSON.parse(localStorage.getItem("user") || "{}").token;
-      if (!token) {
-        throw new Error("No se encontró token de autenticación");
-      }
-      fetchLocalities(token);
-      fetchOwners(token);
-
       const response = await businessService.getAll();
 
       setBusinesses(response);
@@ -140,40 +53,7 @@ const BusinessGetAll = () => {
     setIsDeleting(true);
     
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      const response = await fetch(`http://localhost:3000/api/business/remove/${businessToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        
-        if (response.status === 404) {
-          throw new Error('Negocio no encontrado');
-        } else if (response.status === 403) {
-          throw new Error('No tienes permisos para eliminar este negocio');
-        } else if (response.status === 409) {
-          throw new Error('No se puede eliminar el negocio porque tiene canchas asociadas');
-        } else {
-          let errorMessage = `Error: ${response.status}`;
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            errorMessage = responseText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-      }
+     await businessService.remove(businessToDelete.id)
 
       // Actualizar la lista local removiendo el negocio eliminado
       setBusinesses(prevBusinesses => 
@@ -293,8 +173,8 @@ const BusinessGetAll = () => {
                       <td className="table-cell">{business.id || 'N/A'}</td>
                       <td className="table-cell">{business.businessName}</td>
                       <td className="table-cell">{business.address}</td>
-                      <td className="table-cell">{getLocalityName(business.locality)}</td>
-                      <td className="table-cell">{getOwnerName(typeof business.owner === 'number' ? business.owner : 0)}</td>
+                      <td className="table-cell">{typeof business.locality === 'object' ? business.locality.name : business.locality}</td>
+                      <td className="table-cell">{typeof business.owner === 'object' ? business.owner.name : business.owner}</td>
                       <td className="table-cell">{business.averageRating?.toFixed(1) || '0.0'}</td>
                       <td className="table-cell">{formatPercentage(business.reservationDepositPercentage)}</td>
                       <td className="table-cell">{business.openingAt} - {business.closingAt}</td>
@@ -337,7 +217,7 @@ const BusinessGetAll = () => {
         isOpen={showDeleteModal}
         title="Eliminar Negocio"
         message="¿Estás seguro de que quieres eliminar este negocio? Esta acción afectará a todas las canchas asociadas y no se puede deshacer."
-        itemName={businessToDelete ? `${businessToDelete.businessName} (${getLocalityName(businessToDelete.locality)})` : undefined}
+        itemName={businessToDelete ? `${businessToDelete.businessName} (${(typeof businessToDelete.locality === 'object' ? businessToDelete.locality.name : businessToDelete.locality)})` : undefined}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         confirmText="Eliminar Negocio"

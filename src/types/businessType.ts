@@ -1,12 +1,15 @@
+import type { Locality } from "./localityType";
+import type { UserData } from "./userData";
+
 export type BusinessData = {
   id?: number;
-  owner:number | undefined;
+  owner: UserData | number;
   businessName: string;
   address: string;
   averageRating: number; 
   reservationDepositPercentage:number,
   active:boolean;
-  locality:number;
+  locality: Locality | number;
   openingAt:string;
   closingAt:string;
   activatedAt?: Date;

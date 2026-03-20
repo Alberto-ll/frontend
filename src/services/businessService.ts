@@ -103,4 +103,20 @@ export const businessService = {
         throw errors;
     }
   },
+
+  activate: async (id: number): Promise<void> => {
+    const response = await fetch(`${baseUrl}/activate/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      let errors;
+        try {
+            errors = await response.json();
+        } catch {
+            errors = { message: `Error del servidor: ${response.statusText}` };
+        }
+        throw errors;
+    }
+  }
 };
