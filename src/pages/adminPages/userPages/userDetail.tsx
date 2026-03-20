@@ -1,108 +1,35 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/users/userDetail.css';
-
-interface User {
-  id?: number;
-  name: string;
-  surname: string;
-  email: string;
-  phoneNumber?: string;
-  categoryName?: string; // Cambiado para coincidir con el backend
-  category?: {
-    id: number;
-    name?: string;
-    usertype?: string; // Agregado usertype
-  };
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface Category {
-  id: number;
-  description: string;
-  usertype: string;
-}
+import type { UserData } from "../../../types/userData";
+import { userService } from "../../../services/userService";
 
 const UserDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
+  const fetchUser = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const url = `http://localhost:3000/api/users/findOne/${id}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Usuario no encontrado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Response data:', responseData); // Debug log
-        
-        // El backend puede devolver los datos directamente o dentro de 'data'
-        const userData = responseData.data || responseData;
-        console.log('User data extracted:', userData); // Debug log
+        const userData : UserData = await userService.getOne(id!)
         
         setUser(userData);
       } catch (err) {
-        console.error('Error in fetchUser:', err);
+        console.error('Error en fetchUser:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar usuario');
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    const fetchCategories = async () => {
-      try {
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/category/getAll', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setCategories(data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-
+  useEffect(() => {
     if (id) {
       fetchUser();
-      fetchCategories();
     } else {
       setError('No se proporcionó ID de usuario');
       setLoading(false);
@@ -134,19 +61,11 @@ const UserDetail = () => {
 
   // Función para obtener el nombre de la categoría
   const getCategoryDisplay = () => {
-    if (user.categoryName) {
-      return user.categoryName;
+    if (typeof user.category === 'object') {
+      return user.category.description;
+    }else{
+      return user.category
     }
-    if (user.category?.usertype) {
-      return user.category.usertype;
-    }
-    if (user.category?.name) {
-      return user.category.name;
-    }
-    if (user.category?.id) {
-      return `ID: ${user.category.id}`;
-    }
-    return 'Sin categoría';
   };
 
   return (

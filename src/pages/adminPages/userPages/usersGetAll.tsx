@@ -1,69 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import '../../../static/css/users/usersGetAll.css';
-
-interface User {
-  id?: number;
-  name: string;
-  surname: string;
-  email: string;
-  phoneNumber?: string;
-  password?: string;
-  categoryName?: string;
-  category?: {
-    id: number;
-    name: string;
-    usertype?: string;
-  };
-  createdAt?: string;
-  updatedAt?: string;
-}
+import type { UserData } from "../../../types/userData";
+import { userService } from "../../../services/userService";
 
 const UsersGetAll = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
+  const fetchUsers = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/users/findAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        
-        let userData: User[] = [];
-        
-        if (Array.isArray(responseData)) {
-          userData = responseData;
-        } else if (responseData.users && Array.isArray(responseData.users)) {
-          userData = responseData.users;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          userData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
-        }
+        const userData : UserData[] = await userService.getAll();
         
         setUsers(userData);
       } catch (err) {
@@ -73,6 +24,18 @@ const UsersGetAll = () => {
       }
     };
 
+    const remove = async (userId : number) => {
+      try {
+      await userService.remove(userId)
+
+      setUsers(users.filter(user => user.id !== userId));
+      alert('Usuario eliminado con éxito');
+    } catch (err) {
+      alert('Error al eliminar usuario: ' + (err instanceof Error ? err.message : 'Error desconocido'));
+    }
+  }
+
+  useEffect(() => {
     fetchUsers();
   }, []);
 
@@ -85,26 +48,7 @@ const UsersGetAll = () => {
       return;
     }
 
-    try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      const response = await fetch(`http://localhost:3000/api/users/delete/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar usuario');
-      }
-
-      setUsers(users.filter(user => user.id !== userId));
-      alert('Usuario eliminado con éxito');
-    } catch (err) {
-      alert('Error al eliminar usuario: ' + (err instanceof Error ? err.message : 'Error desconocido'));
-    }
+    remove(userId)
   };
 
   if (loading) {
@@ -175,7 +119,7 @@ const UsersGetAll = () => {
                       <td className="table-cell">{user.email}</td>
                       <td className="table-cell">{user.phoneNumber || 'No especificado'}</td>
                       <td className="table-cell">
-                        {user.categoryName || user.category?.usertype || user.category?.name || 'Sin categoría'}
+                        {typeof user.category === 'object' ? user.category.description : user.category ?? 'Sin categoría'}
                       </td>
                       <td className="table-cell">
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-ES') : 'N/A'}

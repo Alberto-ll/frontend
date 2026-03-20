@@ -1,34 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/users/userUpdate.css';
-
-// Actualizar la interface User para reflejar la entidad real:
-interface User {
-  id?: number;
-  name: string;
-  surname: string;
-  email: string;
-  phoneNumber?: string;
-  category: {  
-    id: number;
-    description: string;
-    usertype: string;
-  };
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface Category {
-  id: number;
-  description: string;
-  usertype: string;
-}
+import type { UserData } from "../../../types/userData";
+import type { Category } from "../../../types/categoryType";
+import { categoryService } from "../../../services/categoryService";
+import { userService } from "../../../services/userService";
 
 const UserUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,11 +22,10 @@ const UserUpdate = () => {
     surname: '',
     email: '',
     phoneNumber: '',
-    categoryId: ''
+    category: ''
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -56,65 +37,19 @@ const UserUpdate = () => {
         }
 
         // Cargar en paralelo usando Promise.all
-        const [categoryResponse, userResponse] = await Promise.all([
-          fetch('http://localhost:3000/api/category/getAll', {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          fetch(`http://localhost:3000/api/users/findOne/${id}`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          })
-        ]);
+        const [categoryResponse, userResponse] = await Promise.all([categoryService.getAll(),
+          userService.getOne(id!)]);
 
-        // Procesar categorías
-        let categoriesArray = [];
-        if (categoryResponse.ok) {
-          const categoryData = await categoryResponse.json();
-          
-          if (Array.isArray(categoryData)) {
-            categoriesArray = categoryData;
-          } else if (categoryData.categories && Array.isArray(categoryData.categories)) {
-            categoriesArray = categoryData.categories;
-          } else if (categoryData.data && Array.isArray(categoryData.data)) {
-            categoriesArray = categoryData.data;
-          }
-          
-          setCategories(categoriesArray);
-        }
-
-        // Procesar usuario
-        if (!userResponse.ok) {
-          throw new Error('Error al cargar usuario');
-        }
-
-        const userData = await userResponse.json();
-        const user = userData.data || userData;
+        setCategories(categoryResponse);
         
-        console.log('DATOS DEL USUARIO RECIBIDOS:', user);
-        setUser(user);
+        setUser(userResponse);
 
-        let currentCategoryId = '';
-        
-        if (user.category && user.category.id) {
-          currentCategoryId = String(user.category.id);
-          console.log(' CategoryId encontrado:', currentCategoryId);
-          console.log(' Categoría completa:', user.category);
-        } else {
-          console.log(' Usuario sin categoría');
-        }
-
-        // Establecer form data
         setFormData({
-          name: user.name || '',
-          surname: user.surname || '',
-          email: user.email || '',
-          phoneNumber: user.phoneNumber || '',
-          categoryId: currentCategoryId
+          name: user!.name || '',
+          surname: user!.surname || '',
+          email: user!.email || '',
+          phoneNumber: user!.phoneNumber || '',
+          category: typeof user?.category === 'object' ? user?.category.description : user?.category ?? ''
         });
 
       } catch (err) {
@@ -126,6 +61,7 @@ const UserUpdate = () => {
       }
     };
 
+  useEffect(() => {
     if (id) {
       fetchData();
     }
@@ -139,50 +75,23 @@ const UserUpdate = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
+  const update = async () => 
+  {
     try {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
 
-      const updateData = {
+      const updateData : UserData = {
+        id: typeof id === 'number' ? id : Number(id),
         name: formData.name.trim(),
         surname: formData.surname.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim() || undefined,
-        categoryId: formData.categoryId ? parseInt(formData.categoryId) : undefined // Enviar como número
+        category: formData.category.trim()
       };
 
-      console.log('Datos a enviar al backend:', updateData);
-
-      const response = await fetch(`http://localhost:3000/api/users/update/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
+      await userService.update(updateData)
 
       alert('Usuario actualizado con éxito');
       navigate(`/admin/users/detail/${id}`);
@@ -192,6 +101,12 @@ const UserUpdate = () => {
     } finally {
       setSaving(false);
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    update()
   };
 
   const handleCancel = () => {
@@ -233,7 +148,7 @@ const UserUpdate = () => {
       {user?.category && (
         <div className="user-subtitle">
           <span className="current-category-subtitle">
-            📋 Categoría actual: <strong>{user.category.description}</strong> ({user.category.usertype})
+            📋 Categoría actual: {typeof user.category === 'object' ? user.category.description + user.category.usertype : (<strong>user.category</strong>)}
           </span>
         </div>
       )}
@@ -259,7 +174,7 @@ const UserUpdate = () => {
             <div className="info-item">
               <span className="info-label">Categoría Actual:</span>
               <span className="info-value category-highlight">
-                {user.category.description} ({user.category.usertype})
+               {typeof user.category === 'object' ? user.category.description + user.category.usertype : (<strong>user.category</strong>)}
               </span>
             </div>
           </div>
@@ -334,7 +249,7 @@ const UserUpdate = () => {
             <select
               id="categoryId"
               name="categoryId"
-              value={formData.categoryId}
+              value={formData.category}
               onChange={handleInputChange}
               className="form-select"
             >

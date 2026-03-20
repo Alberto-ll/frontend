@@ -1,11 +1,15 @@
+import type { Category } from "./categoryType"
+
 export type UserData = {
     email:string,
-    password:string,
+    password?:string,
     name?:string,
-    category?:string,
+    category?:string | Category,
     surname?:string,
-    phoneNumber?:string,
+    phoneNumber?:string | null,
     id?:number,
-    exp?:number
+    exp?:number,
+    createdAt?: string,
+    updatedAt?: string
 }
 
