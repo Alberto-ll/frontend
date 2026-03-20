@@ -6,7 +6,7 @@ import { categoryService } from "../../../services/categoryService";
 import type { UserData } from "../../../types/userData";
 import { userService } from "../../../services/userService";
 
-export const UserCreate = () => {
+const UserCreate = () => {
   const navigate = useNavigate();
   
   const [categories, setCategories] = useState<Category[]>([]);
@@ -256,3 +256,5 @@ export const UserCreate = () => {
     </div>
   );
 };
+
+export default UserCreate;

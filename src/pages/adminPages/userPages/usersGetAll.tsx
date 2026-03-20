@@ -16,6 +16,8 @@ const UsersGetAll = () => {
         
         const userData : UserData[] = await userService.getAll();
         
+        console.log(userData)
+
         setUsers(userData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
@@ -119,7 +121,7 @@ const UsersGetAll = () => {
                       <td className="table-cell">{user.email}</td>
                       <td className="table-cell">{user.phoneNumber || 'No especificado'}</td>
                       <td className="table-cell">
-                        {typeof user.category === 'object' ? user.category.description : user.category ?? 'Sin categoría'}
+                        {typeof user.category === 'object' ? user.category.usertype : user.category ?? 'Sin categoría'}
                       </td>
                       <td className="table-cell">
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-ES') : 'N/A'}

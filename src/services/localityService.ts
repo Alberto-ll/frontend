@@ -28,7 +28,6 @@ export const localityService = {
         throw errors;
     }
     const json = await response.json();
-    console.log(json)
     return json as Locality[];
   },
 

@@ -5,7 +5,7 @@ import { errorHandler } from '../../../types/apiError.ts';
 import { pitchService } from '../../../services/pitchService.ts';
 
 export default function PitchGetOne(){
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
@@ -13,7 +13,7 @@ export default function PitchGetOne(){
     const getOne = async (id:string) =>{
         try{
             setLoading(true)
-            const json:PitchResponse = await pitchService.getOne(id)
+            const json:Pitch = await pitchService.getOne(id)
             setData(json)
         }catch(error){
             showNotification(errorHandler(error),'error');
@@ -60,21 +60,17 @@ export default function PitchGetOne(){
                 </thead>
                 <tbody>
                     <tr>
-                        <td>{data.data.id}</td>
-                        <td>{typeof data.data.business === 'number' ? data.data.business : data.data.business?.id ?? '-' }</td>
-                        <td>{('⭐️').repeat(data.data.rating)}</td>
-                        <td>${data.data.price}</td>
-                        <td>{data.data.size}</td>
-                        <td>{data.data.groundType}</td>
-                        <td>{data.data.roof ? 'Techado':'Sin techo'}</td>
+                        <td>{data.id}</td>
+                        <td>{typeof data.business === 'number' ? data.business : data.business?.id ?? '-' }</td>
+                        <td>{('⭐️').repeat(data.rating)}</td>
+                        <td>${data.price}</td>
+                        <td>{data.size}</td>
+                        <td>{data.groundType}</td>
+                        <td>{data.roof ? 'Techado':'Sin techo'}</td>
                     </tr>
                 </tbody>
                 </table>)}
                 </pre>
         </div>
     )
-}
-
-type PitchResponse = {
-    data:Pitch
 }

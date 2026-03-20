@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
-import { pitchService, type PitchResponse } from '../../../services/pitchService.ts';
+import { pitchService } from '../../../services/pitchService.ts';
 import type { Pitch } from '../../../types/pitchType.ts';
 
 export default function PitchGetAll() {
-    const [data, setData] = useState<PitchResponse[] | null>(null);
+    const [data, setData] = useState<Pitch[] | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<boolean>(false);
 
@@ -15,7 +15,7 @@ export default function PitchGetAll() {
         try {
             setLoading(true);
             setError(false)
-            const json: PitchResponse[] = await pitchService.getAll();
+            const json: Pitch[] = await pitchService.getAll();
             setData(json);
         } catch (error) {
             showNotification(errorHandler(error), 'error');
@@ -71,7 +71,7 @@ export default function PitchGetAll() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data?.data.map((pitch : Pitch) => (
+                        {data?.map((pitch : Pitch) => (
                             <tr key={pitch.id}>
                                 <td>{pitch.id}</td>
                                 <td>{typeof pitch.business === 'number' ? pitch.business : pitch.business?.id ?? '-' }</td> {/* evitar error de tipado de ts*/}

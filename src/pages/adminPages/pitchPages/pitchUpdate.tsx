@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
-import { pitchService, type PitchResponse } from '../../../services/pitchService.ts';
+import { pitchService } from '../../../services/pitchService.ts';
+import type { Pitch } from '../../../types/pitchType.ts';
 
 export default function PitchUpdate(){
 
@@ -18,7 +19,7 @@ export default function PitchUpdate(){
         { value: 'arcilla', label: 'Arcilla' },
     ];
 
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
@@ -27,7 +28,7 @@ export default function PitchUpdate(){
     const update = async (pitch: FormData) => {
         try{
             setLoading(true)
-            const json: PitchResponse = await pitchService.update(pitch)
+            const json: Pitch = await pitchService.update(pitch)
             setData(json)
             showNotification('Cancha actualizada con éxito!', 'success')
             navigate('/admin/pitchs/getAll')
@@ -167,18 +168,18 @@ export default function PitchUpdate(){
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{data.data.id}</td>
-                                <td>{typeof data.data.business === 'number' ? data.data.business : data.data.business?.id ?? '-' }</td>
-                                <td>{('⭐️').repeat(Math.floor(data.data.rating))} ({data.data.rating})</td>
-                                <td>${data.data.price.toLocaleString()}</td>
+                                <td>{data.id}</td>
+                                <td>{typeof data.business === 'number' ? data.business : data.business?.id ?? '-' }</td>
+                                <td>{('⭐️').repeat(Math.floor(data.rating))} ({data.rating})</td>
+                                <td>${data.price.toLocaleString()}</td>
                                 <td>
-                                    {data.data.size === '5v5' && '5v5 (20x40m)'}
-                                    {data.data.size === '7v7' && '7v7 (40x60m)'}
-                                    {data.data.size === '11v11' && '11v11 (90x120m)'}
-                                    {!['5v5', '7v7', '11v11'].includes(data.data.size) && data.data.size}
+                                    {data.size === '5v5' && '5v5 (20x40m)'}
+                                    {data.size === '7v7' && '7v7 (40x60m)'}
+                                    {data.size === '11v11' && '11v11 (90x120m)'}
+                                    {!['5v5', '7v7', '11v11'].includes(data.size) && data.size}
                                 </td>
-                                <td>{data.data.groundType}</td>
-                                <td>{data.data.roof ? '✅ Con techo' : '❌ Sin techo'}</td>
+                                <td>{data.groundType}</td>
+                                <td>{data.roof ? '✅ Con techo' : '❌ Sin techo'}</td>
                             </tr>
                         </tbody>
                     </table>

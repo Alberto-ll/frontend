@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
 import type { BusinessData } from '../../../types/businessType.ts';
-import { pitchService, type PitchResponse } from '../../../services/pitchService.ts';
+import { pitchService } from '../../../services/pitchService.ts';
+import type { Pitch } from '../../../types/pitchType.ts';
 
 export default function PitchAdd(){
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export default function PitchAdd(){
     const add = async (pitchData: FormData) => {
         try {
             setLoading(true);
-            const json : PitchResponse = await pitchService.add(pitchData)
+            const json : Pitch = await pitchService.add(pitchData)
             setData(json);
             showNotification('Cancha creada con éxito', 'success');
             navigate('/admin/pitchs/getAll');
@@ -235,23 +236,23 @@ export default function PitchAdd(){
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{data.data.id}</td>
-                                <td>{typeof data.data.business === 'number' ? data.data.business : data.data.business?.id ?? '-' }</td>
-                                <td>{('⭐️').repeat(data.data.rating)}</td>
-                                <td>${data.data.price}</td>
-                                <td>{data.data.size}</td>
-                                <td>{data.data.groundType}</td>
-                                <td>{data.data.roof ? 'Techado' : 'Sin techo'}</td>
+                                <td>{data.id}</td>
+                                <td>{typeof data.business === 'number' ? data.business : data.business?.id ?? '-' }</td>
+                                <td>{('⭐️').repeat(data.rating)}</td>
+                                <td>${data.price}</td>
+                                <td>{data.size}</td>
+                                <td>{data.groundType}</td>
+                                <td>{data.roof ? 'Techado' : 'Sin techo'}</td>
                                 <td>
-                                    {data.data.imageUrl ? (
+                                    {data.imageUrl ? (
                                         <img 
-                                            src={data.data.imageUrl} 
+                                            src={data.imageUrl} 
                                             alt="Cancha" 
                                             style={{width: '50px', height: '50px', objectFit: 'cover'}}
                                         />
                                     ) : 'Sin imagen'}
                                 </td>
-                                <td>{new Date(data.data.createdAt).toLocaleDateString()}</td>
+                                <td>{new Date(data.createdAt).toLocaleDateString()}</td>
                             </tr>
                         </tbody>
                     </table>

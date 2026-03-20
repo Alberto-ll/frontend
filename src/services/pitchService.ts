@@ -2,10 +2,6 @@ import type { Pitch } from "../types/pitchType";
 
 const baseUrl = "http://localhost:3000/api/pitchs";
 
-export type PitchResponse = {
-  data: Pitch;
-};
-
 const getAuthHeaders = () => {
   const token = JSON.parse(localStorage.getItem("user") || "{}").token;
   return {
@@ -21,7 +17,7 @@ const getAuthHeadersWithFile = () => {
 };
 
 export const pitchService = {
-  getAll: async (): Promise<PitchResponse[]> => {
+  getAll: async (): Promise<Pitch[]> => {
     const response = await fetch(`${baseUrl}/getAll`, {
       method: "GET",
       headers: getAuthHeaders(),
@@ -30,11 +26,11 @@ export const pitchService = {
       const errors = await response.json();
       throw errors;
     }
-    const json: PitchResponse[] = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as Pitch[];
   },
 
-  getOne: async (id: string): Promise<PitchResponse> => {
+  getOne: async (id: string): Promise<Pitch> => {
     const response = await fetch(`${baseUrl}/getOne/${id}`, {
       headers: getAuthHeaders(),
     });
@@ -42,11 +38,11 @@ export const pitchService = {
       const errors = await response.json();
       throw errors;
     }
-    const json: PitchResponse = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as Pitch;
   },
 
-  add: async (pitch: FormData): Promise<PitchResponse> => {
+  add: async (pitch: FormData): Promise<Pitch> => {
     const response = await fetch(`${baseUrl}/add`, {
       method: "POST",
       headers: getAuthHeadersWithFile(),
@@ -57,11 +53,11 @@ export const pitchService = {
       throw errors;
     }
 
-    const json: PitchResponse = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as Pitch;
   },
 
-  update: async (pitch: FormData): Promise<PitchResponse> => {
+  update: async (pitch: FormData): Promise<Pitch> => {
     const response = await fetch(`${baseUrl}/update/${pitch.get('id')}`, {
       method: "PATCH",
       headers: getAuthHeaders(),
@@ -72,8 +68,8 @@ export const pitchService = {
       const errors = await response.json();
       throw errors;
     }
-    const json: PitchResponse = await response.json();
-    return json;
+    const json = await response.json();
+    return json.data as Pitch;
   },
 
   remove: async (id: number): Promise<void> => {

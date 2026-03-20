@@ -62,7 +62,7 @@ const UserDetail = () => {
   // Función para obtener el nombre de la categoría
   const getCategoryDisplay = () => {
     if (typeof user.category === 'object') {
-      return user.category.description;
+      return user.category.usertype;
     }else{
       return user.category
     }
