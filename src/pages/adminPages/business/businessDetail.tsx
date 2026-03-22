@@ -1,41 +1,12 @@
-import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/categories/categoryDetail.css';
-import type { BusinessData } from "../../../types/businessType";
 import { businessService } from "../../../services/businessService";
+import { useCrud } from "../../../hooks/useCrud";
 
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [business, setBusiness] = useState<BusinessData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchAllData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        await fetchBusiness()
-        
-      } catch (err) {
-        console.error('Error in fetchAllData:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar negocio');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchBusiness = async () => {
-      if(id){
-        const businessData = await businessService.getOne(id)
-        setBusiness(businessData);
-      }
-    };
-
-  useEffect(() => {
-      fetchAllData()
-  }, [id]);
+  const {data:business, error, loading} = useCrud(() => businessService.getOne(id!))
 
   // Función para formatear el porcentaje de depósito
   const formatDepositPercentage = (percentage: number) => {

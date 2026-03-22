@@ -3,7 +3,7 @@ import type {ChangeEvent, FormEvent } from 'react';
 import type { Pitch } from '../../types/pitchType.ts';
 import { useNavigate, useOutletContext, useParams } from 'react-router';
 import { errorHandler } from '../../types/apiError.ts';
-import { useAuth } from '../../hooks/useAuth.tsx';
+import { useAuth } from '../../hooks/useAuth.ts';
 
 interface PitchFormData {
     rating: number | string;

@@ -1,74 +1,45 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import { categoryService } from "../../../services/categoryService";
 import type { Category } from "../../../types/categoryType";
+import { useCrud } from "../../../hooks/useCrud";
 
 const CategoryGetAll = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {error, loading, data : categories, execute : refetchCategories} = useCrud(() => categoryService.getAll())
   
+  const {error : delError, loading : delLoading, execute : removeCategory} = useCrud(() =>  
+    {if (categoryToDelete?.id) {
+            return categoryService.remove(categoryToDelete.id);
+        }
+      return Promise.reject("No hay ID para eliminar");}
+    )
+
   // Estados para el modal de confirmación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const categories : Category[] = await categoryService.getAll()
-        
-        setCategories(categories);
-      } catch (err) {
-        showNotification('Error al cargar categorías', 'error' )
-        setError(err instanceof Error ? err.message : 'Error al cargar categorías');
-      } finally {
-        setLoading(false);
-      }
-    };
-
   const deleteCategory = async () => {
-    setIsDeleting(true);
+    if(categoryToDelete){
+      removeCategory()
 
-    try {
-      if (!categoryToDelete) {
-        return;
+      if(!delError){
+        setTimeout(() => refetchCategories(), 500)
+        showNotification(
+          `Categoría "${categoryToDelete.description}" eliminada con éxito`,
+          "success",
+        )
+        setShowDeleteModal(false);
+        setCategoryToDelete(null);
+      }else{
+        showNotification('¡No se ha podido eliminar la categoría!', 'error')
       }
-      categoryService.remove(categoryToDelete.id!);
-
-      setCategories((prevCategories) =>
-        prevCategories.filter(
-          (category) => category.id !== categoryToDelete.id,
-        ),
-      );
-
-      setShowDeleteModal(false);
-      setCategoryToDelete(null);
-
-      showNotification(
-        `Categoría "${categoryToDelete.description}" eliminada con éxito`,
-        "success",
-      );
-    } catch (err) {
-      showNotification("Error al eliminar categoría", "error");
-      setError(
-        err instanceof Error ? err.message : "Error al eliminar categoría",
-      );
-    } finally {
-      setIsDeleting(false);
     }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  }
 
   const handleRetry = () => {
     window.location.reload();
@@ -89,6 +60,8 @@ const CategoryGetAll = () => {
     setShowDeleteModal(false);
     setCategoryToDelete(null);
   };
+
+  if(delError){ showNotification('No se ha podido eliminar la categoría.', 'error')}
 
   if (loading) {
     return (
@@ -196,7 +169,7 @@ const CategoryGetAll = () => {
         onCancel={handleCancelDelete}
         confirmText="Eliminar Categoría"
         cancelText="Cancelar"
-        isLoading={isDeleting}
+        isLoading={delLoading}
       />
     </div>
   );

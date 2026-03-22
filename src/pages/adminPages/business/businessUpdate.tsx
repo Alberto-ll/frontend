@@ -1,29 +1,39 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryUpdate.css';
 import { businessService } from "../../../services/businessService";
 import type { BusinessData } from "../../../types/businessType";
-interface Locality {
-  id: number;
-  name: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+import { useCrud } from "../../../hooks/useCrud";
+import { localityService } from "../../../services/localityService";
+import { userService } from "../../../services/userService";
 
 const BusinessUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
+
+  const {loading:saving, error:bussError, execute: updateBusiness} = useCrud(() => {
+    const businessData : BusinessData = {
+        id: Number(id),
+        businessName: formData.businessName.trim(),
+        address: formData.address.trim(),
+        locality: parseInt(formData.localityId), 
+        owner: parseInt(formData.ownerId), 
+        reservationDepositPercentage: parseFloat(formData.reservationDepositPercentage),
+        openingAt: formData.openingAt,
+        closingAt: formData.closingAt,
+        active: false, 
+        averageRating: 0.0
+      }
+      return businessService.update(businessData)}, {manual:true})
   
-  const [business, setBusiness] = useState<BusinessData | null>(null);
-  const [localities, setLocalities] = useState<Locality[]>([]);
-  const [owners, setOwners] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {data: business} = useCrud(() => businessService.getOne(id!))
+
+  // cargar localidades y dueños
+    const {loading : locLoading, error : locError, data : localities} = useCrud(() => localityService.getAll())
+    const {loading : usLoading, error : usError} = useCrud(() => userService.getAll())
+
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
@@ -37,86 +47,6 @@ const BusinessUpdate = () => {
     active: false
   });
 
-  // Cargar negocio, localidades y dueños
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) {
-        setError('ID del negocio no proporcionado');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-
-        const business = await businessService.getOne(id);
-        
-        console.log(business)
-
-        setBusiness(business);
-
-        // Cargar localidades
-        const localitiesResponse = await fetch('http://localhost:3000/api/localities/getAll', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (localitiesResponse.ok) {
-          const localitiesData = await localitiesResponse.json();
-          const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                                localitiesData.data || localitiesData.localities || [];
-          setLocalities(localitiesArray);
-        }
-
-        // Cargar dueños
-        const ownersResponse = await fetch('http://localhost:3000/api/users/findAll', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (ownersResponse.ok) {
-          const ownersData = await ownersResponse.json();
-          const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                            ownersData.data || ownersData.users || [];
-          setOwners(ownersArray);
-        }
-
-        // Establecer form data con los datos actuales
-        const localityId = business.locality;
-        const ownerId = business.owner;
-
-        setFormData({
-          businessName: business.businessName || '',
-          address: business.address || '',
-          localityId: localityId?.toString() || '',
-          ownerId: ownerId?.toString() || '',
-          reservationDepositPercentage: business.reservationDepositPercentage?.toString() || '0.10',
-          openingAt: business.openingAt || '08:00',
-          closingAt: business.closingAt || '20:00',
-          active: business.active || false
-        });
-
-      } catch (err) {
-        console.error('ERROR EN FETCH:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar datos');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
@@ -129,21 +59,6 @@ const BusinessUpdate = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!id) {
-      setError('ID del negocio no disponible');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
       // Validaciones
       if (!formData.businessName.trim()) {
         throw new Error('El nombre del negocio es obligatorio');
@@ -157,8 +72,6 @@ const BusinessUpdate = () => {
         throw new Error('Debe seleccionar una localidad');
       }
 
-      // NOTA: Se removió la validación del ownerId ya que no se puede editar
-
       const depositPercentage = parseFloat(formData.reservationDepositPercentage);
       if (isNaN(depositPercentage) || depositPercentage < 0 || depositPercentage > 1) {
         throw new Error('El porcentaje de depósito debe ser entre 0 y 1 (0% a 100%)');
@@ -168,63 +81,17 @@ const BusinessUpdate = () => {
         throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
       }
 
-      const updateData = {
-        id: parseInt(id),
-        businessName: formData.businessName.trim(),
-        address: formData.address.trim(),
-        locality: parseInt(formData.localityId),
-        owner:formData.ownerId,
-        reservationDepositPercentage: depositPercentage,
-        openingAt: formData.openingAt,
-        closingAt: formData.closingAt,
-        active: formData.active
-      };
+      updateBusiness()
 
-      console.log('Datos a enviar al backend:', updateData);
-
-      // Intentar con PUT incluyendo ID en el cuerpo
-      const response = await fetch(`http://localhost:3000/api/business/update/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        // MOSTRAR INFORMACIÓN DETALLADA DEL ERROR
-        console.error('ERROR DETALLADO:', {
-          status: response.status,
-          statusText: response.statusText,
-          message: errorMessage
-        });
-        
-        throw new Error(errorMessage);
+      if(!bussError){
+        setTimeout(() => {
+            showNotification('¡Negocio creado con éxito!', 'success')
+            navigate('/admin/business/detail/'+id);
+          }
+          ,500)
+      }else{
+        showNotification('¡No se ha podido actualizar el negocio!', 'error')
       }
-
-      const result = await response.json();
-      console.log('Respuesta del servidor:', result);
-
-      alert('Negocio actualizado con éxito');
-      navigate(`/admin/business/detail/${id}`);
-      
-    } catch (err) {
-      console.error('ERROR COMPLETO:', err);
-      setError(err instanceof Error ? err.message : 'Error al actualizar negocio');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleCancel = () => {
@@ -233,28 +100,6 @@ const BusinessUpdate = () => {
     } else {
       navigate('/admin/business/getAll');
     }
-  };
-
-  // Función para obtener el nombre de la localidad
-  const getLocalityName = (locality: number | { id: number; name: string }): string => {
-    if (typeof locality === 'object' && locality !== null) {
-      return locality.name;
-    } else if (typeof locality === 'number') {
-      const foundLocality = localities.find(l => l.id === locality);
-      return foundLocality?.name || `ID: ${locality}`;
-    }
-    return 'N/A';
-  };
-
-  // Función para obtener el nombre del dueño
-  const getOwnerName = (owner: number | { id: number; name: string; email: string }): string => {
-    if (typeof owner === 'object' && owner !== null) {
-      return owner.name || owner.email || 'N/A';
-    } else if (typeof owner === 'number') {
-      const foundOwner = owners.find(o => o.id === owner);
-      return foundOwner?.name || foundOwner?.email || `ID: ${owner}`;
-    }
-    return 'N/A';
   };
 
   // Calcular porcentaje en formato legible
@@ -274,7 +119,7 @@ const BusinessUpdate = () => {
     );
   }
 
-  if (loading) {
+  if (locLoading || usLoading) {
     return (
       <div className="update-container">
         <h2 className="update-title">Actualizar Negocio</h2>
@@ -285,12 +130,26 @@ const BusinessUpdate = () => {
     );
   }
 
-  if (error && !business) {
+  if (bussError && !business) {
     return (
       <div className="update-container">
         <h2 className="update-title">Actualizar Negocio</h2>
         <div className="error-message">
-          <p>❌ Error: {error}</p>
+          <p>❌ Error: {bussError}</p>
+        </div>
+        <button onClick={() => navigate('/admin/business/getAll')} className="cancel-button">
+          Volver a la lista
+        </button>
+      </div>
+    );
+  }
+
+  if (locError || usError) {
+    return (
+      <div className="update-container">
+        <h2 className="update-title">Actualizar Negocio</h2>
+        <div className="error-message">
+          <p>❌ Error cargando datos iniciales de dueños y localidades</p>
         </div>
         <button onClick={() => navigate('/admin/business/getAll')} className="cancel-button">
           Volver a la lista
@@ -304,12 +163,6 @@ const BusinessUpdate = () => {
       <h2 className="update-title">
         ✏️ Actualizar Negocio: {business?.businessName}
       </h2>
-      
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-        </div>
-      )}
 
       {/* Información actual del negocio */}
       {business && (
@@ -331,13 +184,13 @@ const BusinessUpdate = () => {
             <div className="info-item">
               <span className="info-label">Localidad:</span>
               <span className="info-value category-highlight">
-                {getLocalityName(business.locality)}
+                {business.locality.name}
               </span>
             </div>
             <div className="info-item">
               <span className="info-label">Dueño:</span>
               <span className="info-value category-highlight">
-                {getOwnerName(business.owner!)}
+                {business.owner.name}
               </span>
             </div>
             <div className="info-item">
@@ -395,7 +248,7 @@ const BusinessUpdate = () => {
               className="form-input"
             >
               <option value="">Seleccione una localidad</option>
-              {localities.map(locality => (
+              {localities && localities.map(locality => (
                 <option key={locality.id} value={locality.id}>
                   {locality.name}
                 </option>
@@ -409,7 +262,7 @@ const BusinessUpdate = () => {
             <input
               type="text"
               id="ownerId"
-              value={business ? getOwnerName(business.owner!) : ''}
+              value={business ? business.owner.name : ''}
               className="form-input"
               disabled
               readOnly
@@ -500,16 +353,16 @@ const BusinessUpdate = () => {
             type="button"
             onClick={handleCancel}
             className="cancel-button"
-            disabled={saving}
+            disabled={!saving}
           >
             Cancelar
           </button>
           <button
             type="submit"
             className="save-button"
-            disabled={saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId}
+            disabled={!saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId}
           >
-            {saving ? 'Actualizando...' : 'Actualizar Negocio'}
+            {!saving ? 'Actualizando...' : 'Actualizar Negocio'}
           </button>
         </div>
       </form>

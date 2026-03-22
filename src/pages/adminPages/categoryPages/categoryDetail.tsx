@@ -1,38 +1,13 @@
-import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/categories/categoryDetail.css';
-import type { Category } from "../../../types/categoryType";
 import { categoryService } from "../../../services/categoryService";
+import { useCrud } from "../../../hooks/useCrud";
 
 const CategoryDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [category, setCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchCategory = async (id:string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const categoryData : Category = await categoryService.getOne(id);
-      setCategory(categoryData);
-    } catch (err) {
-      console.error("Error in fetchCategory:", err);
-      setError(
-        err instanceof Error ? err.message : "Error al cargar categoría",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  useEffect(() => {
-    if(id){
-      fetchCategory(id);
-    }
-  }, [id]);
+  const {loading, error, data : category} = useCrud(() => categoryService.getOne(id!))
 
   if (loading) {
     return (

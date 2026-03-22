@@ -1,40 +1,27 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import { businessService } from "../../../services/businessService";
 import type { BusinessData } from "../../../types/businessType";
+import { useCrud } from "../../../hooks/useCrud";
 
 const BusinessGetAll = () => {
-  const [businesses, setBusinesses] = useState<BusinessData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
   // Estados para el modal de confirmación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState<BusinessData | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  const fetchBusinesses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await businessService.getAll();
+  const {error : bussError, loading : bussLoading, data : businesses, execute : fetchBusinesses} = useCrud(businessService.getAll)
 
-      setBusinesses(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar negocios");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBusinesses();
-  }, []);
+  const {error : delError, loading : delLoading, execute : deleteBusiness} = useCrud(() => 
+      {if (businessToDelete?.id) {
+          return businessService.remove(businessToDelete.id);
+      }
+      return Promise.reject("No hay ID para eliminar");}
+  )
 
   const handleRetry = () => {
     window.location.reload();
@@ -48,40 +35,20 @@ const BusinessGetAll = () => {
 
   // FUNCIÓN PARA CONFIRMAR LA ELIMINACIÓN - MODIFICADA
   const handleConfirmDelete = async () => {
-    if (!businessToDelete || !businessToDelete.id) return;
-
-    setIsDeleting(true);
-    
-    try {
-     await businessService.remove(businessToDelete.id)
-
-      // Actualizar la lista local removiendo el negocio eliminado
-      setBusinesses(prevBusinesses => 
-        prevBusinesses.filter(business => business.id !== businessToDelete.id)
-      );
-      
-      // Cerrar modal y limpiar estado
-      setShowDeleteModal(false);
-      setBusinessToDelete(null);
-      
-      showNotification(
-        `Negocio "${businessToDelete.businessName}" eliminado con éxito`, 
-        'success'
-      );
-      
-    } catch (err) {
-      console.error('Error al eliminar negocio:', err);
-      
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      
-      // MOSTRAR TOAST DE ERROR EN LUGAR DE ALERT
-      showNotification(
-        `Error al eliminar negocio: ${errorMessage}`, 
-        'error'
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    if (businessToDelete){
+      deleteBusiness()
+      if(delError) {
+          setShowDeleteModal(false);
+          setBusinessToDelete(null);
+          showNotification(
+              `Negocio "${businessToDelete.businessName}" eliminado con éxito`, 
+              'success'
+          );
+          setTimeout(() => fetchBusinesses(), 500)
+        }else{
+          showNotification(`¡No se ha podido eliminar el negocio!`, 'error')
+        }
+    } 
   };
 
   // FUNCIÓN PARA CANCELAR LA ELIMINACIÓN
@@ -104,7 +71,7 @@ const BusinessGetAll = () => {
     return `${(percentage * 100).toFixed(2)}%`;
   };
 
-  if (loading) {
+  if (bussLoading) {
     return (
       <div className="categories-getall-container">
         <div className="categories-container">
@@ -118,14 +85,14 @@ const BusinessGetAll = () => {
     );
   }
 
-  if (error) {
+  if (bussError) {
     return (
       <div className="categories-getall-container">
         <div className="categories-container">
           <h2 className="categories-title">Lista de Negocios</h2>
           <div className="error-container">
             <div className="error-message">
-              <p>Error: {error}</p>
+              <p>Error: {bussError}</p>
             </div>
             <button onClick={handleRetry} className="retry-button">
               Reintentar
@@ -222,7 +189,7 @@ const BusinessGetAll = () => {
         onCancel={handleCancelDelete}
         confirmText="Eliminar Negocio"
         cancelText="Cancelar"
-        isLoading={isDeleting}
+        isLoading={delLoading}
       />
     </div>
   );

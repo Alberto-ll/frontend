@@ -1,66 +1,34 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryUpdate.css';
 import type { Category } from "../../../types/categoryType";
 import { categoryService } from "../../../services/categoryService";
+import { useCrud } from "../../../hooks/useCrud";
 
 const CategoryUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const [category, setCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
+
+  const {error : fetchError, loading : fetchLoading, data : category} = useCrud(() => categoryService.getOne(id!))
+
+  const {error : savingError, loading: saving, execute : updateCategory} = useCrud(() => 
+    {const updatedCategory : Category = {
+          id,
+          description: formData.description.trim(),
+          usertype: formData.usertype.trim()
+        }
+      return categoryService.update(updatedCategory)
+    }
+      , {manual:true}
+  )
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
     description: '',
     usertype: ''
   });
-
-  const fetchCategory = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        if(id){
-          const category : Category = await categoryService.getOne(id)
-          setCategory(category)
-          setFormData({
-          description: category.description || '',
-          usertype: category.usertype || ''
-        });
-        }
-
-      } catch (err) {
-        console.error('ERROR EN FETCH:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar datos');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const updateCategory = async (category : Category) => {
-      try {
-      setSaving(true);
-      setError(null);
-
-      categoryService.update(category)
-
-      alert('Categoría actualizada con éxito');
-      navigate(`/admin/categories/detail/${id}`);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar categoría');
-    } finally {
-      setSaving(false);
-    }
-    }
-
-    useEffect(() => {
-      fetchCategory()
-    }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -72,15 +40,20 @@ const CategoryUpdate = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    const updatedCategory : Category = {
-        id,
-        description: formData.description.trim(),
-        usertype: formData.usertype.trim()
-      };
 
-    if(updatedCategory){
-      updateCategory(updatedCategory)
+    if(!Object.values(formData).includes('')){
+      updateCategory()
+
+      if(!savingError){
+        setTimeout(() => {
+          showNotification('Categoría actualizada con éxito', 'success');
+          navigate(`/admin/categories/detail/${id}`);
+        }, 500);
+      }else{
+        showNotification('¡No se ha podido actualizar la categoría!', 'error')
+      }
+    }else{
+      showNotification('¡Todos los campos son obligatorios!', 'warning')
     }
   };
 
@@ -88,7 +61,7 @@ const CategoryUpdate = () => {
     navigate(`/admin/categories/detail/${id}`);
   };
 
-  if (loading) {
+  if (fetchLoading) {
     return (
       <div className="update-container">
         <h2 className="update-title">Actualizar Categoría</h2>
@@ -99,12 +72,12 @@ const CategoryUpdate = () => {
     );
   }
 
-  if (error && !category) {
+  if (fetchError && !category) {
     return (
       <div className="update-container">
         <h2 className="update-title">Actualizar Categoría</h2>
         <div className="error-message">
-          <p>❌ Error: {error}</p>
+          <p>❌ Error: {fetchError}</p>
         </div>
         <button onClick={() => navigate('/admin/categories/getAll')} className="cancel-button">
           Volver a la lista
@@ -128,9 +101,9 @@ const CategoryUpdate = () => {
         </div>
       )}
       
-      {error && (
+      {savingError && (
         <div className="error-message">
-          <p>{error}</p>
+          <p>{savingError}</p>
         </div>
       )}
 

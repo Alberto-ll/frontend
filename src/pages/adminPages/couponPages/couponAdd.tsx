@@ -1,44 +1,55 @@
-import { useState } from 'react';
 import type {Coupon} from '../../../types/couponType.ts'
 import { useNavigate, useOutletContext } from 'react-router';
-import { errorHandler } from '../../../types/apiError.ts';
 import { couponService } from '../../../services/couponService.ts';
+import { useCrud } from '../../../hooks/useCrud.ts';
+import { useState } from 'react';
+import { COUPON_STATUS } from '../../../helpers/constants.ts';
 
 export default function CouponAdd(){
-    const [data, setData] = useState<Coupon | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const {data, loading, error, execute : addCoupon} = useCrud(() => {
+        const coupon:Coupon = {
+            id:0,
+            discount:Number(formData.discount),
+            status:String(formData.status),
+            expiringDate:String(formData.expiringDate)
+        }
+        return couponService.add(coupon)
+    }, {manual: true})
+
+    const [formData, setFormData] = useState({
+        discount: 0,
+        status: '',
+        expiringDate: ''
+    })
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
     
-    const add = async (coupon:Coupon) =>{
-        try{
-            setLoading(true)
-            const json : Coupon = await couponService.add(coupon)
-            setData(json)
-            showNotification('Cupón actualizado con éxito!', 'success')
-            navigate('/admin/coupons/getAll')
-        }catch(error){
-            showNotification(errorHandler(error), 'error');
-            setLoading(false)
-        }finally{
-            setLoading(false)
-        }
-    }
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        const coupon:Coupon = {
-            id:0,
-            discount:Number(formData.get("discount")),
-            status:String(formData.get("status")),
-            expiringDate:String(formData.get("expiringDate"))
-        }
-        console.log(coupon)
-        if(coupon) {
-            add(coupon);
+        
+        if(!Object.values(formData).includes('')){
+            addCoupon();
+            if(!error) {
+                setTimeout(() => {
+                    showNotification('Cupón creado con éxito!', 'success')
+                    navigate('/admin/coupons/getAll')
+                }, 500);   
+            }else{
+                showNotification('¡No se ha podido crear el botón!', 'error')
+            }
+        }else{
+            showNotification('¡Todos los campos son obligatorios!', 'warning')
         }
       };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+        ...prev,
+        [name]: value
+        }));
+    };
 
       const cancel = () => {
         navigate('/admin/coupons')
@@ -49,16 +60,19 @@ export default function CouponAdd(){
             <h2 className='crud-form-title'>Crear cupón</h2>
             <form onSubmit={handleSubmit} className='crud-form'>
                 <div className='crud-form-item'>
-                    <label>Discount</label>
-                    <input name="discount" type="number" required step="0.01" max={1}/>
+                    <label>Porcentaje de descuento</label>
+                    <input name="discount" type="number" step="0.01" min={0} max={1} onChange={handleInputChange} value={formData.discount} required/>
                 </div>
                 <div className='crud-form-item'>
-                    <label>Status</label>
-                    <input type="text" name="status" required />
+                    <label>Estado del cupón</label>
+                    <select name="status" onChange={handleInputChange} value={formData.status} required>
+                        {COUPON_STATUS.map((couponStatus) => 
+                        <option key={couponStatus} value={couponStatus}>{couponStatus}</option>)}
+                    </select>
                 </div>
                 <div className='crud-form-item'>
-                    <label>Expiring Date</label>
-                    <input type="date" name="expiringDate" required />
+                    <label>Fecha de expiración</label>
+                    <input type="date" name="expiringDate" onChange={handleInputChange} value={formData.expiringDate} min={new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} required />
                 </div>
                 <div className='crud-form-actions'>
                     <button onClick={cancel} className='secondary'>Cancelar</button>

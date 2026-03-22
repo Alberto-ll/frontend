@@ -68,9 +68,9 @@ export const businessService = {
     return json.data as BusinessData;
   },
 
-  update: async (business: FormData): Promise<BusinessData> => {
-    const response = await fetch(`${baseUrl}/update/${business.get('id')}`, {
-      method: "PATCH",
+  update: async (business: BusinessData): Promise<BusinessData> => {
+    const response = await fetch(`${baseUrl}/update/${business.id}`, {
+      method: "PUT",
       headers: getAuthHeaders(),
       body: JSON.stringify(business),
     });

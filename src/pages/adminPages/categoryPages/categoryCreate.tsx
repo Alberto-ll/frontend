@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryCreate.css';
 import type { Category } from "../../../types/categoryType";
 import { categoryService } from "../../../services/categoryService";
+import { useCrud } from "../../../hooks/useCrud";
 
 const CategoryCreate = () => {
   const navigate = useNavigate();
+
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {loading : saving, error, execute : addCategory } = useCrud(() => {
+    const createData : Category = {
+        description: formData.description.trim(),
+        usertype: formData.usertype.trim()
+      }; 
+      return categoryService.add(createData)}, {manual : true})
 
   // Estados para el formulario - con valores iniciales vacíos
   const [formData, setFormData] = useState({
@@ -26,35 +33,20 @@ const CategoryCreate = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    try {
-      setSaving(true);
-      setError(null);
 
-      // Validaciones básicas
-      if (!formData.description.trim()) {
-        throw new Error('La descripción es obligatoria');
+    addCategory()
+
+    if(!Object.values(formData).includes('')){
+      if(!error){
+        setTimeout(() =>
+        {showNotification('¡Categoría creada con éxito!', 'success')
+        navigate('/admin/categories/getAll')}
+        ,500)
+      }else{
+        showNotification('¡No se ha podido creear la categoría!', 'error')
       }
-      
-      if (!formData.usertype.trim()) {
-        throw new Error('El tipo de usuario es obligatorio');
-      }
-
-      // Preparar datos para enviar
-      const createData : Category = {
-        description: formData.description.trim(),
-        usertype: formData.usertype.trim()
-      };
-
-      categoryService.add(createData)
-
-      alert('Categoría creada con éxito');
-      navigate('/admin/categories/getAll');
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear categoría');
-    } finally {
-      setSaving(false);
+    }else{
+      showNotification('¡Todos los campos son obligatorios!', 'warning')
     }
   };
 

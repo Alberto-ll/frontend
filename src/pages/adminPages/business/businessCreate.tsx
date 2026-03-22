@@ -1,19 +1,29 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryCreate.css';
 import type { BusinessData } from "../../../types/businessType";
 import { businessService } from "../../../services/businessService";
-import { errorHandler } from "../../../types/apiError";
-import type { Locality } from "../../../types/localityType";
-import type { UserData } from "../../../types/userData";
 import { localityService } from "../../../services/localityService";
 import { userService } from "../../../services/userService";
+import { useCrud } from "../../../hooks/useCrud";
 
 const BusinessCreate = () => {
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingData, setLoadingData] = useState(true);
+
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
+
+  const {error: bussError, loading: saving, execute : addBusiness } = useCrud(() => {
+    const businessData : BusinessData = {businessName: formData.businessName.trim(),
+        address: formData.address.trim(),
+        locality: parseInt(formData.localityId), 
+        owner: parseInt(formData.ownerId), 
+        reservationDepositPercentage: parseFloat(formData.reservationDepositPercentage),
+        openingAt: formData.openingAt,
+        closingAt: formData.closingAt,
+        active: false, 
+        averageRating: 0.0
+      }
+      return businessService.add(businessData)},{manual:true})
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
@@ -26,33 +36,9 @@ const BusinessCreate = () => {
     closingAt: '20:00'
   });
 
-  // Estados para datos de selección
-  const [localities, setLocalities] = useState<Locality[]>([]);
-  const [owners, setOwners] = useState<UserData[]>([]);
-
-  const fetchInitialData = async () => {
-      try {
-        setLoadingData(true);
-        
-        const localitiesData : Locality[] = await localityService.getAll() 
-
-        setLocalities(localitiesData)
-
-        const ownersData : UserData[] = await userService.getAll()
-
-        setOwners(ownersData)
-
-      } catch (err) {
-        setError('Error al cargar datos necesarios: ' + (err instanceof Error ? err.message : 'Error desconocido'));
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-  // Cargar localidades y dueños disponibles
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  // cargar localidades y dueños
+  const {loading : locLoading, error : locError, data : localities} = useCrud(() => localityService.getAll())
+  const {loading : usLoading, error : usError, data : owners} = useCrud(() => userService.getAll())
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -91,46 +77,31 @@ const BusinessCreate = () => {
         throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
       }
 
-      const businessData : BusinessData = {
-        businessName: formData.businessName.trim(),
-        address: formData.address.trim(),
-        locality: parseInt(formData.localityId), // Enviar solo el ID como número
-        owner: parseInt(formData.ownerId), // Enviar solo el ID como número
-        reservationDepositPercentage: depositPercentage,
-        openingAt: formData.openingAt, // Añadir segundos si es necesario
-        closingAt: formData.closingAt, // Añadir segundos si es necesario
-        active: false, // Por defecto inactivo hasta que un admin lo active
-        averageRating: 0.0
-      };
+      addBusiness()
 
-      add(businessData)
+      if(!bussError){
+        setTimeout(() => {
+            showNotification('¡Negocio creado con éxito!', 'success')
+            navigate('/admin/business/getAll');
+          }
+          ,500)
+      }else{
+        showNotification('¡No se ha podido crear el negocio!', 'error')
+      }
       
   };
-
-  const add = async (business : BusinessData) => {
-    try{
-      setSaving(true)
-      setError('')
-      const result = await businessService.add(business)
-      alert('Negocio creado con éxito. Debe ser activado por un administrador.');
-      console.log(result)
-      navigate('/admin/business/getAll');
-      
-    } catch (err) {
-      setError(errorHandler(err));
-    } finally {
-      setSaving(false);
-    }
-  }
 
   const handleCancel = () => {
     navigate('/admin/business/getAll');
   };
 
+  if(locError){ showNotification(`Error al obtener las localidades, ${locError}`, 'error')}
+  if(usError){ showNotification(`Error al obtener los dueños, ${usError}`, 'error')}
+
   // Calcular porcentaje en formato legible
   const depositPercentageDisplay = (parseFloat(formData.reservationDepositPercentage) * 100).toFixed(1);
 
-  if (loadingData) {
+  if (locLoading || usLoading) {
     return (
       <div className="update-container">
         <h2 className="update-title">Crear Nuevo Negocio</h2>
@@ -145,12 +116,6 @@ const BusinessCreate = () => {
   return (
     <div className="update-container">
       <h2 className="update-title">Crear Nuevo Negocio</h2>
-      
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="update-form">
         <div className="form-row">
@@ -231,7 +196,7 @@ const BusinessCreate = () => {
               className="form-input"
             >
               <option value="">Seleccione una localidad</option>
-              {localities.map(locality => (
+              {localities?.map(locality => (
                 <option key={locality.id} value={locality.id}>
                   {locality.name}
                 </option>
@@ -261,7 +226,7 @@ const BusinessCreate = () => {
               className="form-input"
             >
               <option value="">Seleccione un dueño</option>
-              {owners.map(owner => (
+              {owners?.map(owner => (
                 <option key={owner.id} value={owner.id}>
                   {owner.name} ({owner.email})
                 </option>
@@ -354,8 +319,8 @@ const BusinessCreate = () => {
             <div className="preview-card">
               <p><strong>Nombre:</strong> {formData.businessName || 'No especificado'}</p>
               <p><strong>Dirección:</strong> {formData.address || 'No especificada'}</p>
-              <p><strong>Localidad:</strong> {localities.find(l => l.id === parseInt(formData.localityId))?.name || 'No seleccionada'}</p>
-              <p><strong>Dueño:</strong> {owners.find(o => o.id === parseInt(formData.ownerId))?.name || 'No seleccionado'}</p>
+              <p><strong>Localidad:</strong> {localities?.find(l => l.id === parseInt(formData.localityId))?.name || 'No seleccionada'}</p>
+              <p><strong>Dueño:</strong> {owners?.find(o => o.id === parseInt(formData.ownerId))?.name || 'No seleccionado'}</p>
               <p><strong>Depósito:</strong> {depositPercentageDisplay}%</p>
               <p><strong>Horario:</strong> {formData.openingAt} - {formData.closingAt}</p>
               <p><strong>Estado:</strong> <span className="input-invalid">Inactivo (requiere activación)</span></p>
@@ -368,16 +333,16 @@ const BusinessCreate = () => {
             type="button"
             onClick={handleCancel}
             className="cancel-button"
-            disabled={saving}
+            disabled={!saving}
           >
             Cancelar
           </button>
           <button
             type="submit"
             className="save-button"
-            disabled={saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId || !formData.ownerId}
+            disabled={!saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId || !formData.ownerId}
           >
-            {saving ? 'Creando...' : 'Crear Negocio'}
+            {!saving ? 'Creando...' : 'Crear Negocio'}
           </button>
         </div>
       </form>
