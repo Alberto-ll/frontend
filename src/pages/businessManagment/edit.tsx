@@ -88,7 +88,10 @@ export default function BusinessPitchEdit() {
             const payload = new FormData();
 
             if (pitchData.rating) payload.append('rating', pitchData.rating.toString());
-            if (pitchData.price) payload.append('price', pitchData.price.toString());
+            if (pitchData.price !== undefined) {
+                const priceNum = typeof pitchData.price === 'number' ? pitchData.price : Number(pitchData.price);
+                if (!Number.isNaN(priceNum)) payload.append('price', priceNum.toFixed(2));
+            }
             if (pitchData.size) payload.append('size', pitchData.size);
             if (pitchData.groundType) payload.append('groundType', pitchData.groundType);
             if (pitchData.roof !== undefined) payload.append('roof', pitchData.roof.toString());

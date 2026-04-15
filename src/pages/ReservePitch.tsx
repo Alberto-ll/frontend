@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import type { ReservePitch, ReservePitchFilters } from '../types/reservePitchTypes';
 import PitchFilters from '../components/filters/PitchFilters';
@@ -22,12 +22,14 @@ const ReservePitchPage: React.FC = () => {
     size: 'all',
     groundType: 'all',
     priceMin: 0,
-    priceMax: 999999,
+    priceMax: 0,
     searchTerm: '',
   });
 
-  // Fetch pitches from GET /api/pitchs/getAll (no authentication required)
-  const fetchPitches = useCallback(async () => {
+  // Fetch pitches from server by sending filters as query params
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchPitches = useCallback(async (appliedFilters: ReservePitchFilters) => {
     try {
       setLoading(true);
       setError(null);
@@ -38,17 +40,43 @@ const ReservePitchPage: React.FC = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/pitchs/getAllFromActiveBusinesses', {
+      // Cancel previous in-flight request
+      if (abortRef.current) abortRef.current.abort();
+      abortRef.current = new AbortController();
+
+      const f = appliedFilters;
+      const params = new URLSearchParams();
+      if (f.roof && f.roof !== 'all') {
+        const roofValue = f.roof === 'covered' ? 'true' : (f.roof === 'uncovered' ? 'false' : '');
+        if (roofValue) params.set('roof', roofValue);
+      }
+      if (f.size && f.size !== 'all') params.set('size', f.size);
+      if (f.groundType && f.groundType !== 'all') params.set('groundType', f.groundType);
+
+      // Treat 0/0 as "no price filter". If the user sets a max but leaves min at 0,
+      // send priceMin=0 explicitly because some backends expect both bounds.
+      const noPriceFilter = typeof f.priceMin === 'number' && typeof f.priceMax === 'number' && f.priceMin === 0 && f.priceMax === 0;
+      if (!noPriceFilter) {
+        if (typeof f.priceMin === 'number') params.set('priceMin', f.priceMin.toFixed(2));
+        if (typeof f.priceMax === 'number' && f.priceMax > 0 && f.priceMax < 999999) params.set('priceMax', f.priceMax.toFixed(2));
+      }
+
+      if (f.searchTerm && f.searchTerm.trim()) params.set('q', f.searchTerm.trim());
+
+      const url = `http://localhost:3000/api/pitchs/getAllFromActiveBusinesses${params.toString() ? `?${params.toString()}` : ''}`;
+
+      console.log('🎯 ReservePitch request URL:', url, 'params:', params.toString(), 'filters:', f);
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
+        signal: abortRef.current.signal,
       });
 
       console.log('🎯 ReservePitch Response status:', response.status);
 
-      // Handle 401 Unauthorized (expired/invalid token)
       if (response.status === 401) {
         localStorage.removeItem('user');
         alert('Sesión expirada. Por favor inicia sesión nuevamente.');
@@ -56,25 +84,19 @@ const ReservePitchPage: React.FC = () => {
         return;
       }
 
-      // 🎯 MANEJAR 404 específico (backend retorna 404 cuando no hay canchas)
       if (response.status === 404) {
         const errorText = await response.text();
         console.log('🎯 ReservePitch 404 Response body:', errorText);
-        
         try {
           const errorData = JSON.parse(errorText);
-          
-          // Si el backend dice "No pitches from active businesses", no es un error
           if (errorData.error && errorData.error.includes('No pitches from active businesses')) {
             console.log('🎯 ReservePitch: Backend dice no hay canchas de negocios activos');
-            setPitches([]); // Establecer array vacío
-            return; // Salir sin error
+            setPitches([]);
+            return;
           }
         } catch (parseError) {
           console.log('🎯 ReservePitch: No se pudo parsear el error 404');
         }
-        
-        // Si no es el mensaje específico, es un error del endpoint
         throw new Error('El endpoint de canchas no está disponible');
       }
 
@@ -82,10 +104,16 @@ const ReservePitchPage: React.FC = () => {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
 
-      const responseData = await response.json();
-      console.log('🎯 ReservePitch datos recibidos:', responseData);
+      let responseData: any = null;
+      try {
+        responseData = await response.json();
+        console.log('🎯 ReservePitch datos recibidos:', responseData);
+      } catch (jsonErr) {
+        const text = await response.text();
+        console.warn('🎯 ReservePitch response not JSON, raw text:', text);
+        throw new Error('Respuesta inesperada del servidor (no JSON)');
+      }
 
-      // Handle different response formats (data array or direct array)
       let pitchesData: ReservePitch[] = [];
       if (Array.isArray(responseData)) {
         pitchesData = responseData;
@@ -99,15 +127,20 @@ const ReservePitchPage: React.FC = () => {
       }
 
       console.log(`🎯 ReservePitch canchas procesadas: ${pitchesData.length}`);
-      
       setPitches(pitchesData);
 
-      // Auto-adjust max price filter based on available pitches
+      // Auto-adjust max price filter based on available pitches.
+      // Do NOT override when user explicitly set priceMax to 0 (meaning "no filter").
       if (pitchesData.length > 0) {
-        const maxPrice = Math.max(...pitchesData.map((p) => p.price));
-        setFilters((prev) => ({ ...prev, priceMax: Math.ceil(maxPrice * 1.2) }));
+        const newPriceMax = Math.ceil(Math.max(...pitchesData.map((p) => p.price)) * 1.2);
+        setFilters((prev) => {
+          if (prev.priceMax === 0) return prev; // user chose 0 => no filter
+          if (prev.priceMax === newPriceMax) return prev; // no change
+          return { ...prev, priceMax: newPriceMax };
+        });
       }
     } catch (err) {
+      if ((err as any)?.name === 'AbortError') return; // cancelled
       console.error('🎯 ReservePitch Error fetching pitches:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar canchas');
     } finally {
@@ -115,33 +148,19 @@ const ReservePitchPage: React.FC = () => {
     }
   }, [navigate, token]);
 
-  // Filter pitches based on current filters
-  const filteredPitches = pitches.filter((pitch) => {
-    try {
-      // Safe access to business name with fallback
-      const businessName = pitch.business?.businessName || '';
-      const matchesSearch =
-        businessName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        (pitch.groundType || '').toLowerCase().includes(filters.searchTerm.toLowerCase());
+  // Server-side filtering: when filters change, request backend with query params (debounced)
+  useEffect(() => {
+    if (!userData) return;
 
-      const matchesRoof =
-        filters.roof === 'all' ||
-        (filters.roof === 'covered' && pitch.roof) ||
-        (filters.roof === 'uncovered' && !pitch.roof);
+    const timer = setTimeout(() => {
+      fetchPitches(filters);
+    }, 300);
 
-      const matchesSize = filters.size === 'all' || pitch.size === filters.size;
-
-      const matchesGroundType =
-        filters.groundType === 'all' || pitch.groundType === filters.groundType;
-
-      const matchesPrice = pitch.price >= filters.priceMin && pitch.price <= filters.priceMax;
-
-      return matchesSearch && matchesRoof && matchesSize && matchesGroundType && matchesPrice;
-    } catch (error) {
-      console.error('Error filtering pitch:', pitch, error);
-      return false;
-    }
-  });
+    return () => {
+      clearTimeout(timer);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [filters, fetchPitches, userData]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters: ReservePitchFilters) => {
@@ -150,13 +169,13 @@ const ReservePitchPage: React.FC = () => {
 
   // Clear all filters
   const handleClearFilters = () => {
-    const maxPrice = pitches.length > 0 ? Math.max(...pitches.map((p) => p.price)) : 999999;
+    // Clearing filters => set price range to 0/0 meaning "no price filter"
     setFilters({
       roof: 'all',
       size: 'all',
       groundType: 'all',
       priceMin: 0,
-      priceMax: Math.ceil(maxPrice * 1.2),
+      priceMax: 0,
       searchTerm: '',
     });
   };
@@ -166,12 +185,7 @@ const ReservePitchPage: React.FC = () => {
     navigate(`/makeReservation/${pitchId}`);
   };
 
-  // Fetch pitches on component mount (only when authenticated)
-  useEffect(() => {
-    if (userData) {
-      fetchPitches();
-    }
-  }, [userData, fetchPitches]);
+  // Initial fetch handled by debounced effect above when `userData` becomes available
 
   if (!token) {
     return (
@@ -183,34 +197,7 @@ const ReservePitchPage: React.FC = () => {
     );
   }
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="reserve-pitch-container">
-        <div className="reserve-pitch-loading">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Cargando canchas disponibles...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="reserve-pitch-container">
-        <div className="reserve-pitch-error">
-          <div className="error-message">
-            <h3>❌ Error al cargar canchas</h3>
-            <p>{error}</p>
-          </div>
-          <button onClick={fetchPitches} className="retry-button">
-            🔄 Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Note: loading and fetch `error` are rendered inside the main content
 
   return (
     <div className="reserve-pitch-container">
@@ -220,12 +207,12 @@ const ReservePitchPage: React.FC = () => {
         <p className="reserve-pitch-subtitle">
           Encuentra la cancha perfecta para tu próximo partido
         </p>
-        <div className="reserve-pitch-stats">
+          <div className="reserve-pitch-stats">
           <span className="stat-badge">
             📊 Total: <strong>{pitches.length}</strong> canchas
           </span>
           <span className="stat-badge">
-            🔍 Mostrando: <strong>{filteredPitches.length}</strong> canchas
+            🔍 Mostrando: <strong>{pitches.length}</strong> canchas
           </span>
         </div>
       </div>
@@ -243,44 +230,49 @@ const ReservePitchPage: React.FC = () => {
 
         {/* Pitch Cards Grid */}
         <main className="reserve-pitch-main">
-          {renderError ? (
+          {loading ? (
+            <div className="reserve-pitch-loading">
+              <div className="loading-spinner"></div>
+              <p className="loading-text">Cargando canchas disponibles...</p>
+            </div>
+          ) : error ? (
+            <div className="reserve-pitch-error">
+              <div className="error-message">
+                <h3>❌ Error al cargar canchas</h3>
+                <p>{error}</p>
+              </div>
+              <button onClick={() => fetchPitches(filters)} className="retry-button">
+                🔄 Reintentar
+              </button>
+            </div>
+          ) : renderError ? (
             <div className="no-results">
               <p className="no-results-icon">⚠️</p>
               <h3 className="no-results-title">Error al mostrar canchas</h3>
               <p className="no-results-text">{renderError}</p>
-              <button onClick={() => { setRenderError(null); fetchPitches(); }} className="retry-button">
+              <button onClick={() => { setRenderError(null); fetchPitches(filters); }} className="retry-button">
                 🔄 Reintentar
               </button>
             </div>
-          ) : filteredPitches.length === 0 ? (
-            pitches.length === 0 ? (
-              // No hay canchas en absoluto
-              <div className="no-results">
-                <p className="no-results-icon">📭</p>
-                <h3 className="no-results-title">No hay canchas disponibles</h3>
-                <p className="no-results-text">
-                  Actualmente no hay canchas de negocios activos disponibles para reservar.
-                </p>
-                <button onClick={fetchPitches} className="retry-button">
+          ) : pitches.length === 0 ? (
+            <div className="no-results">
+              <p className="no-results-icon">📭</p>
+              <h3 className="no-results-title">No hay canchas disponibles</h3>
+              <p className="no-results-text">
+                Actualmente no hay canchas que coincidan con los filtros seleccionados.
+              </p>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <button onClick={() => fetchPitches(filters)} className="retry-button">
                   🔄 Actualizar
                 </button>
-              </div>
-            ) : (
-              // Hay canchas pero no coinciden con los filtros
-              <div className="no-results">
-                <p className="no-results-icon">🔍</p>
-                <h3 className="no-results-title">No se encontraron canchas</h3>
-                <p className="no-results-text">
-                  Intenta ajustar los filtros para ver más resultados
-                </p>
                 <button onClick={handleClearFilters} className="retry-button">
                   🗑️ Limpiar filtros
                 </button>
               </div>
-            )
+            </div>
           ) : (
             <div className="pitch-cards-grid">
-              {filteredPitches.map((pitch) => {
+              {pitches.map((pitch) => {
                 try {
                   return <PitchCard key={pitch.id} pitch={pitch} onReserve={handleReserve} />;
                 } catch (err) {

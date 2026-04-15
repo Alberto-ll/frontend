@@ -117,11 +117,19 @@ export default function PitchAdd(){
 
         // Crear FormData
         const pitchData = new FormData();
-        
+
         // Agregar campos individualmente
         pitchData.append('business', formData.get("business") as string);
         pitchData.append('rating', formData.get("rating") as string);
-        pitchData.append('price', formData.get("price") as string);
+        // Normalizar price a float con 2 decimales para backend
+        const rawPrice = formData.get("price");
+        const parsedPrice = parseFloat(String(rawPrice));
+        if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+            showNotification('Precio inválido', 'error');
+            setLoading(false);
+            return;
+        }
+        pitchData.append('price', parsedPrice.toFixed(2));
         pitchData.append('size', selectedSize);
         pitchData.append('groundType', selectedGroundType);
         pitchData.append('roof', formData.get("roof") ? 'true' : 'false');

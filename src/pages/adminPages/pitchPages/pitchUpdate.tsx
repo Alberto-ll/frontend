@@ -157,7 +157,7 @@ export default function PitchUpdate(){
                         name="price" 
                         type="number" 
                         min="0" 
-                        step="100"
+                        step="0.01"
                         placeholder="Opcional - Precio por hora" 
                     />
                 </div>

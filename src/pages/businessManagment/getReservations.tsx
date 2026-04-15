@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useOutletContext, Navigate } from 'react-router';
 import { errorHandler } from '../../types/apiError.ts';
 import { useAuth } from '../../components/Auth.tsx'; 
-import '../../static/css/MybusinessReservations.css';
+import '../../static/css/MyBusinessReservations.css';
 
 // Interfaces TypeScript - SOLO 4 ESTADOS
 interface Reservation {

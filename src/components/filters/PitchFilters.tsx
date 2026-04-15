@@ -38,7 +38,8 @@ const PitchFilters: React.FC<PitchFiltersProps> = ({
   };
 
   const handlePriceMaxChange = (value: string) => {
-    const numValue = parseFloat(value) || 999999;
+    // Treat empty or invalid as 0 (meaning "no max filter").
+    const numValue = value === '' ? 0 : (parseFloat(value) || 0);
     onFilterChange({ ...filters, priceMax: numValue });
   };
 
@@ -132,7 +133,7 @@ const PitchFilters: React.FC<PitchFiltersProps> = ({
               onChange={(e) => handlePriceMinChange(e.target.value)}
               className="pitch-filter-input pitch-price-input"
               min="0"
-              step="100"
+              step="0.01"
             />
             <span className="pitch-price-separator">-</span>
             <input
@@ -142,11 +143,13 @@ const PitchFilters: React.FC<PitchFiltersProps> = ({
               onChange={(e) => handlePriceMaxChange(e.target.value)}
               className="pitch-filter-input pitch-price-input"
               min="0"
-              step="100"
+              step="0.01"
             />
           </div>
           <div className="pitch-price-display">
-            ${filters.priceMin.toLocaleString()} - ${filters.priceMax.toLocaleString()}
+            {filters.priceMin === 0 && filters.priceMax === 0
+              ? 'Sin filtro'
+              : ` $${filters.priceMin.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - $${filters.priceMax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
         </div>
       </div>

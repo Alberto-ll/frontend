@@ -341,7 +341,14 @@ export default function PitchAdd() {
         const pitchData = new FormData();
         pitchData.append('business', businessId.toString());
         pitchData.append('rating', '1');
-        pitchData.append('price', formData.get("price") as string);
+        // Normalizar price a float con 2 decimales
+        const rawPrice = formData.get("price");
+        const parsedPrice = parseFloat(String(rawPrice));
+        if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+            showNotification('Precio inválido', 'error');
+            return;
+        }
+        pitchData.append('price', parsedPrice.toFixed(2));
         pitchData.append('size', selectedSize);
         pitchData.append('groundType', selectedGroundType);
         pitchData.append('roof', formData.get("roof") ? 'true' : 'false');
