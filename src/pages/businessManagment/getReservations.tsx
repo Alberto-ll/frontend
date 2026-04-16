@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, ChangeEvent } from 'react';
 import { useOutletContext, Navigate } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
 import { errorHandler } from '../../types/apiError.ts';
 import { useAuth } from '../../components/Auth.tsx'; 
 import '../../static/css/MyBusinessReservations.css';
@@ -43,6 +44,12 @@ export default function BusinessReservations() {
   const [hasNoBusiness, setHasNoBusiness] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [updatingReservation, setUpdatingReservation] = useState<number | null>(null);
+  const isFetchingRef = useRef(false);
+  const noReservationsNotifiedRef = useRef(false);
+  const [listLoading, setListLoading] = useState<boolean>(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [startDateInput, setStartDateInput] = useState<string>(searchParams.get('startDate') || '');
+  const [endDateInput, setEndDateInput] = useState<string>(searchParams.get('endDate') || '');
 
   // USAR useAuth EN LUGAR DE OBTENER TOKEN MANUALMENTE
   const { userData, token, isLoading } = useAuth();
@@ -372,9 +379,24 @@ export default function BusinessReservations() {
   };
 
   // FUNCIÓN para obtener todas las reservaciones del negocio
-  const getReservations = useCallback(async (currentBusinessId?: number) => {
+  const getReservations = useCallback(async (currentBusinessId?: number, filters?: { status?: string; startDate?: string; endDate?: string }, options?: { showGlobalLoading?: boolean }) => {
     try {
-      setLoading(true);
+      // Guard para evitar fetchs concurrentes/replicados
+      if (isFetchingRef.current) {
+        console.log('getReservations: skipped because a fetch is already in progress');
+        return;
+      }
+      isFetchingRef.current = true;
+
+      console.log('getReservations: start', new Date().toISOString());
+      console.trace('getReservations called trace');
+
+      const showGlobalLoading = options?.showGlobalLoading !== false; // default true
+      if (showGlobalLoading) {
+        setLoading(true);
+      } else {
+        setListLoading(true);
+      }
       setError(false);
       
       let targetBusinessId = currentBusinessId || businessId;
@@ -389,7 +411,16 @@ export default function BusinessReservations() {
         throw new Error('No se encontró el token de autenticación');
       }
 
-      const response = await fetch(`http://localhost:3000/api/reservations/findByBusiness/${targetBusinessId}`, {
+      // Construir query params para delegar filtrado al backend
+      const qp = new URLSearchParams();
+      if (filters?.status) qp.set('status', filters.status);
+      if (filters?.startDate) qp.set('startDate', filters.startDate);
+      if (filters?.endDate) qp.set('endDate', filters.endDate);
+
+      const url = `http://localhost:3000/api/reservations/findByBusiness/${targetBusinessId}${qp.toString() ? `?${qp.toString()}` : ''}`;
+      console.log('getReservations fetching URL:', url);
+
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           'Content-Type': 'application/json',
@@ -404,7 +435,10 @@ export default function BusinessReservations() {
 
       if (response.status === 404) {
         setReservations([]);
-        showNotification('No tienes reservaciones registradas aún', 'info');
+        if (!noReservationsNotifiedRef.current) {
+          showNotification('No tienes reservaciones registradas aún', 'info');
+          noReservationsNotifiedRef.current = true;
+        }
         return;
       }
       
@@ -413,7 +447,10 @@ export default function BusinessReservations() {
         
         if (errors.error && errors.error.includes('No reservations found')) {
           setReservations([]);
-          showNotification('No tienes reservaciones registradas aún', 'info');
+          if (!noReservationsNotifiedRef.current) {
+            showNotification('No tienes reservaciones registradas aún', 'info');
+            noReservationsNotifiedRef.current = true;
+          }
           return;
         }
         
@@ -441,6 +478,8 @@ export default function BusinessReservations() {
       console.log('Estados originales del backend:', json.data?.map(r => r.status));
       console.log('Estados mapeados para frontend:', reservationsWithMappedStatus.map(r => r.status));
 
+      // Al recibir datos válidos, resetear la bandera de notificación
+      noReservationsNotifiedRef.current = false;
       setReservations(reservationsWithMappedStatus);
 
     } catch (error) {
@@ -448,39 +487,121 @@ export default function BusinessReservations() {
       showNotification(errorHandler(error), 'error');
       setError(true);
     } finally {
-      setLoading(false);
+      isFetchingRef.current = false;
+      if (options?.showGlobalLoading === false) {
+        setListLoading(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [businessId, getBusinessId, token, showNotification]);
 
-  // FUNCIÓN PARA APLICAR FILTROS (SOLO 4 ESTADOS)
-  const applyFilters = useCallback((reservationsList: Reservation[], filter: FilterType) => {
-    const today = new Date().toDateString();
-    
-    switch (filter) {
-      case 'today':
-        return reservationsList.filter(res => 
-          new Date(res.ReservationDate).toDateString() === today
-        );
-      case 'pending':
-        return reservationsList.filter(res => res.status === 'pending');
-      case 'confirmed':
-        return reservationsList.filter(res => res.status === 'confirmed');
-      case 'cancelled':
-        return reservationsList.filter(res => res.status === 'cancelled');
-      case 'completed':
-        return reservationsList.filter(res => res.status === 'completed');
-      default:
-        return reservationsList;
-    }
-  }, []);
+  
 
-  //EFECTO PARA FILTRAR RESERVACIONES
+  // Al delegar filtrado al backend, mostrar directamente lo que llega
   useEffect(() => {
-    if (reservations.length > 0) {
-      const filtered = applyFilters(reservations, activeFilter);
-      setFilteredReservations(filtered);
+    setFilteredReservations(reservations);
+  }, [reservations]);
+
+  // Helpers para actualizar query params desde la UI
+  const applyFilter = (filter: FilterType) => {
+    const params = new URLSearchParams(searchParams.toString());
+    // Al aplicar un filtro por estado, limpiamos el rango de fechas
+    params.delete('startDate');
+    params.delete('endDate');
+    params.delete('status');
+    if (filter === 'all') {
+      params.delete('filter');
+    } else {
+      params.set('filter', filter);
     }
-  }, [reservations, activeFilter, applyFilters]);
+    setSearchParams(params);
+  };
+
+  const applyDateFilter = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    // Al aplicar fecha, limpiamos filtros por estado
+    params.delete('filter');
+    params.delete('status');
+    if (startDateInput) params.set('startDate', startDateInput); else params.delete('startDate');
+    if (endDateInput) params.set('endDate', endDateInput); else params.delete('endDate');
+    setSearchParams(params);
+  };
+
+  const clearDateFilter = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('startDate');
+    params.delete('endDate');
+    setSearchParams(params);
+    setStartDateInput('');
+    setEndDateInput('');
+  };
+
+  // Actualizar query params en vivo mientras el usuario selecciona fechas
+  const updateDateParam = (key: 'startDate' | 'endDate', value?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    // Al aplicar fecha, limpiamos filtros por estado para delegar al backend
+    params.delete('filter');
+    params.delete('status');
+    if (value) params.set(key, value); else params.delete(key);
+    setSearchParams(params);
+  };
+
+  const handleStartDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setStartDateInput(value);
+    updateDateParam('startDate', value || undefined);
+  };
+
+  const handleEndDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEndDateInput(value);
+    updateDateParam('endDate', value || undefined);
+  };
+
+  // Efecto: cuando cambian los query params, pedir datos al backend con esos filtros
+  useEffect(() => {
+    if (isLoading || !token) return;
+
+    const statusParam = searchParams.get('status');
+    const filterParam = searchParams.get('filter');
+
+    // Sincronizar los inputs de fecha con los query params (útil cuando se cambian desde otros controles)
+    const startParamInput = searchParams.get('startDate') || '';
+    const endParamInput = searchParams.get('endDate') || '';
+    setStartDateInput(startParamInput);
+    setEndDateInput(endParamInput);
+
+    const start = searchParams.get('startDate') || undefined;
+    const end = searchParams.get('endDate') || undefined;
+
+    // Actualizar UI para reflejar params
+    if (statusParam) {
+      setActiveFilter(mapStatusFromBackend(statusParam) as FilterType);
+    } else if (filterParam) {
+      setActiveFilter(filterParam as FilterType);
+    } else {
+      setActiveFilter('all');
+    }
+
+    // Preparar status para el backend
+    let backendStatus = statusParam || undefined;
+    let s = start;
+    let e = end;
+
+    if (!backendStatus && filterParam) {
+      if (filterParam === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        s = s || today;
+        e = e || today;
+      } else {
+        backendStatus = mapStatusToBackend(filterParam);
+      }
+    }
+
+    // Llamar al backend con los filtros construidos (no mostrar carga global)
+    getReservations(undefined, { status: backendStatus, startDate: s, endDate: e }, { showGlobalLoading: false });
+  }, [searchParams, getReservations, isLoading, token]);
 
   //FUNCIÓN PARA REINICIALIZAR
   const initializeData = useCallback(async () => {
@@ -497,7 +618,24 @@ export default function BusinessReservations() {
 
       const currentBusinessId = await getBusinessId();
       if (currentBusinessId) {
-        await getReservations(currentBusinessId);
+        // Respetar filtros actuales en query params al hacer refresh
+        const statusParam = searchParams.get('status');
+        const filterParam = searchParams.get('filter');
+        let backendStatus = statusParam || undefined;
+        let s = searchParams.get('startDate') || undefined;
+        let e = searchParams.get('endDate') || undefined;
+
+        if (!backendStatus && filterParam) {
+          if (filterParam === 'today') {
+            const today = new Date().toISOString().split('T')[0];
+            s = s || today;
+            e = e || today;
+          } else {
+            backendStatus = mapStatusToBackend(filterParam);
+          }
+        }
+
+        await getReservations(currentBusinessId, { status: backendStatus, startDate: s, endDate: e });
       }
     } catch (error) {
       console.error('Error inicializando datos:', error);
@@ -506,12 +644,7 @@ export default function BusinessReservations() {
     }
   }, [token, getBusinessId, getReservations, showNotification]);
 
-  //EFECTO PARA INICIALIZAR CUANDO EL TOKEN ESTÉ DISPONIBLE
-  useEffect(() => {
-    if (!isLoading && token) {
-      initializeData();
-    }
-  }, [isLoading, token, initializeData]);
+
 
   //FUNCIÓN PARA EXTRAER LA FECHA - ARREGLAR EL PROBLEMA DE ZONA HORARIA
   const extractDate = (dateTimeString: string) => {
@@ -633,8 +766,9 @@ export default function BusinessReservations() {
 
   const stats = getStats();
 
-  // MOSTRAR LOADING MIENTRAS SE CARGA LA AUTENTICACIÓN O LOS DATOS
-  if (isLoading || loading) {
+  // MOSTRAR LOADING MIENTRAS SE CARGA LA AUTENTICACIÓN O LOS DATOS INICIALES
+  // Evitar mostrar la pantalla completa de carga cuando solo se están aplicando filtros (usar `listLoading`)
+  if (isLoading || (loading && reservations.length === 0)) {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
@@ -697,52 +831,66 @@ export default function BusinessReservations() {
           </div>
         </div>
         <div className="filters-grid">
+          <div className="date-range-filters" style={{display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
+            <input type="date" value={startDateInput} onChange={handleStartDateChange} />
+            <span>—</span>
+            <input type="date" value={endDateInput} onChange={handleEndDateChange} />
+            <button onClick={applyDateFilter} className="secondary-button">Aplicar</button>
+            <button onClick={clearDateFilter} className="secondary-button">Limpiar</button>
+          </div>
           <button 
             className={`filter-button ${activeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('all')}
+            onClick={() => applyFilter('all')}
           >
-            📋 Todas ({stats.total})
+            📋 Todas
           </button>
           <button 
             className={`filter-button ${activeFilter === 'today' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('today')}
+            onClick={() => applyFilter('today')}
           >
-            📅 Hoy ({stats.today})
+            📅 Hoy
           </button>
           <button 
             className={`filter-button ${activeFilter === 'pending' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('pending')}
+            onClick={() => applyFilter('pending')}
           >
-            ⏳ Pendientes ({stats.pending})
+            ⏳ Pendientes
           </button>
           <button 
             className={`filter-button ${activeFilter === 'confirmed' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('confirmed')}
+            onClick={() => applyFilter('confirmed')}
           >
-            🔄 En Curso ({stats.confirmed})
+            🔄 En Curso
           </button>
           <button 
             className={`filter-button ${activeFilter === 'completed' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('completed')}
+            onClick={() => applyFilter('completed')}
           >
-            🏁 Completadas ({stats.completed})
+            🏁 Completadas
           </button>
           <button 
             className={`filter-button ${activeFilter === 'cancelled' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('cancelled')}
+            onClick={() => applyFilter('cancelled')}
           >
-            ❌ Canceladas ({stats.cancelled})
+            ❌ Canceladas
           </button>
         </div>
       </div>
       
       {/* TABLA CON ACCIONES ACTUALIZADAS - SOLO 4 ESTADOS */}
       <div className="table-container">
-        {filteredReservations.length === 0 ? (
+            {listLoading && (
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                <div className="loading-spinner" style={{width: 20, height: 20}}></div>
+                <span>Cargando reservaciones...</span>
+              </div>
+            )}
+
+            {filteredReservations.length === 0 ? (
           <div className="no-reservations-message">
             <p>No hay reservaciones que coincidan con el filtro seleccionado</p>
             <button 
-              onClick={() => setActiveFilter('all')}
+              onClick={() => setSearchParams(new URLSearchParams())}
               className="secondary-button"
             >
               Ver todas las reservaciones

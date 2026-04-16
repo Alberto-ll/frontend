@@ -92,6 +92,35 @@
     gap: 0.75rem;
 }
 
+/* Date range filters: keep visual style consistent with filter buttons */
+.date-range-filters {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 8px 4px;
+}
+
+.date-range-filters input[type="date"] {
+    padding: 10px 12px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.date-range-filters button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.date-range-sep {
+    color: #666;
+    font-weight: 600;
+}
+
 .filter-button {
     background: var(--surface);
     border: 2px solid var(--border);
