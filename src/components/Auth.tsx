@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { jwtDecode } from 'jwt-decode';
 import type { UserData } from '../types/userData';
+import { getStoredAuthToken, getStoredUserData, readStoredAuthSession } from '../services/authSession';
 
 export function useAuth() {
   const [userData, setUserData] = useState<UserData | undefined>(undefined);
@@ -11,9 +11,9 @@ export function useAuth() {
     
   const checkAuth = useCallback(() => {
     setIsLoading(true); 
-    const stored = localStorage.getItem('user');
+    const session = readStoredAuthSession();
 
-    if (!stored) {
+    if (!session) {
       setUserData(undefined);
       setToken(undefined);
       setIsLoading(false);
@@ -21,12 +21,10 @@ export function useAuth() {
     }
 
     try {
-      const decoded = jwtDecode(stored) as UserData;
-      setUserData(decoded);
-      setToken(JSON.parse(stored).token);
+      setUserData(getStoredUserData());
+      setToken(getStoredAuthToken());
     } catch (error) {
       console.error('Error decodificando token:', error);
-      alert('Error decodificando token:' + error);
       localStorage.removeItem('user');
       setUserData(undefined);
       setToken(undefined);

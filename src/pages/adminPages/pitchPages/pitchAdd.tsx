@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import type {Pitch} from '../../../types/pitchType.ts'
 import { useNavigate, useOutletContext } from 'react-router';
 import type { BusinessData } from '../../../types/businessType.ts';
+import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService, businessService } from '../../../services';
 
 export default function PitchAdd(){
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -53,44 +55,13 @@ export default function PitchAdd(){
     const add = async (pitchData: FormData) => {
         try {
             setLoading(true);
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
 
-            console.log(pitchData);
-
-            const response = await fetch('http://localhost:3000/api/pitchs/add', {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                    // NO incluir 'Content-Type' cuando usas FormData, el navegador lo establece automáticamente con el boundary
-                }, 
-                body: pitchData
-            });
-
-            // Para debugging: mostrar la respuesta completa
-            console.log('Status:', response.status);
-            console.log('Headers:', Object.fromEntries(response.headers.entries()));
-
-            const responseText = await response.text();
-            console.log('Response body:', responseText);
-
-            if (!response.ok) {
-                let errorMessage = `HTTP Error! status: ${response.status}`;
-                try {
-                    const errorData = JSON.parse(responseText);
-                    errorMessage = errorData.error || errorData.message || errorMessage;
-                } catch (e:unknown) {
-                    errorMessage = responseText || errorMessage;
-                }
-                throw new Error(errorMessage);
-            }
-
-            const json: PitchResponse = JSON.parse(responseText);
+            const json = await pitchService.add(pitchData) as Pitch;
             setData(json);
             showNotification('Cancha creada con éxito', 'success');
             navigate('/admin/pitchs/getAll');
         } catch (error) {
-            console.error('Error completo:', error);
-            showNotification('Error: ' + error, 'error');
+            showNotification(errorHandler(error), 'error');
             setLoading(false);
         } finally {
             setLoading(false);
@@ -145,21 +116,10 @@ export default function PitchAdd(){
 
     const fetchBusinesses = useCallback(async () => {
         try {
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/business/findAll', {
-                method: "GET",
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            }); 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const json = await response.json();
-            setBusinesses(json.data);
+            const json = await businessService.findAll();
+            setBusinesses((json as any).data);
         } catch (error) {
-            console.error('Error fetching businesses:', error);
-            showNotification('Error al cargar negocios: ' + error, 'error');
+            showNotification(errorHandler(error), 'error');
             return [];
         }
     },[showNotification]);
@@ -280,23 +240,23 @@ export default function PitchAdd(){
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{data.data.id}</td>
-                                <td>{data.data.business?.id || data.data.business}</td>
-                                <td>{('⭐️').repeat(data.data.rating)}</td>
-                                <td>${data.data.price}</td>
-                                <td>{data.data.size}</td>
-                                <td>{data.data.groundType}</td>
-                                <td>{data.data.roof ? 'Techado' : 'Sin techo'}</td>
+                                <td>{data.id}</td>
+                                <td>{typeof data.business === 'object' ? data.business?.id : data.business}</td>
+                                <td>{('⭐️').repeat(data.rating)}</td>
+                                <td>${data.price}</td>
+                                <td>{data.size}</td>
+                                <td>{data.groundType}</td>
+                                <td>{data.roof ? 'Techado' : 'Sin techo'}</td>
                                 <td>
-                                    {data.data.imageUrl ? (
+                                    {data.imageUrl ? (
                                         <img 
-                                            src={data.data.imageUrl} 
+                                            src={data.imageUrl} 
                                             alt="Cancha" 
                                             style={{width: '50px', height: '50px', objectFit: 'cover'}}
                                         />
                                     ) : 'Sin imagen'}
                                 </td>
-                                <td>{new Date(data.data.createdAt).toLocaleDateString()}</td>
+                                <td>{new Date(data.createdAt).toLocaleDateString()}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -304,8 +264,4 @@ export default function PitchAdd(){
             </pre>
         </div>
     );
-}
-
-type PitchResponse = {
-    data: Pitch;
 }

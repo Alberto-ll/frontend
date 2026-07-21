@@ -1,35 +1,23 @@
 import { useEffect, useState, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
 import type { Reservation } from '../../types/reservationType.ts';
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../types/apiError.ts';
 import '../../static/css/myReservations.css'
-import type { UserData } from '../../types/userData.ts';
+import { useAuth } from '../../components/Auth';
+import { reservationService } from '../../services';
 
 export default function MyReservations() {
-    const [data, setData] = useState<ReservationResponse | null>(null);
+    const [data, setData] = useState<Reservation[] | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [ error, setError ] = useState<boolean>(false);
-    const [ userData, setUserData] = useState<UserData>();
+    const { userData } = useAuth();
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
     const findAllFromUser = useCallback(async (id:number) =>{
             try{
                 setLoading(true)
-                const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
-                const response = await fetch('http://localhost:3000/api/reservations/findAllFromUser/'+id,{
-                    method:"GET",
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                if(!response.ok){
-                    const errors = await response.json();
-                    throw errors
-                }
-                const json:ReservationResponse = await response.json()
+                const json = await reservationService.findAllFromUser(id) as unknown as Reservation[];
                 setData(json)
             }catch(error){
                 showNotification(errorHandler(error), 'error');
@@ -40,15 +28,6 @@ export default function MyReservations() {
             }
         }, [showNotification])
 
-        
-
-        useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                setUserData(jwtDecode(storedUser));
-            }
-        }, []);
-
         useEffect(() => {
             if (!error && userData?.id) {
                 findAllFromUser(userData.id);
@@ -56,21 +35,10 @@ export default function MyReservations() {
         }, [error, findAllFromUser, userData]);
     
 
-
     const remove = async (id:number) =>{
             try{
                 setLoading(true)
-                const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-                const response = await fetch('http://localhost:3000/api/reservations/cancel/'+id,{
-                    method:"PUT",
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }}
-                )
-                if(!response.ok){
-                    const errors = await response.json()
-                    throw errors
-                }
+                await reservationService.cancel(id)
                 showNotification('Reserva cancelada con éxito!', 'success')
             }catch(error){
                  showNotification(errorHandler(error), 'error');
@@ -98,8 +66,8 @@ export default function MyReservations() {
                     <th></th>
                 </thead>
                 <tbody>
-                    {data?.data
-      .filter((reservation: Reservation) => reservation.status !== 'cancelada')
+                    {data?.
+      filter((reservation: Reservation) => reservation.status !== 'cancelada')
       .map((reservation: Reservation) => (
         <tr key={reservation.id}>
           <td>{reservation.id}</td>
@@ -124,7 +92,3 @@ export default function MyReservations() {
     </div>
   );
 }
-
-type ReservationResponse = {
-    data: Reservation[];
-};

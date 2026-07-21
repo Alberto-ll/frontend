@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
+import { localityService, userService, businessService } from '../../../services/index.ts';
 
 interface Locality {
   id: number;
@@ -66,44 +67,22 @@ const BusinessGetAll = () => {
   };
 
   // Cargar localidades
-  const fetchLocalities = async (token: string) => {
+  const fetchLocalities = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/localities/getAll', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const localitiesData = await response.json();
-        const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                              localitiesData.data || localitiesData.localities || [];
-        setLocalities(localitiesArray);
-      }
+      const localitiesData = await localityService.getAll();
+      const localitiesArray = Array.isArray(localitiesData) ? localitiesData as unknown as Locality[] : [];
+      setLocalities(localitiesArray);
     } catch (err) {
       console.error('Error cargando localidades:', err);
     }
   };
 
   // Cargar usuarios
-  const fetchOwners = async (token: string) => {
+  const fetchOwners = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/users/findAll', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const ownersData = await response.json();
-        const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                          ownersData.data || ownersData.users || [];
-        setOwners(ownersArray);
-      }
+      const ownersData = await userService.findAll();
+      const ownersArray = Array.isArray(ownersData) ? ownersData as unknown as User[] : [];
+      setOwners(ownersArray);
     } catch (err) {
       console.error('Error cargando usuarios:', err);
     }
@@ -114,45 +93,18 @@ const BusinessGetAll = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
 
         // Cargar negocios, localidades y usuarios en paralelo
-        const [businessesResponse] = await Promise.all([
-          fetch('http://localhost:3000/api/business/findAll', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          fetchLocalities(token),
-          fetchOwners(token)
+        const [businessesResponseData] = await Promise.all([
+          businessService.findAll(),
+          fetchLocalities(),
+          fetchOwners()
         ]);
-        
-        if (!businessesResponse.ok) {
-          if (businessesResponse.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${businessesResponse.status} ${businessesResponse.statusText}`);
-        }
-        
-        const responseData = await businessesResponse.json();
         
         let businessData: Business[] = [];
         
-        if (Array.isArray(responseData)) {
-          businessData = responseData;
-        } else if (responseData.businesses && Array.isArray(responseData.businesses)) {
-          businessData = responseData.businesses;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          businessData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
+        if (Array.isArray(businessesResponseData)) {
+          businessData = businessesResponseData as unknown as Business[];
         }
         
         setBusinesses(businessData);
@@ -183,40 +135,7 @@ const BusinessGetAll = () => {
     setIsDeleting(true);
     
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      const response = await fetch(`http://localhost:3000/api/business/remove/${businessToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        
-        if (response.status === 404) {
-          throw new Error('Negocio no encontrado');
-        } else if (response.status === 403) {
-          throw new Error('No tienes permisos para eliminar este negocio');
-        } else if (response.status === 409) {
-          throw new Error('No se puede eliminar el negocio porque tiene canchas asociadas');
-        } else {
-          let errorMessage = `Error: ${response.status}`;
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            errorMessage = responseText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-      }
+      await businessService.remove(businessToDelete.id);
 
       // Actualizar la lista local removiendo el negocio eliminado
       setBusinesses(prevBusinesses => 

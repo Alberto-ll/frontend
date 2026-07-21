@@ -1,9 +1,10 @@
 import '../static/css/registerBusiness.css'
 import type { BusinessData } from '../types/businessType';
-import type { UserData } from '../types/userData';
-import { jwtDecode } from 'jwt-decode';
 import { Navigate, useOutletContext, useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../components/Auth';
+import { userService, localityService, businessService } from '../services';
+import { errorHandler } from '../types/apiError';
 
 interface Locality {
   id?: number;
@@ -24,26 +25,17 @@ export function RegisterBusinessPage(){
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
+    const { userData } = useAuth();
 
     useEffect(() => {
         const previousBusiness = async () =>{
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const data = jwtDecode(token) as UserData;
-            const response = await fetch('http://localhost:3000/api/users/hasBusiness/'+data.id,{method:"GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },}
-            )
-            if(!response.ok){
-                throw new Error("HTTP Error! status: " + response.status)
-            }
-            const responseData = await response.json();
+            if (!userData?.id) return;
+            const responseData = await userService.hasBusiness(userData.id) as { response: boolean };
             setHasBusiness(responseData.response);
         }catch(error){
-            showNotification('Error: ' + error, 'error')
+            showNotification('Error: ' + errorHandler(error), 'error')
             setLoading(false)
         }finally{
             setLoading(false)
@@ -53,29 +45,7 @@ export function RegisterBusinessPage(){
         const fetchLocalities = async () => {
           try {
             setLoading(true);
-            
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            
-            if (!token) {
-              throw new Error('No se encontró token de autenticación');
-            }
-            
-            const response = await fetch('http://localhost:3000/api/localities/getAll', {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              }
-            });
-            
-            if (!response.ok) {
-              if (response.status === 401) {
-                throw new Error('Token de autenticación inválido o expirado');
-              }
-              throw new Error(`Error: ${response.status} ${response.statusText}`);
-            }
-            
-            const responseData = await response.json();
+            const responseData = await localityService.getAll() as any;
             
             let localityData: Locality[] = [];
             
@@ -91,28 +61,21 @@ export function RegisterBusinessPage(){
             
             setLocalities(localityData);
           } catch (err) {
-            showNotification("Error al cargar localidades: " + err, "error")
+            showNotification("Error al cargar localidades: " + errorHandler(err), "error")
           } finally {
             setLoading(false);
           }
         };
     
         fetchLocalities();
-      }, [showNotification]);
+      }, [showNotification, userData]);
 
-    const storedUser = localStorage.getItem('user')
-    if(!storedUser){
+    if(!userData){
         return <Navigate to="/"/>
     }
 
-    // Decode user data early to use throughout the component
-    const userData = jwtDecode(storedUser) as UserData;
     const ownerId = userData.id;
 
-    if(!userData){
-        alert('No se puede recuperar el id del usuario. Redirigiendo...')
-        return <Navigate to="/"/> 
-    }
     if(userData.category == "owner"){
         alert("Usted ya tiene un negocio en su nombre")
         return <Navigate to="/"/> 
@@ -121,21 +84,11 @@ export function RegisterBusinessPage(){
     const create = async (business:BusinessData) =>{
         try{
             setLoading(true)
-            const token = JSON.parse(storedUser).token;
-            const response = await fetch('http://localhost:3000/api/business/add',{method:"POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }, 
-                body: JSON.stringify(business)}
-            )
-            if(!response.ok){
-                throw new Error("HTTP Error! status: " + response.status)
-            }
+            await businessService.add(business as unknown as Record<string, unknown>)
             showNotification('Formulario enviado con éxito', 'success')
             navigate('/')
         }catch(error){
-            showNotification('Error: ' + error, 'error')
+            showNotification('Error: ' + errorHandler(error), 'error')
             setLoading(false)
         }finally{
             setLoading(false)

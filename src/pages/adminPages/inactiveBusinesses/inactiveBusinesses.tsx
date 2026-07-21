@@ -2,6 +2,7 @@ import { useOutletContext } from "react-router";
 import { useCallback, useState, useEffect } from "react";
 import '../../../static/css/crudTable.css'
 import type { BusinessData } from "../../../types/businessType";
+import { localityService, userService, businessService } from '../../../services/index.ts';
 
 interface Locality {
   id: number;
@@ -25,51 +26,31 @@ export default function InactiveBusinesses() {
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
     // Cargar localidades
-    const fetchLocalities = async (token: string) => {
+    const fetchLocalities = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/localities/getAll', {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const localitiesData = await response.json();
-                const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                                    localitiesData.data || localitiesData.localities || [];
-                setLocalities(localitiesArray);
-            }
+            const localitiesData = await localityService.getAll();
+            const localitiesArray = Array.isArray(localitiesData) ? localitiesData as unknown as Locality[] : [];
+            setLocalities(localitiesArray);
         } catch (error) {
             console.error('Error cargando localidades:', error);
         }
     };
 
     // Cargar usuarios
-    const fetchOwners = async (token: string) => {
+    const fetchOwners = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/users/findAll', {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const ownersData = await response.json();
-                const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                                ownersData.data || ownersData.users || [];
-                setOwners(ownersArray);
-            }
+            const ownersData = await userService.findAll();
+            const ownersArray = Array.isArray(ownersData) ? ownersData as unknown as User[] : [];
+            setOwners(ownersArray);
         } catch (error) {
             console.error('Error cargando usuarios:', error);
         }
     };
 
     // Función para obtener el nombre de la localidad
-    const getLocalityName = (locality: number | Locality): string => {
+    const getLocalityName = (locality: number | { id: number; name?: string }): string => {
         if (typeof locality === 'object' && locality !== null) {
-            return locality.name;
+            return locality.name || 'N/A';
         } else if (typeof locality === 'number') {
             const foundLocality = localities.find(l => l.id === locality);
             return foundLocality?.name || `ID: ${locality}`;
@@ -78,12 +59,13 @@ export default function InactiveBusinesses() {
     };
 
     // Función para obtener el nombre del dueño
-    const getOwnerName = (owner: number | User): string => {
+    const getOwnerName = (owner: number | { id: number; name?: string } | undefined): string => {
+        if (owner === undefined) return 'N/A';
         if (typeof owner === 'object' && owner !== null) {
-            return owner.name || owner.email || 'N/A';
+            return owner.name || 'N/A';
         } else if (typeof owner === 'number') {
             const foundOwner = owners.find(o => o.id === owner);
-            return foundOwner?.name || foundOwner?.email || `ID: ${owner}`;
+            return foundOwner?.name || `ID: ${owner}`;
         }
         return 'N/A';
     };
@@ -91,17 +73,12 @@ export default function InactiveBusinesses() {
     const getAll = useCallback(async () => {
         try {
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            
-            if (!token) {
-                throw new Error('No se encontró token de autenticación');
-            }
 
             // Cargar datos en paralelo
             await Promise.all([
-                fetchBusinesses(token),
-                fetchLocalities(token),
-                fetchOwners(token)
+                fetchBusinesses(),
+                fetchLocalities(),
+                fetchOwners()
             ]);
             
         } catch (error) {
@@ -113,32 +90,12 @@ export default function InactiveBusinesses() {
         }
     }, [showNotification])
 
-    const fetchBusinesses = async (token: string) => {
-        const response = await fetch('http://localhost:3000/api/business/findAll', {
-            method: "GET",
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        });
+    const fetchBusinesses = async () => {
+        const responseData = await businessService.findAll();
         
-        if (!response.ok) {
-            if (response.status == 404) {
-                throw new Error("No hay negocios registrados")
-            }
-            throw new Error("HTTP Error! status: " + response.status)
-        }
-        
-        const json = await response.json();
-        
-        // Procesar la respuesta para obtener el array de negocios
         let businessesData: BusinessData[] = [];
-        if (Array.isArray(json)) {
-            businessesData = json;
-        } else if (json.data && Array.isArray(json.data)) {
-            businessesData = json.data;
-        } else if (json.businesses && Array.isArray(json.businesses)) {
-            businessesData = json.businesses;
+        if (Array.isArray(responseData)) {
+            businessesData = responseData as unknown as BusinessData[];
         }
         
         setData(businessesData);
@@ -158,19 +115,8 @@ export default function InactiveBusinesses() {
     const activateBusiness = async (id: number) => {
         try {
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
             
-            const response = await fetch(`http://localhost:3000/api/business/activate/${id}`, {
-                method: "PUT",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-            })
-            
-            if (!response.ok) {
-                throw new Error("HTTP Error! status: " + response.status)
-            }
+            await businessService.activate(id)
             
             showNotification('Negocio habilitado con éxito!', 'success');
             

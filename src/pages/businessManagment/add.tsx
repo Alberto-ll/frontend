@@ -1,167 +1,67 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Pitch } from '../../types/pitchType.ts';
 import { useNavigate, useOutletContext } from 'react-router';
+import { useAuth } from '../../components/Auth.tsx';
+import { businessService, pitchService } from '../../services';
+import { errorHandler } from '../../types/apiError.ts';
 
 export default function PitchAdd() {
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [businessId, setBusinessId] = useState<number | null>(null);
     const [hasNoBusiness, setHasNoBusiness] = useState<boolean>(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [userData, setUserData] = useState<any>(null);
-    const [authChecked, setAuthChecked] = useState<boolean>(false);
     
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
+    const { userData, isLoading: authLoading } = useAuth();
 
-    // 🎯 TODOS LOS HOOKS/CALLBACKS DEBEN IR AQUÍ ARRIBA (antes de cualquier return condicional)
-    
-    // FUNCIÓN PARA DECODIFICAR EL TOKEN JWT
-    const decodeToken = useCallback((token: string) => {
-        try {
-            const payload = token.split('.')[1];
-            const decodedPayload = atob(payload);
-            const userData = JSON.parse(decodedPayload);
-            
-            return {
-                id: userData.id || userData.userId || 0,
-                email: userData.email || '',
-                name: userData.name || userData.username || '',
-                role: userData.role || ''
-            };
-        } catch (error) {
-            console.error('Error decodificando token:', error);
-            return null;
-        }
-    }, []);
-
-    // FUNCIÓN PARA OBTENER TOKEN Y DATOS DEL USUARIO DESDE LOCALSTORAGE
-    const getAuthData = useCallback(() => {
-        try {
-            const storedUser = localStorage.getItem('user');
-            
-            if (!storedUser) {
-                console.log('No hay usuario en localStorage');
-                return null;
-            }
-            
-            const parsed = JSON.parse(storedUser);
-            if (!parsed.token) {
-                console.log('No hay token en los datos del usuario');
-                localStorage.removeItem('user');
-                return null;
-            }
-            
-            const decodedUser = decodeToken(parsed.token);
-            if (!decodedUser) {
-                console.log('Token inválido, eliminando datos');
-                localStorage.removeItem('user');
-                return null;
-            }
-            
-            console.log('Datos de usuario obtenidos:', decodedUser);
-            setToken(parsed.token);
-            setUserData(decodedUser);
-            return { token: parsed.token, userData: decodedUser };
-            
-        } catch (error) {
-            console.error('Error obteniendo datos de autenticación:', error);
-            localStorage.removeItem('user');
-            return null;
-        }
-    }, [decodeToken]);
-
-    // FUNCIÓN PARA OBTENER EL BUSINESSID DEL USUARIO
     const getBusinessId = useCallback(async () => {
         try {
-            if (!userData?.id || !token) {
-                throw new Error('No hay datos de usuario o token');
+            if (!userData?.id) {
+                throw new Error('No hay datos de usuario');
             }
 
-            const userId = userData.id;
-            console.log('Obteniendo business para usuario:', userId);
-
-            const response = await fetch(`http://localhost:3000/api/business/findByOwnerId/${userId}`, {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            console.log('Response status:', response.status);
-            
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('user');
-                alert('Sesión expirada o inválida');
-                navigate('/login');
-                return null;
-            }
-            
-            if (response.status === 404) {
-                console.log('No se encontró negocio para este usuario');
-                setHasNoBusiness(true);
-                showNotification('No tienes un negocio registrado aún', 'warning');
-                return null;
-            }
-            
-            if (!response.ok) {
-                const errors = await response.json();
-                console.error('Error response:', errors);
-                throw new Error(`Error ${response.status}: ${errors.message || 'Error al obtener el negocio'}`);
-            }
-            
-            const businessData = await response.json();
-            console.log('Business data recibida:', businessData);
+            const businessData = await businessService.findByOwnerId(userData.id);
             
             let extractedBusinessId;
-            if (businessData.id) {
-                extractedBusinessId = businessData.id;
-            } else if (businessData.data && businessData.data.id) {
-                extractedBusinessId = businessData.data.id;
-            } else if (Array.isArray(businessData) && businessData.length > 0) {
-                extractedBusinessId = businessData[0].id;
-            } else if (Array.isArray(businessData.data) && businessData.data.length > 0) {
-                extractedBusinessId = businessData.data[0].id;
+            if ((businessData as any).id) {
+                extractedBusinessId = (businessData as any).id;
+            } else if ((businessData as any).data && (businessData as any).data.id) {
+                extractedBusinessId = (businessData as any).data.id;
+            } else if (Array.isArray(businessData) && (businessData as any[]).length > 0) {
+                extractedBusinessId = (businessData as any[])[0].id;
+            } else if ((businessData as any).data && Array.isArray((businessData as any).data) && (businessData as any).data.length > 0) {
+                extractedBusinessId = (businessData as any).data[0].id;
             }
             
             if (!extractedBusinessId) {
-                console.log('Respuesta del negocio no contiene ID válido');
                 setHasNoBusiness(true);
                 showNotification('No se encontró información válida del negocio', 'warning');
                 return null;
             }
             
-            console.log('Business ID encontrado:', extractedBusinessId);
             setBusinessId(extractedBusinessId);
             setHasNoBusiness(false);
             return extractedBusinessId;
             
-        } catch (error) {
+        } catch (error: any) {
+            if (error?._status === 404) {
+                setHasNoBusiness(true);
+                showNotification('No tienes un negocio registrado aún', 'warning');
+                return null;
+            }
             console.error('Error getting business ID:', error);
-            showNotification('Error al obtener el negocio: ' + error, 'error');
+            showNotification('Error al obtener el negocio: ' + errorHandler(error), 'error');
             setHasNoBusiness(true);
             throw error;
         }
-    }, [showNotification, token, userData, navigate]);
+    }, [userData, showNotification]);
 
-    // EFECTO PARA OBTENER AUTENTICACIÓN AL CARGAR EL COMPONENTE
-    useEffect(() => {
-        const authData = getAuthData();
-        if (!authData) {
-            alert('Sesión no iniciada o inválida');
-            navigate('/login');
-        } else {
-            setAuthChecked(true);
-        }
-    }, [getAuthData, navigate]);
-
-    // EFECTO PARA OBTENER EL BUSINESSID AL CARGAR EL COMPONENTE
     useEffect(() => {
         const initializeBusiness = async () => {
-            if (!token || !userData || !authChecked) {
+            if (!userData || authLoading) {
                 return;
             }
             
@@ -176,18 +76,21 @@ export default function PitchAdd() {
         };
 
         initializeBusiness();
-    }, [getBusinessId, token, userData, authChecked]);
+    }, [getBusinessId, userData, authLoading]);
 
-    // 🎯 AHORA SÍ PODEMOS HACER RETURNS CONDICIONALES (después de todos los hooks)
-
-    // VERIFICAR SI HAY DATOS DE USUARIO ANTES DE RENDERIZAR
-    if (!authChecked || !userData || !token) {
+    if (authLoading || (!userData && !authLoading)) {
         return (
             <div className="loading-container">
                 <div className="loading-spinner"></div>
                 <p>Verificando autenticación...</p>
             </div>
         );
+    }
+
+    if (!userData) {
+        alert('Sesión no iniciada o inválida');
+        navigate('/login');
+        return null;
     }
 
     // MANEJO DE ESTADOS DE CARGA Y ERROR
@@ -214,7 +117,7 @@ export default function PitchAdd() {
                         📝 Registrar mi negocio
                     </button>
                     <button 
-                        onClick={() => getAuthData()} 
+                        onClick={() => getBusinessId()} 
                         className="secondary-button"
                     >
                         🔄 Verificar nuevamente
@@ -266,51 +169,14 @@ export default function PitchAdd() {
         try {
             setLoading(true);
 
-            if (!token) {
-                throw new Error('No se encontró token de autenticación');
-            }
-
-            console.log('Enviando datos de cancha:');
-            for (let [key, value] of pitchData.entries()) {
-                if (key === 'image') {
-                    console.log(`${key}:`, (value as File).name, (value as File).size);
-                } else {
-                    console.log(`${key}:`, value);
-                }
-            }
-
-            const response = await fetch('http://localhost:3000/api/pitchs/add', {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: pitchData
-            });
-
-            console.log('Status:', response.status);
-
-            const responseText = await response.text();
-            console.log('Response body:', responseText);
-
-            if (!response.ok) {
-                let errorMessage = `HTTP Error! status: ${response.status}`;
-                try {
-                    const errorData = JSON.parse(responseText);
-                    errorMessage = errorData.error || errorData.message || errorMessage;
-                } catch (e) {
-                    errorMessage = responseText || errorMessage;
-                }
-                throw new Error(errorMessage);
-            }
-
-            const json: PitchResponse = JSON.parse(responseText);
+            const json = await pitchService.add(pitchData);
             setData(json);
-            showNotification('✅ Cancha creada con éxito', 'success');
+            showNotification('Cancha creada con éxito', 'success');
             navigate(-1);
             
         } catch (error) {
             console.error('Error completo:', error);
-            showNotification('❌ Error: ' + error, 'error');
+            showNotification('Error: ' + errorHandler(error), 'error');
         } finally {
             setLoading(false);
         }
@@ -498,20 +364,20 @@ export default function PitchAdd() {
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>{data.data.id}</td>
-                                    <td>{data.data.business?.id || data.data.business}</td>
+                                    <td>{data.id}</td>
+                                    <td>{typeof data.business === 'object' ? data.business?.id : data.business}</td>
                                     <td>
-                                        {('⭐️').repeat(Math.floor(data.data.rating))} 
-                                        <span className="rating-number">({data.data.rating})</span>
+                                        {('⭐️').repeat(Math.floor(data.rating))} 
+                                        <span className="rating-number">({data.rating})</span>
                                     </td>
-                                    <td>${data.data.price?.toLocaleString()}</td>
-                                    <td>{data.data.size}</td>
-                                    <td>{data.data.groundType}</td>
-                                    <td>{data.data.roof ? '✅ Techado' : '❌ Sin techo'}</td>
+                                    <td>${data.price?.toLocaleString()}</td>
+                                    <td>{data.size}</td>
+                                    <td>{data.groundType}</td>
+                                    <td>{data.roof ? '✅ Techado' : '❌ Sin techo'}</td>
                                     <td>
-                                        {data.data.imageUrl ? (
+                                        {data.imageUrl ? (
                                             <img 
-                                                src={data.data.imageUrl} 
+                                                src={data.imageUrl} 
                                                 alt="Cancha" 
                                                 style={{width: '50px', height: '50px', objectFit: 'cover'}}
                                             />
@@ -525,8 +391,4 @@ export default function PitchAdd() {
             )}
         </div>
     );
-}
-
-type PitchResponse = {
-    data: Pitch;
 }

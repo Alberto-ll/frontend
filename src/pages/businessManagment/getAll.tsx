@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback } from 'react';
 import type {Pitch} from '../../types/pitchType.ts'
 import { useOutletContext, Navigate, useNavigate } from 'react-router';
 import { errorHandler } from '../../types/apiError.ts';
+import { useAuth } from '../../components/Auth.tsx';
+import { businessService, pitchService } from '../../services';
 import '../../static/css/MybusinessGetAll.css';
 
 export default function BusinessPitchGetAll() {
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch[] | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<boolean>(false);
     const [businessId, setBusinessId] = useState<number | null>(null);
@@ -13,138 +15,56 @@ export default function BusinessPitchGetAll() {
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
+    const { userData } = useAuth();
 
-    // VERIFICACIÓN DE SESIÓN
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
+    if (!userData) {
         alert('sesion no iniciada');
         return <Navigate to="/login" />;
     }
 
-    // FUNCIÓN SIMPLIFICADA para obtener token y userId
-    const getAuthData = useCallback(() => {
-        try {
-            const userStr = localStorage.getItem('user');
-            if (!userStr) {
-                throw new Error('No se encontró información de usuario');
-            }
-
-            let token: string;
-            let userId: number | null = null;
-
-            try {
-                const userObject = JSON.parse(userStr);
-                token = userObject.token || userStr;
-                userId = userObject.id;
-            } catch {
-                token = userStr;
-            }
-
-            if (!userId && token) {
-                try {
-                    const payload = token.split('.')[1];
-                    if (payload) {
-                        const decoded = JSON.parse(atob(payload));
-                        userId = decoded.id || decoded.userId || decoded.sub;
-                        console.log('Usuario decodificado del token:', decoded);
-                    }
-                } catch (decodeError) {
-                    console.error('Error decodificando token:', decodeError);
-                }
-            }
-
-            console.log('Token extraído:', token.substring(0, 50) + '...');
-            console.log('UserId extraído:', userId);
-
-            return { token, userId };
-        } catch (error) {
-            console.error('Error obteniendo datos de auth:', error);
-            throw error;
-        }
-    }, []);
-
-    // FUNCIÓN CORREGIDA para obtener el businessId del usuario
     const getBusinessId = useCallback(async () => {
         try {
-            const { token, userId } = getAuthData();
-            
-            if (!token) {
-                throw new Error('No se encontró token de autenticación');
-            }
-
-            if (!userId) {
+            if (!userData?.id) {
                 throw new Error('No se pudo obtener el ID del usuario');
             }
 
-            console.log('Obteniendo business para usuario:', userId);
-            console.log('URL completa:', `http://localhost:3000/api/business/findByOwnerId/${userId}`);
-
-            const response = await fetch(`http://localhost:3000/api/business/findByOwnerId/${userId}`, {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            console.log('Response status:', response.status);
-            
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('user');
-                alert('Sesión expirada o inválida');
-                window.location.href = '/login';
-                return;
-            }
-            
-            // MANEJO ESPECÍFICO DEL 404
-            if (response.status === 404) {
-                console.log('No se encontró negocio para este usuario');
-                setHasNoBusiness(true);
-                setLoading(false);
-                showNotification('No tienes un negocio registrado aún', 'warning');
-                return null;
-            }
-            
-            if (!response.ok) {
-                const errors = await response.json();
-                console.error('Error response:', errors);
-                throw new Error(`Error ${response.status}: ${errors.message || 'Error al obtener el negocio'}`);
-            }
-            
-            const businessData = await response.json();
-            console.log('Business data recibida:', businessData);
+            const businessData = await businessService.findByOwnerId(userData.id);
             
             let extractedBusinessId;
-            if (businessData.id) {
-                extractedBusinessId = businessData.id;
-            } else if (businessData.data && businessData.data.id) {
-                extractedBusinessId = businessData.data.id;
-            } else if (Array.isArray(businessData) && businessData.length > 0) {
-                extractedBusinessId = businessData[0].id;
-            } else if (Array.isArray(businessData.data) && businessData.data.length > 0) {
-                extractedBusinessId = businessData.data[0].id;
+            if ((businessData as any).id) {
+                extractedBusinessId = (businessData as any).id;
+            } else if ((businessData as any).data && (businessData as any).data.id) {
+                extractedBusinessId = (businessData as any).data.id;
+            } else if (Array.isArray(businessData) && (businessData as any[]).length > 0) {
+                extractedBusinessId = (businessData as any[])[0].id;
+            } else if ((businessData as any).data && Array.isArray((businessData as any).data) && (businessData as any).data.length > 0) {
+                extractedBusinessId = (businessData as any).data[0].id;
             }
             
             if (!extractedBusinessId) {
-                console.log('Respuesta del negocio no contiene ID válido');
                 setHasNoBusiness(true);
                 setLoading(false);
                 showNotification('No se encontró información válida del negocio', 'warning');
                 return null;
             }
             
-            console.log('Business ID encontrado:', extractedBusinessId);
             setBusinessId(extractedBusinessId);
             setHasNoBusiness(false);
             return extractedBusinessId;
             
-        } catch (error) {
+        } catch (error: any) {
+            if (error?._status === 404) {
+                setHasNoBusiness(true);
+                setLoading(false);
+                showNotification('No tienes un negocio registrado aún', 'warning');
+                return null;
+            }
             console.error('Error getting business ID:', error);
             showNotification(errorHandler(error), 'error');
             setError(true);
             throw error;
         }
-    }, [getAuthData, showNotification]);
+    }, [userData, showNotification]);
 
     const getAll = useCallback(async (currentBusinessId?: number) => {
         try {
@@ -155,81 +75,31 @@ export default function BusinessPitchGetAll() {
             if (!targetBusinessId) {
                 targetBusinessId = await getBusinessId();
                 if (!targetBusinessId) {
-                    // No hay negocio, no continuar
                     return;
                 }
             }
 
-            const { token } = getAuthData();
-            if (!token) {
-                throw new Error('No se encontró el token de autenticación');
-            }
-
-            console.log('Obteniendo canchas para business:', targetBusinessId);
-
-            const response = await fetch(`http://localhost:3000/api/pitchs/getByBusiness/${targetBusinessId}`, {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('user');
-                alert('Sesión expirada o inválida');
-                window.location.href = '/login';
-                return;
-            }
-
-            // MANEJO ESPECÍFICO PARA 404 - No hay canchas (NO ES ERROR)
-            if (response.status === 404) {
-                console.log('No se encontraron canchas para este negocio');
-                setData({ data: [] });
+            const json = await pitchService.getByBusiness(targetBusinessId);
+            setData(json);
+            
+        } catch (error: any) {
+            if (error?._status === 404 || (error?.error && error.error.includes('No pitches found'))) {
+                setData([]);
                 showNotification('No tienes canchas registradas aún', 'info');
                 return;
             }
-            
-            if (!response.ok) {
-                const errors = await response.json();
-                console.error('Error response:', errors);
-                
-                // MANEJO ESPECÍFICO del mensaje "No pitches found"
-                if (errors.error && errors.error.includes('No pitches found')) {
-                    console.log('Backend indica que no hay canchas para este negocio');
-                    setData({ data: [] });
-                    showNotification('No tienes canchas registradas aún', 'info');
-                    return;
-                }
-                
-                throw new Error(`Error ${response.status}: ${errors.message || errors.error || 'Error al obtener las canchas'}`);
-            }
-            
-            const json: PitchResponse = await response.json();
-            console.log('Canchas recibidas:', json);
-            setData(json);
-            
-        } catch (error) {
             console.error('Error getting pitches:', error);
             showNotification(errorHandler(error), 'error');
             setError(true);
         } finally {
             setLoading(false);
         }
-    }, [businessId, getBusinessId, getAuthData, showNotification]);
+    }, [businessId, getBusinessId, showNotification]);
 
-    // FUNCIÓN PARA RE-INICIALIZAR
     const initializeData = useCallback(async () => {
         try {
             setError(false);
             setHasNoBusiness(false);
-            const { token } = getAuthData();
-            if (!token) {
-                showNotification('Usuario no autenticado', 'error');
-                setError(true);
-                setLoading(false);
-                return;
-            }
 
             const currentBusinessId = await getBusinessId();
             if (currentBusinessId) {
@@ -240,7 +110,7 @@ export default function BusinessPitchGetAll() {
             setError(true);
             setLoading(false);
         }
-    }, [getAuthData, getBusinessId, getAll, showNotification]);
+    }, [getBusinessId, getAll]);
 
     useEffect(() => {
         initializeData();
@@ -249,31 +119,8 @@ export default function BusinessPitchGetAll() {
     const remove = async (id: number) => {
         try {
             setLoading(true);
-            const { token } = getAuthData();
             
-            if (!token) {
-                throw new Error('No se encontró el token de autenticación');
-            }
-
-            const response = await fetch(`http://localhost:3000/api/pitchs/remove/${id}`, {
-                method: "DELETE",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('user');
-                alert('Sesión expirada o inválida');
-                window.location.href = '/login';
-                return;
-            }
-            
-            if (!response.ok) {
-                const errors = await response.json();
-                throw new Error(`Error ${response.status}: ${errors.message || 'Error al eliminar la cancha'}`);
-            }
+            await pitchService.remove(id);
             
             showNotification('Cancha eliminada con éxito!', 'success');
             await getAll(businessId || undefined);
@@ -344,7 +191,7 @@ export default function BusinessPitchGetAll() {
         );
     }
 
-    if (!data || !data.data || data.data.length === 0) {
+    if (!data || data.length === 0) {
         return (
             <div className="no-data-container">
                 <h3>📭 No hay canchas registradas</h3>
@@ -384,7 +231,7 @@ export default function BusinessPitchGetAll() {
                     </tr>
                 </thead>
                 <tbody>
-                    {data.data.map((pitch) => (
+                    {data.map((pitch) => (
                         <tr key={pitch.id}>
                             <td>{pitch.id}</td>
                             <td>
@@ -442,7 +289,3 @@ export default function BusinessPitchGetAll() {
         </div>
     );
 }
-
-type PitchResponse = {
-    data: Pitch[];
-};

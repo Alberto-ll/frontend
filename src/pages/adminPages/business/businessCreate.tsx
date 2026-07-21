@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryCreate.css';
+import { localityService, userService, businessService } from '../../../services/index.ts';
 
 interface Locality {
   id: number;
@@ -39,47 +40,15 @@ const BusinessCreate = () => {
     const fetchInitialData = async () => {
       try {
         setLoadingData(true);
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
 
         // Cargar localidades
-        const localitiesResponse = await fetch('http://localhost:3000/api/localities/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const localitiesData = await localityService.getAll();
+        const localitiesArray = Array.isArray(localitiesData) ? localitiesData as unknown as Locality[] : [];
+        setLocalities(localitiesArray);
 
-        if (localitiesResponse.ok) {
-          const localitiesData = await localitiesResponse.json();
-          const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                                localitiesData.data || localitiesData.localities || [];
-          setLocalities(localitiesArray);
-        } else {
-          throw new Error(`Error al cargar localidades: ${localitiesResponse.status}`);
-        }
-
-        // Cargar usuarios
-        const ownersResponse = await fetch('http://localhost:3000/api/users/findAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (ownersResponse.ok) {
-          const ownersData = await ownersResponse.json();
-          const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                            ownersData.data || ownersData.users || [];
-          setOwners(ownersArray);
-        } else {
-          throw new Error(`Error al cargar usuarios: ${ownersResponse.status}`);
-        }
+        const ownersData = await userService.findAll();
+        const ownersArray = Array.isArray(ownersData) ? ownersData as unknown as User[] : [];
+        setOwners(ownersArray);
 
       } catch (err) {
         setError('Error al cargar datos necesarios: ' + (err instanceof Error ? err.message : 'Error desconocido'));
@@ -105,12 +74,6 @@ const BusinessCreate = () => {
     try {
       setSaving(true);
       setError(null);
-
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
 
       // Validaciones básicas
       if (!formData.businessName.trim()) {
@@ -154,30 +117,7 @@ const BusinessCreate = () => {
 
       console.log(createData)
 
-      // URL CORREGIDA - usar /api/business/add para crear negocio
-      const response = await fetch('http://localhost:3000/api/business/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(createData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      await businessService.add(createData);
       
       alert('Negocio creado con éxito. Debe ser activado por un administrador.');
       navigate('/admin/business/getAll');

@@ -4,6 +4,7 @@ import type { Pitch } from '../../types/pitchType.ts';
 import { useNavigate, useOutletContext, useParams } from 'react-router';
 import { errorHandler } from '../../types/apiError.ts';
 import { useAuth } from '../../components/Auth.tsx';
+import { pitchService } from '../../services';
 
 interface PitchFormData {
     rating: number | string;
@@ -16,7 +17,7 @@ interface PitchFormData {
 export default function BusinessPitchEdit() {
     const { id } = useParams<{ id: string }>();
 
-    const [pitch, setPitch] = useState<PitchResponse | null>(null);
+    const [pitch, setPitch] = useState<Pitch | null>(null);
     const [formData, setFormData] = useState<PitchFormData>({
         rating: '',
         price: '',
@@ -35,31 +36,19 @@ export default function BusinessPitchEdit() {
 
 
     const getOne = useCallback(async () => {
-        if (!token) { 
+        if (!token || !id) { 
             return;
         }
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:3000/api/pitchs/getOne/${id}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (!response.ok) {
-                 const errors = await response.json();
-                 throw new Error(`Error ${response.status}: ${errors.message || 'Error al obtener la cancha'}`);
-            }
-
-            const json: PitchResponse = await response.json();
+            const json = await pitchService.getOne(id);
             setPitch(json);
-            console.log('Datos de la cancha para editar:', json);
             setFormData({
-                rating: json.data.rating || '',
-                price: json.data.price || '',
-                size: json.data.size || '',
-                groundType: json.data.groundType || '',
-                roof: json.data.roof || false
+                rating: json.rating || '',
+                price: json.price || '',
+                size: json.size || '',
+                groundType: json.groundType || '',
+                roof: json.roof || false
             });
 
         } catch (error) {
@@ -81,10 +70,6 @@ export default function BusinessPitchEdit() {
         try {
             setLoading(true);
             
-            if (!token) {
-                throw new Error('Token de autenticación no encontrado');
-            }
-
             const payload = new FormData();
 
             if (pitchData.rating) payload.append('rating', pitchData.rating.toString());
@@ -98,20 +83,9 @@ export default function BusinessPitchEdit() {
             if (image) {
                 payload.append('image', image); 
             }
-          payload.append('business', pitch?.data.business?.id || '');
-            console.log(payload);
-            const response = await fetch(`http://localhost:3000/api/pitchs/update/${id}`, {
-                method: "PATCH",
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: payload
-            });
-
-            if (!response.ok) {
-                const errors = await response.json();
-                throw errors;
-            }
+            payload.append('business', (typeof pitch?.business === 'object' ? pitch?.business?.id : pitch?.business)?.toString() || '');
+            
+            await pitchService.update(id!, payload);
             showNotification('Cancha actualizada con éxito!', 'success');
             navigate('/myBusiness/getAll');
         } catch (error) {
@@ -319,8 +293,4 @@ export default function BusinessPitchEdit() {
             </form>
         </div>
     )
-}
-
-type PitchResponse = {
-    data: Pitch
 }

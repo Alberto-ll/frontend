@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/users/userUpdate.css';
 import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
+import { localityService } from '../../../services/index.ts';
 
 interface Locality {
   id?: number;
@@ -54,33 +55,12 @@ const LocalityUpdate = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
 
-        // Cargar la localidad
-        const response = await fetch(`http://localhost:3000/api/localities/getOne/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        // Procesar localidad
-        if (!response.ok) {
-          throw new Error('Error al cargar localidad');
-        }
-
-        const localityData = await response.json();
-        const locality = localityData.data || localityData;
+        const locality = await localityService.getOne(id!) as Locality;
         
         console.log('DATOS DE LA LOCALIDAD RECIBIDOS:', locality);
         setLocality(locality);
 
-        // Establecer form data
         setFormData({
           name: locality.name || '',
           postal_code: locality.postal_code ? String(locality.postal_code) : '',
@@ -115,13 +95,6 @@ const LocalityUpdate = () => {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      // Datos para enviar
       const updateData = {
         name: formData.name.trim(),
         postal_code: parseInt(formData.postal_code),
@@ -130,32 +103,10 @@ const LocalityUpdate = () => {
 
       console.log('Datos a enviar al backend:', updateData);
 
-      const response = await fetch(`http://localhost:3000/api/localities/update/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
+      await localityService.update(id!, updateData);
 
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // Mostrar toast de éxito en lugar de alert
       showToast('Localidad actualizada con éxito', 'success');
       
-      // Navegar después de un breve delay para que se vea el toast
       setTimeout(() => {
         navigate(`/admin/localities/getOne/${id}`);
       }, 1500);

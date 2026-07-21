@@ -5,18 +5,19 @@ import { useOutletContext, useParams, Navigate } from 'react-router';
 import '../../static/css/MybusinessDetail.css'
 import { useAuth } from '../../components/Auth.tsx';
 import { errorHandler } from '../../types/apiError.ts';
+import { pitchService } from '../../services';
 
 export default function businessPitchDetail() {
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<boolean>(false);
     
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const { id } = useParams<{ id: string }>();
 
-    const { storedUser, token } = useAuth();
+    const { userData } = useAuth();
 
-    if (!storedUser) {
+    if (!userData) {
         alert('sesion no iniciada');
         return <Navigate to="/login" />;
     }
@@ -26,30 +27,7 @@ export default function businessPitchDetail() {
             setLoading(true);
             setError(false);
             
-            if (!token) {
-                throw new Error('No se encontró token de autenticación');
-            }
-
-            const response = await fetch(`http://localhost:3000/api/pitchs/getOne/${pitchId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('user');
-                alert('Sesión expirada o inválida');
-                window.location.href = '/login';
-                return;
-            }
-
-            if (!response.ok) {
-                const errors = await response.json();
-                throw new Error(`Error ${response.status}: ${errors.message || 'Error al obtener la cancha'}`);
-            }
-
-            const json: PitchResponse = await response.json();
+            const json = await pitchService.getOne(pitchId);
             setData(json);
             
         } catch (error) {
@@ -113,45 +91,45 @@ export default function businessPitchDetail() {
                     <div className="detail-grid">
                         <div className="detail-item">
                             <label>ID</label>
-                            <span>{data.data.id}</span>
+                            <span>{data.id}</span>
                         </div>
                         <div className="detail-item">
                             <label>Negocio ID</label>
-                            <span>{data.data.business?.id || data.data.business || '-'}</span>
+                            <span>{typeof data.business === 'object' ? data.business?.id : data.business || '-'}</span>
                         </div>
                         <div className="detail-item">
                             <label>Rating</label>
                             <span>
-                                {('⭐️').repeat(Math.floor(data.data.rating))} 
-                                <span className="rating-number">({data.data.rating})</span>
+                                {('⭐️').repeat(Math.floor(data.rating))} 
+                                <span className="rating-number">({data.rating})</span>
                             </span>
                         </div>
                         <div className="detail-item">
                             <label>Precio</label>
-                            <span>${data.data.price?.toLocaleString()}</span>
+                            <span>${data.price?.toLocaleString()}</span>
                         </div>
                         <div className="detail-item">
                             <label>Tamaño</label>
-                            <span>{data.data.size}</span>
+                            <span>{data.size}</span>
                         </div>
                         <div className="detail-item">
                             <label>Tipo de suelo</label>
-                            <span>{data.data.groundType}</span>
+                            <span>{data.groundType}</span>
                         </div>
                         <div className="detail-item">
                             <label>Techo</label>
-                            <span>{data.data.roof ? '✅ Con techo' : '❌ Sin techo'}</span>
+                            <span>{data.roof ? '✅ Con techo' : '❌ Sin techo'}</span>
                         </div>
                     </div>
                 </div>
 
-                {data.data.imageUrl && (
+                {data.imageUrl && (
                     <div className="detail-section">
                         <h3>🖼️ Imagen</h3>
                         <div className="image-container">
                             <img 
-                                src={data.data.imageUrl} 
-                                alt={`Cancha ${data.data.id}`}
+                                src={data.imageUrl} 
+                                alt={`Cancha ${data.id}`}
                                 className="detail-image"
                             />
                         </div>
@@ -161,31 +139,31 @@ export default function businessPitchDetail() {
                 <div className="detail-section">
                     <h3>📅 Información Adicional</h3>
                     <div className="detail-grid">
-                        {data.data.createdAt && (
+                        {data.createdAt && (
                             <div className="detail-item">
                                 <label>Creado</label>
-                                <span>{new Date(data.data.createdAt).toLocaleDateString()}</span>
+                                <span>{new Date(data.createdAt).toLocaleDateString()}</span>
                             </div>
                         )}
-                        {data.data.updatedAt && (
+                        {data.updatedAt && (
                             <div className="detail-item">
                                 <label>Actualizado</label>
-                                <span>{new Date(data.data.updatedAt).toLocaleDateString()}</span>
+                                <span>{new Date(data.updatedAt).toLocaleDateString()}</span>
                             </div>
                         )}
-                        {data.data.driveFileId && (
+                        {data.driveFileId && (
                             <div className="detail-item">
                                 <label>Drive File ID</label>
-                                <span className="file-id">{data.data.driveFileId}</span>
+                                <span className="file-id">{data.driveFileId}</span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {data.data.reservations && data.data.reservations.length > 0 && (
+                {data.reservations && data.reservations.length > 0 && (
                     <div className="detail-section">
                         <h3>📅 Reservaciones</h3>
-                        <p>{data.data.reservations.length} reservación(es)</p>
+                        <p>{data.reservations.length} reservación(es)</p>
                     </div>
                 )}
             </div>
@@ -200,8 +178,4 @@ export default function businessPitchDetail() {
             </div>
         </div>
     );
-}
-
-type PitchResponse = {
-    data: Pitch;
 }

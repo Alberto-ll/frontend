@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/categories/categoryDetail.css';
+import { categoryService } from '../../../services/index.ts';
 
 interface Category {
   id: number;
@@ -21,33 +22,10 @@ const CategoryDetail = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const url = `http://localhost:3000/api/category/getOne/${id}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Categoría no encontrada');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
+        const responseData = await categoryService.getOne(id!);
         console.log('Response data:', responseData);
         
-        const categoryData = responseData.data || responseData;
+        const categoryData = responseData as unknown as Category;
         console.log('Category data extracted:', categoryData);
         
         setCategory(categoryData);

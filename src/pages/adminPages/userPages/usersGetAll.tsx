@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import '../../../static/css/users/usersGetAll.css';
+import { userService } from '../../../services/index.ts';
 
 interface User {
   id?: number;
@@ -30,39 +31,12 @@ const UsersGetAll = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/users/findAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
+        const responseData = await userService.findAll();
         
         let userData: User[] = [];
         
         if (Array.isArray(responseData)) {
-          userData = responseData;
-        } else if (responseData.users && Array.isArray(responseData.users)) {
-          userData = responseData.users;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          userData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
+          userData = responseData as unknown as User[];
         }
         
         setUsers(userData);
@@ -86,19 +60,7 @@ const UsersGetAll = () => {
     }
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      const response = await fetch(`http://localhost:3000/api/users/delete/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar usuario');
-      }
+      await userService.remove(userId);
 
       setUsers(users.filter(user => user.id !== userId));
       alert('Usuario eliminado con éxito');

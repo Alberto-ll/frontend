@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/categories/categoryDetail.css';
+import { businessService, localityService, userService } from '../../../services/index.ts';
 
 interface Business {
   id: number;
@@ -37,40 +38,22 @@ const BusinessDetail = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Cargar localidades
-  const fetchLocalities = async (token: string) => {
+  const fetchLocalities = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/localities/getAll', {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const localitiesData = await response.json();
-        const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                              localitiesData.data || localitiesData.localities || [];
-        setLocalities(localitiesArray);
-      }
+      const localitiesData = await localityService.getAll();
+      const localitiesArray = Array.isArray(localitiesData) ? localitiesData as unknown as Locality[] : [];
+      setLocalities(localitiesArray);
     } catch (err) {
       console.error('Error cargando localidades:', err);
     }
   };
 
   // Cargar usuarios
-  const fetchOwners = async (token: string) => {
+  const fetchOwners = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/users/findAll', {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const ownersData = await response.json();
-        const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                          ownersData.data || ownersData.users || [];
-        setOwners(ownersArray);
-      }
+      const ownersData = await userService.findAll();
+      const ownersArray = Array.isArray(ownersData) ? ownersData as unknown as User[] : [];
+      setOwners(ownersArray);
     } catch (err) {
       console.error('Error cargando usuarios:', err);
     }
@@ -104,17 +87,11 @@ const BusinessDetail = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
         // Cargar datos en paralelo
         await Promise.all([
-          fetchBusinessData(token),
-          fetchLocalities(token),
-          fetchOwners(token)
+          fetchBusinessData(),
+          fetchLocalities(),
+          fetchOwners()
         ]);
         
       } catch (err) {
@@ -125,28 +102,11 @@ const BusinessDetail = () => {
       }
     };
 
-    const fetchBusinessData = async (token: string) => {
-      const url = `http://localhost:3000/api/business/findOne/${id}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Negocio no encontrado');
-        }
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-      
-      const responseData = await response.json();
+    const fetchBusinessData = async () => {
+      const responseData = await businessService.findOne(id!);
       console.log('Response data:', responseData);
       
-      const businessData = responseData.data || responseData;
+      const businessData = responseData as unknown as Business;
       console.log('Business data extracted:', businessData);
       
       setBusiness(businessData);

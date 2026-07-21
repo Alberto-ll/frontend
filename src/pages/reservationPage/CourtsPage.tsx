@@ -4,6 +4,8 @@ import CourtList from './CourtList';
 import type { Court } from '../../components/CourtCard';
 import '../../static/css/courtPages.css';
 import { useAuth } from '../../components/Auth';
+import { pitchService } from '../../services';
+import { errorHandler } from '../../types/apiError';
 
 const CourtsPage: React.FC = () => {
   const [courts, setCourts] = useState<Court[]>([]);
@@ -32,57 +34,12 @@ const CourtsPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🎯 Token disponible:', !!token);
       if (!token) {
         navigate('/login');
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/pitchs/getAllFromActiveBusinesses', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      console.log('🎯 Response status:', response.status);
-
-      if (response.status === 401) {
-        localStorage.removeItem('user');
-        alert('Sesión expirada');
-        navigate('/login');
-        return;
-      }
-
-      // 🎯 MANEJAR 404 específico (backend retorna 404 cuando no hay canchas)
-      if (response.status === 404) {
-        const errorText = await response.text();
-        console.log('🎯 404 Response body:', errorText);
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          
-          // Si el backend dice "No pitches from active businesses", no es un error
-          if (errorData.error && errorData.error.includes('No pitches from active businesses')) {
-            console.log('🎯 Backend dice: no hay canchas de negocios activos');
-            setCourts([]);
-            return; // Salir sin error
-          }
-        } catch (parseError) {
-          console.log('🎯 No se pudo parsear el error 404');
-        }
-        
-        // Si no es el mensaje específico, es un error del endpoint
-        throw new Error('El endpoint de canchas no está disponible');
-      }
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-
-      const responseData = await response.json();
-      console.log('🎯 Datos de canchas recibidos:', responseData);
+      const responseData = await pitchService.getActive() as any;
 
       let courtsData: Court[] = [];
       if (Array.isArray(responseData)) {
@@ -92,11 +49,9 @@ const CourtsPage: React.FC = () => {
       } else if (responseData.data && Array.isArray(responseData.data)) {
         courtsData = responseData.data;
       } else {
-        console.log('🎯 Estructura inesperada:', responseData);
         throw new Error('Formato de respuesta inesperado');
       }
 
-      console.log(`🎯 Canchas procesadas: ${courtsData.length}`);
       setCourts(courtsData);
       
       if (courtsData.length > 0) {
@@ -106,8 +61,15 @@ const CourtsPage: React.FC = () => {
         setPriceInputs(prev => ({ ...prev, max: adjustedMax.toString() }));
       }
     } catch (err) {
-      console.error('🎯 Error al obtener canchas:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar canchas');
+      if ((err as any)?._status === 404) {
+        const errorData = err as any;
+        if (errorData.error && errorData.error.includes('No pitches from active businesses')) {
+          setCourts([]);
+          setLoading(false);
+          return;
+        }
+      }
+      setError(errorHandler(err));
     } finally {
       setLoading(false);
     }
@@ -188,23 +150,22 @@ const CourtsPage: React.FC = () => {
       <div className="courts-page-container">
         <div className="error-container">
           <div className="error-message">
-            <h3>❌ Error al cargar canchas</h3>
+            <h3>Error al cargar canchas</h3>
             <p>{error}</p>
           </div>
           <button onClick={() => fetchCourts()} className="retry-button">
-            🔄 Reintentar
+            Reintentar
           </button>
         </div>
       </div>
     );
   }
 
-  // 🎯 AGREGAR MANEJO PARA CUANDO NO HAY CANCHAS (sin error)
   if (!loading && !error && courts.length === 0) {
     return (
       <div className="courts-page-container">
         <div className="courts-header-section">
-          <h1 className="courts-main-title">🏟️ Canchas Disponibles</h1>
+          <h1 className="courts-main-title">Canchas Disponibles</h1>
           <p className="courts-main-subtitle">
             Encuentra la cancha perfecta para tu próximo partido
           </p>
@@ -218,7 +179,7 @@ const CourtsPage: React.FC = () => {
           margin: '20px 0'
         }}>
           <div className="no-courts-message">
-            <h3 style={{color: '#6c757d', marginBottom: '15px'}}>📭 No hay canchas disponibles</h3>
+            <h3 style={{color: '#6c757d', marginBottom: '15px'}}>No hay canchas disponibles</h3>
             <p style={{color: '#6c757d', marginBottom: '10px'}}>
               Actualmente no hay canchas de negocios activos disponibles para reservar.
             </p>
@@ -238,7 +199,7 @@ const CourtsPage: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            🔄 Actualizar lista
+            Actualizar lista
           </button>
         </div>
       </div>
@@ -248,17 +209,17 @@ const CourtsPage: React.FC = () => {
   return (
     <div className="courts-page-container">
       <div className="courts-header-section">
-        <h1 className="courts-main-title">🏟️ Canchas Disponibles</h1>
+        <h1 className="courts-main-title">Canchas Disponibles</h1>
         <p className="courts-main-subtitle">
           Encuentra la cancha perfecta para tu próximo partido
         </p>
         
         <div className="courts-summary-stats">
           <span className="courts-total-count">
-            📊 Total: <strong>{courts.length}</strong> canchas
+            Total: <strong>{courts.length}</strong> canchas
           </span>
           <span className="courts-filtered-count">
-            🔍 Mostrando: <strong>{filteredCourts.length}</strong> canchas
+            Mostrando: <strong>{filteredCourts.length}</strong> canchas
           </span>
         </div>
       </div>
@@ -271,7 +232,7 @@ const CourtsPage: React.FC = () => {
 
       <div className="courts-filters-sidebar">
         <div className="courts-filters-header">
-          <h3 className="courts-filters-title">🔍 Filtros de búsqueda</h3>
+          <h3 className="courts-filters-title">Filtros de búsqueda</h3>
         </div>
         
         <div className="courts-filters-grid">
@@ -349,7 +310,7 @@ const CourtsPage: React.FC = () => {
           onClick={handleClearFilters}
           className="courts-clear-filters-btn"
         >
-          🧹 Limpiar filtros
+          Limpiar filtros
         </button>
       </div>
     </div>

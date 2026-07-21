@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryUpdate.css';
+import { categoryService } from '../../../services/index.ts';
 
 interface Category {
   id: number;
@@ -29,31 +30,13 @@ const CategoryUpdate = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
 
-        const response = await fetch(`http://localhost:3000/api/category/getOne/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al cargar categoría');
-        }
-
-        const categoryData = await response.json();
-        const category = categoryData.data || categoryData;
+        const responseData = await categoryService.getOne(id!);
+        const category = responseData as unknown as Category;
         
         console.log('DATOS DE LA CATEGORÍA RECIBIDOS:', category);
         setCategory(category);
 
-        // Establecer form data con los datos actuales
         setFormData({
           description: category.description || '',
           usertype: category.usertype || ''
@@ -87,13 +70,6 @@ const CategoryUpdate = () => {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      // Datos para enviar
       const updateData = {
         description: formData.description.trim(),
         usertype: formData.usertype.trim()
@@ -101,27 +77,7 @@ const CategoryUpdate = () => {
 
       console.log('Datos a enviar al backend:', updateData);
 
-      const response = await fetch(`http://localhost:3000/api/category/update/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
+      await categoryService.update(id!, updateData);
 
       alert('Categoría actualizada con éxito');
       navigate(`/admin/categories/detail/${id}`);

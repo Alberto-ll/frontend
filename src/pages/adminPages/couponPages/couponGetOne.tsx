@@ -2,9 +2,10 @@ import type {Coupon} from '../../../types/couponType.ts'
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { couponService } from '../../../services/index.ts';
 
 export default function CouponGetOne(){
-    const [data, setData] = useState<CouponResponse | null>(null);
+    const [data, setData] = useState<Coupon | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
@@ -12,18 +13,7 @@ export default function CouponGetOne(){
     const getOne = async (id:string) =>{
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/coupons/getOne/'+id,{
-                method:"GET",
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            if(!response.ok){
-                const errors = await response.json();
-                throw errors
-            }
-            const json:CouponResponse = await response.json()
+            const json = await couponService.getOne(id)
             setData(json)
         }catch(error){
              showNotification(errorHandler(error), 'error');
@@ -67,18 +57,14 @@ export default function CouponGetOne(){
                 </thead>
                 <tbody>
                     <tr>
-                    <td>{data.data.id}</td>
-                    <td>{data.data.discount}</td>
-                    <td>{data.data.status}</td>
-                    <td>{data.data.expiringDate}</td>
+                    <td>{data.id}</td>
+                    <td>{data.discount}</td>
+                    <td>{data.status}</td>
+                    <td>{data.expiringDate}</td>
                     </tr>
                 </tbody>
                 </table>)}
                 </pre>
         </div>
     )
-}
-
-type CouponResponse = {
-    data:Coupon
 }

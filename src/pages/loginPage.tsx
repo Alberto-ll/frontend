@@ -2,12 +2,14 @@ import '../static/css/loginPage.css'
 import { useState } from 'react';
 import type { UserData } from '../types/userData.js';
 import Toast from '../components/Toast.js';
-import type { ApiError } from '../types/apiError.js';
 import { errorHandler } from '../types/apiError.js';
+import { authService } from '../services/index.js';
+import { useNavigate } from 'react-router';
 
 
 export function LoginPage(){
     const [loginPage, changePage] = useState<boolean>(true);
+    const navigate = useNavigate();
     
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
@@ -27,31 +29,16 @@ export function LoginPage(){
 
     async function login(user:UserData){
         try{
-        const response = await fetch('http://localhost:3000/api/login',{method:"POST",
-                headers: { 'Content-Type': 'application/json',}, 
-                body: JSON.stringify(user)})
-                if(!response.ok){
-                const errors = await response.json()
-                throw errors
-            }
-            const token = await response.json()
-
-            localStorage.setItem('user', JSON.stringify(token))
-            window.location.href = '/reserve-pitch/'; // redirige a la página de reservas
+            const session = await authService.login(user)
+            localStorage.setItem('user', JSON.stringify(session))
+            navigate('/reserve-pitch/', { replace: true });
         }catch(err:unknown){
             showNotification(errorHandler(err),'error');}
     }
 
     async function register(user:UserData){
         try{
-        const response = await fetch('http://localhost:3000/api/users/register',{method:"POST",
-                headers: { 'Content-Type': 'application/json',
-                }, 
-                body: JSON.stringify(user)})
-                if(!response.ok){
-                const errors: ApiError = await response.json()
-                throw errors
-            }
+            await authService.register(user as Parameters<typeof authService.register>[0])
             alert('Usuario creado con éxito')
             login(user)
         }catch(err:unknown){

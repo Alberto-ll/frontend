@@ -2,9 +2,10 @@ import { useState } from 'react';
 import type {Coupon} from '../../../types/couponType.ts'
 import { useNavigate, useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { couponService } from '../../../services/index.ts';
 
 export default function CouponAdd(){
-    const [data, setData] = useState<CouponResponse | null>(null);
+    const [data, setData] = useState<Coupon | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
@@ -13,20 +14,7 @@ export default function CouponAdd(){
     const add = async (coupon:Coupon) =>{
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/coupons/add',{
-                method:"POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(coupon)
-            })
-            if(!response.ok){
-                const errors = await response.json();
-                throw errors
-            }
-            const json:CouponResponse = await response.json()
+            const json = await couponService.add(coupon)
             setData(json)
             showNotification('Cupón actualizado con éxito!', 'success')
             navigate('/admin/coupons/getAll')
@@ -90,17 +78,13 @@ export default function CouponAdd(){
                 </thead>
                 <tbody>
                     <tr>
-                    <td>{data.data.id}</td>
-                    <td>{data.data.discount}</td>
-                    <td>{data.data.status}</td>
-                    <td>{data.data.expiringDate}</td>
+                    <td>{data.id}</td>
+                    <td>{data.discount}</td>
+                    <td>{data.status}</td>
+                    <td>{data.expiringDate}</td>
                     </tr>
                 </tbody>
                 </table>)}
                 </pre>
         </div>)
-}
-
-type CouponResponse = {
-    data:Coupon
 }

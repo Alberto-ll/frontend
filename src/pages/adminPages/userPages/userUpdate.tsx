@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/users/userUpdate.css';
+import { categoryService, userService } from '../../../services/index.ts';
 
 // Actualizar la interface User para reflejar la entidad real:
 interface User {
@@ -48,52 +49,22 @@ const UserUpdate = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
 
         // Cargar en paralelo usando Promise.all
-        const [categoryResponse, userResponse] = await Promise.all([
-          fetch('http://localhost:3000/api/category/getAll', {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          fetch(`http://localhost:3000/api/users/findOne/${id}`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          })
+        const [categoryResponseData, userResponseData] = await Promise.all([
+          categoryService.getAll(),
+          userService.findOne(id!)
         ]);
 
-        // Procesar categorías
-        let categoriesArray = [];
-        if (categoryResponse.ok) {
-          const categoryData = await categoryResponse.json();
-          
-          if (Array.isArray(categoryData)) {
-            categoriesArray = categoryData;
-          } else if (categoryData.categories && Array.isArray(categoryData.categories)) {
-            categoriesArray = categoryData.categories;
-          } else if (categoryData.data && Array.isArray(categoryData.data)) {
-            categoriesArray = categoryData.data;
-          }
-          
-          setCategories(categoriesArray);
+        let categoriesArray: Category[] = [];
+        
+        if (Array.isArray(categoryResponseData)) {
+          categoriesArray = categoryResponseData as unknown as Category[];
         }
+        
+        setCategories(categoriesArray);
 
-        // Procesar usuario
-        if (!userResponse.ok) {
-          throw new Error('Error al cargar usuario');
-        }
-
-        const userData = await userResponse.json();
-        const user = userData.data || userData;
+        const user = userResponseData as unknown as User;
         
         console.log('DATOS DEL USUARIO RECIBIDOS:', user);
         setUser(user);
@@ -146,12 +117,6 @@ const UserUpdate = () => {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
       const updateData = {
         name: formData.name.trim(),
         surname: formData.surname.trim(),
@@ -162,27 +127,7 @@ const UserUpdate = () => {
 
       console.log('Datos a enviar al backend:', updateData);
 
-      const response = await fetch(`http://localhost:3000/api/users/update/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
+      await userService.update(id!, updateData);
 
       alert('Usuario actualizado con éxito');
       navigate(`/admin/users/detail/${id}`);

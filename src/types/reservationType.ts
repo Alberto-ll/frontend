@@ -3,8 +3,9 @@ import type { UserData } from "./userData.ts";
 
 export type Reservation = {
   id: number;
-  ReservationDate: number;
+  ReservationDate: string;
   ReservationTime: string;
+  status?: string;
   pitch: Pitch; 
   user: UserData;
 };

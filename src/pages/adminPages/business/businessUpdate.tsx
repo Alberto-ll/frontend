@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import '../../../static/css/categories/categoryUpdate.css';
+import { businessService, localityService, userService } from '../../../services/index.ts';
 
 interface Business {
   id: number;
@@ -62,60 +63,24 @@ const BusinessUpdate = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
 
-        // Cargar negocio
-        const businessResponse = await fetch(`http://localhost:3000/api/business/findOne/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        // Cargar negocio, localidades y dueños en paralelo
+        const [businessResponseData, localitiesResponseData, ownersResponseData] = await Promise.all([
+          businessService.findOne(id),
+          localityService.getAll(),
+          userService.findAll()
+        ]);
 
-        if (!businessResponse.ok) {
-          throw new Error('Error al cargar negocio');
-        }
-
-        const businessData = await businessResponse.json();
-        const business = businessData.data || businessData;
+        const business = businessResponseData as unknown as Business;
         
         console.log('DATOS DEL NEGOCIO RECIBIDOS:', business);
         setBusiness(business);
 
-        // Cargar localidades
-        const localitiesResponse = await fetch('http://localhost:3000/api/localities/getAll', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const localitiesArray = Array.isArray(localitiesResponseData) ? localitiesResponseData as unknown as Locality[] : [];
+        setLocalities(localitiesArray);
 
-        if (localitiesResponse.ok) {
-          const localitiesData = await localitiesResponse.json();
-          const localitiesArray = Array.isArray(localitiesData) ? localitiesData : 
-                                localitiesData.data || localitiesData.localities || [];
-          setLocalities(localitiesArray);
-        }
-
-        // Cargar dueños
-        const ownersResponse = await fetch('http://localhost:3000/api/users/findAll', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (ownersResponse.ok) {
-          const ownersData = await ownersResponse.json();
-          const ownersArray = Array.isArray(ownersData) ? ownersData : 
-                            ownersData.data || ownersData.users || [];
-          setOwners(ownersArray);
-        }
+        const ownersArray = Array.isArray(ownersResponseData) ? ownersResponseData as unknown as User[] : [];
+        setOwners(ownersArray);
 
         // Establecer form data con los datos actuales
         const localityId = typeof business.locality === 'object' ? business.locality.id : business.locality;
@@ -164,12 +129,6 @@ const BusinessUpdate = () => {
       setSaving(true);
       setError(null);
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
       // Validaciones
       if (!formData.businessName.trim()) {
         throw new Error('El nombre del negocio es obligatorio');
@@ -199,7 +158,7 @@ const BusinessUpdate = () => {
         businessName: formData.businessName.trim(),
         address: formData.address.trim(),
         locality: parseInt(formData.localityId),
-        owner:formData.ownerId,
+        owner: formData.ownerId ? parseInt(formData.ownerId) : undefined,
         reservationDepositPercentage: depositPercentage,
         openingAt: formData.openingAt,
         closingAt: formData.closingAt,
@@ -208,38 +167,7 @@ const BusinessUpdate = () => {
 
       console.log('Datos a enviar al backend:', updateData);
 
-      // Intentar con PUT incluyendo ID en el cuerpo
-      const response = await fetch(`http://localhost:3000/api/business/update/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        // MOSTRAR INFORMACIÓN DETALLADA DEL ERROR
-        console.error('ERROR DETALLADO:', {
-          status: response.status,
-          statusText: response.statusText,
-          message: errorMessage
-        });
-        
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      const result = await businessService.update(id, updateData) as Record<string, unknown>;
       console.log('Respuesta del servidor:', result);
 
       alert('Negocio actualizado con éxito');

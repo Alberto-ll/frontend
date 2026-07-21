@@ -3,6 +3,7 @@ import { HomePageNav } from "../pages/homepage/homePageNav"
 import { useEffect, useState } from "react"
 import HomeFooter from "../pages/homepage/homeFooter"
 import Toast from "../components/Toast"
+import { readStoredAuthSession } from "../services/authSession"
 
 export function HomeLayout(){
     //  NUEVOS ESTADOS PARA EL TOAST
@@ -25,14 +26,13 @@ export function HomeLayout(){
         const navigate = useNavigate();
         
         useEffect( () =>{
-        const user = localStorage.getItem('user');
+        const user = readStoredAuthSession();
         // Solo redirigir si está en login Y ya tiene sesión activa
         // NO redirigir durante el proceso de login (cuando viene del formulario)
         if (user && window.location.pathname === '/login') {
             // Verificar si el token es válido antes de redirigir
             try {
-                const parsed = JSON.parse(user);
-                if (parsed.token) {
+                if (user.token) {
                     // Solo redirigir después de un delay para permitir que el login se complete
                     const timer = setTimeout(() => {
                         if (window.location.pathname === '/login') {

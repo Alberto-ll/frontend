@@ -1,16 +1,16 @@
-import { useEffect, useState, useCallback, useRef, ChangeEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, type ChangeEvent } from 'react';
 import { useOutletContext, Navigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
 import { errorHandler } from '../../types/apiError.ts';
 import { useAuth } from '../../components/Auth.tsx'; 
+import { businessService, reservationService } from '../../services';
 import '../../static/css/MyBusinessReservations.css';
 
-// Interfaces TypeScript - SOLO 4 ESTADOS
 interface Reservation {
   id: number;
   ReservationDate: string;
   ReservationTime: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: string;
   totalPrice?: number;
   pitchId?: number;
   userId?: number;
@@ -27,10 +27,6 @@ interface Reservation {
     email: string;
     phone?: string;
   };
-}
-
-interface ReservationResponse {
-  data: Reservation[];
 }
 
 type FilterType = 'all' | 'today' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -51,53 +47,21 @@ export default function BusinessReservations() {
   const [startDateInput, setStartDateInput] = useState<string>(searchParams.get('startDate') || '');
   const [endDateInput, setEndDateInput] = useState<string>(searchParams.get('endDate') || '');
 
-  // USAR useAuth EN LUGAR DE OBTENER TOKEN MANUALMENTE
   const { userData, token, isLoading } = useAuth();
   
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  // VERIFICACIÓN DE SESIÓN SIMPLIFICADA
   if (!isLoading && !token) {
     return <Navigate to="/login" />;
   }
 
-  // FUNCIÓN para obtener el businessId del usuario
   const getBusinessId = useCallback(async () => {
     try {
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
       if (!userData?.id) {
         throw new Error('No se pudo obtener el ID del usuario');
       }
 
-      const response = await fetch(`http://localhost:3000/api/business/findByOwnerId/${userData.id}`, {
-        method: "GET",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.status === 401 || response.status === 403) {
-        showNotification('Sesión expirada o inválida', 'error');
-        return null;
-      }
-      
-      if (response.status === 404) {
-        setHasNoBusiness(true);
-        setLoading(false);
-        showNotification('No tienes un negocio registrado aún', 'warning');
-        return null;
-      }
-      
-      if (!response.ok) {
-        const errors = await response.json();
-        throw new Error(`Error ${response.status}: ${errors.message || 'Error al obtener el negocio'}`);
-      }
-      
-      const businessData = await response.json();
+      const businessData = await businessService.findByOwnerId(userData.id) as any;
       
       let extractedBusinessId;
       if (businessData.id) {
@@ -122,14 +86,20 @@ export default function BusinessReservations() {
       return extractedBusinessId;
       
     } catch (error) {
+      const errObj = error as any;
+      if (errObj?._status === 404) {
+        setHasNoBusiness(true);
+        setLoading(false);
+        showNotification('No tienes un negocio registrado aún', 'warning');
+        return null;
+      }
       console.error('Error getting business ID:', error);
       showNotification(errorHandler(error), 'error');
       setError(true);
       throw error;
     }
-  }, [token, userData?.id, showNotification]);
+  }, [userData?.id, showNotification]);
 
-  // MAPEO DE ESTADOS FRONTEND → BACKEND (SOLO 4 ESTADOS)
   const mapStatusToBackend = (frontendStatus: string): string => {
     const statusMap: Record<string, string> = {
       'pending': 'pendiente',
@@ -138,132 +108,94 @@ export default function BusinessReservations() {
       'cancelled': 'cancelada'
     };
     
-    console.log('Mapeando estado frontend->backend:', frontendStatus, '->', statusMap[frontendStatus]);
     return statusMap[frontendStatus] || frontendStatus;
   };
 
-  // MAPEO DE ESTADOS BACKEND → FRONTEND (SOLO 4 ESTADOS)
   const mapStatusFromBackend = (backendStatus: string): string => {
     const statusMap: Record<string, string> = {
       'pendiente': 'pending',
       'en curso': 'confirmed', 
       'completada': 'completed',
-      'cancelada': 'cancelled' // <-- CORREGIDO
+      'cancelada': 'cancelled'
     };
     
-    console.log('Mapeando estado backend->frontend:', backendStatus, '->', statusMap[backendStatus]);
     return statusMap[backendStatus] || backendStatus;
   };
 
-  // FUNCIÓN PARA FORMATEAR FECHA PARA EL BACKEND
   const formatDateForBackend = (dateString: string): string => {
     try {
-      console.log('Formateando fecha original:', dateString);
-      
-      // Si la fecha viene con 'T', extraer solo la parte de fecha
       if (dateString.includes('T')) {
         const datePart = dateString.split('T')[0];
-        console.log('Fecha extraída (con T):', datePart);
         return datePart;
       }
       
-      // Si la fecha ya está en formato YYYY-MM-DD, usarla directamente
       if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        console.log('🎯 Fecha ya en formato correcto:', dateString);
         return dateString;
       }
       
-      // Si la fecha viene en otro formato, convertirla
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         throw new Error('Fecha inválida');
       }
       
-      // Formatear como YYYY-MM-DD
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       
-      console.log('Fecha formateada:', formattedDate);
       return formattedDate;
       
     } catch (error) {
-      console.error('Error formateando fecha:', error);
-      // Fallback: intentar extraer fecha de cualquier formato
       const dateMatch = dateString.match(/\d{4}-\d{2}-\d{2}/);
       return dateMatch ? dateMatch[0] : dateString;
     }
   };
 
-  // FUNCIÓN PARA FORMATEAR HORA PARA EL BACKEND
   const formatTimeForBackend = (timeString: string): string => {
     try {
-      console.log('Formateando hora original:', timeString);
-      
-      // Si ya está en formato HH:MM o HH:MM:SS, verificar y ajustar
       if (timeString.includes(':')) {
         const timeParts = timeString.split(':');
         if (timeParts.length >= 2) {
-          // Asegurar formato HH:MM (sin segundos para el backend)
           const hours = timeParts[0].padStart(2, '0');
           const minutes = timeParts[1].padStart(2, '0');
           const formattedTime = `${hours}:${minutes}`;
-          console.log('Hora formateada:', formattedTime);
           return formattedTime;
         }
       }
       
-      // Si es una fecha completa, extraer la hora
       const date = new Date(timeString);
       if (!isNaN(date.getTime())) {
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const formattedTime = `${hours}:${minutes}`;
-        console.log('Hora extraída de fecha:', formattedTime);
         return formattedTime;
       }
       
-      console.log('Hora sin cambios:', timeString);
       return timeString;
       
     } catch (error) {
-      console.error('Error formateando hora:', error);
       return timeString;
     }
   };
 
-  // FUNCIÓN PARA ACTUALIZAR ESTADO DE RESERVACIÓN
   const updateReservationStatus = async (reservationId: number, newStatus: string) => {
     try {
       setUpdatingReservation(reservationId);
       
-      if (!token) {
-        throw new Error('No se encontró el token de autenticación');
-      }
-
-      // ENCONTRAR LA RESERVACIÓN ACTUAL para obtener todos sus datos
       const currentReservation = reservations.find(r => r.id === reservationId);
       if (!currentReservation) {
         throw new Error('No se encontró la reservación');
       }
 
-      console.log('Reservación actual encontrada:', currentReservation);
-
-      // PREPARAR EL BODY COMPLETO con todos los campos requeridos Y FORMATEADOS
       const updateBody = {
         ReservationDate: formatDateForBackend(currentReservation.ReservationDate),
         ReservationTime: formatTimeForBackend(currentReservation.ReservationTime),
         status: mapStatusToBackend(newStatus),
         pitch: currentReservation.pitchId || (currentReservation.pitch?.id),
         user: currentReservation.userId || (currentReservation.user?.id),
-        // AGREGAR PRECIO SI EXISTE
         ...(currentReservation.totalPrice && { totalPrice: currentReservation.totalPrice })
       };
 
-      console.log('Body final para enviar:', updateBody);
-
-      // 🎯 VALIDAR QUE TENEMOS TODOS LOS CAMPOS REQUERIDOS
       if (!updateBody.pitch) {
         throw new Error('No se encontró el ID de la cancha');
       }
@@ -277,72 +209,7 @@ export default function BusinessReservations() {
         throw new Error('Hora de reservación inválida');
       }
 
-      console.log('Enviando actualización completa:', { 
-        reservationId, 
-        frontendStatus: newStatus,
-        backendStatus: mapStatusToBackend(newStatus),
-        fullBody: updateBody
-      });
-
-      // 🎯 USAR EL ENDPOINT DE UPDATE CON PUT
-      const response = await fetch(`http://localhost:3000/api/reservations/update/${reservationId}`, {
-        method: "PUT",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updateBody)
-      });
-
-      console.log('Response status:', response.status);
-
-      if (response.status === 401 || response.status === 403) {
-        showNotification('Sesión expirada o inválida', 'error');
-        return;
-      }
-
-      // 🎯 OBTENER EL TEXTO CRUDO PRIMERO
-      const responseText = await response.text();
-      console.log('🎯 Response raw text:', responseText);
-      
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}`;
-        
-        if (responseText.trim().startsWith('{')) {
-          try {
-            const errorJson = JSON.parse(responseText);
-            console.log('Error JSON:', errorJson);
-            
-            // 🎯 MANEJO ESPECÍFICO DE ERRORES DE VALIDACIÓN
-            if (errorJson.errors && Array.isArray(errorJson.errors)) {
-              const errorMessages = errorJson.errors.map((err: any) => `${err.path}: ${err.msg}`).join(', ');
-              errorMessage = `Errores de validación: ${errorMessages}`;
-              
-              // MOSTRAR DETALLES ESPECÍFICOS EN CONSOLA
-              console.error('Errores de validación detallados:', errorJson.errors);
-            } else {
-              errorMessage = errorJson.error || errorJson.message || errorMessage;
-            }
-          } catch {
-            errorMessage = responseText || errorMessage;
-          }
-        } else {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      // PARSEAR RESPUESTA EXITOSA
-      let result = null;
-      if (responseText.trim() && responseText.trim().startsWith('{')) {
-        try {
-          result = JSON.parse(responseText);
-          console.log('Parsed result:', result);
-        } catch {
-          console.log('Response no es JSON válido, pero operación exitosa');
-        }
-      }
+      await reservationService.update(reservationId, updateBody);
       
       const statusMessages: Record<string, string> = {
         'pending': 'Reservación marcada como pendiente!',
@@ -353,7 +220,6 @@ export default function BusinessReservations() {
       
       showNotification(statusMessages[newStatus] || 'Estado actualizado!', 'success');
       
-      // ACTUALIZAR ESTADO LOCAL CON EL ESTADO DEL FRONTEND
       setReservations(prev => prev.map(res => 
         res.id === reservationId ? { ...res, status: newStatus as any } : res
       ));
@@ -368,7 +234,6 @@ export default function BusinessReservations() {
       
       showNotification(errorMessage, 'error');
       
-      // RECARGAR DATOS PARA VERIFICAR ESTADO ACTUAL
       setTimeout(() => {
         initializeData();
       }, 2000);
@@ -378,20 +243,14 @@ export default function BusinessReservations() {
     }
   };
 
-  // FUNCIÓN para obtener todas las reservaciones del negocio
   const getReservations = useCallback(async (currentBusinessId?: number, filters?: { status?: string; startDate?: string; endDate?: string }, options?: { showGlobalLoading?: boolean }) => {
     try {
-      // Guard para evitar fetchs concurrentes/replicados
       if (isFetchingRef.current) {
-        console.log('getReservations: skipped because a fetch is already in progress');
         return;
       }
       isFetchingRef.current = true;
 
-      console.log('getReservations: start', new Date().toISOString());
-      console.trace('getReservations called trace');
-
-      const showGlobalLoading = options?.showGlobalLoading !== false; // default true
+      const showGlobalLoading = options?.showGlobalLoading !== false;
       if (showGlobalLoading) {
         setLoading(true);
       } else {
@@ -407,45 +266,17 @@ export default function BusinessReservations() {
         }
       }
 
-      if (!token) {
-        throw new Error('No se encontró el token de autenticación');
-      }
+      const params: Record<string, string | number | boolean | undefined | null> = {};
+      if (filters?.status) params.status = filters.status;
+      if (filters?.startDate) params.startDate = filters.startDate;
+      if (filters?.endDate) params.endDate = filters.endDate;
 
-      // Construir query params para delegar filtrado al backend
-      const qp = new URLSearchParams();
-      if (filters?.status) qp.set('status', filters.status);
-      if (filters?.startDate) qp.set('startDate', filters.startDate);
-      if (filters?.endDate) qp.set('endDate', filters.endDate);
-
-      const url = `http://localhost:3000/api/reservations/findByBusiness/${targetBusinessId}${qp.toString() ? `?${qp.toString()}` : ''}`;
-      console.log('getReservations fetching URL:', url);
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        showNotification('Sesión expirada o inválida', 'error');
-        return;
-      }
-
-      if (response.status === 404) {
-        setReservations([]);
-        if (!noReservationsNotifiedRef.current) {
-          showNotification('No tienes reservaciones registradas aún', 'info');
-          noReservationsNotifiedRef.current = true;
-        }
-        return;
-      }
-      
-      if (!response.ok) {
-        const errors = await response.json();
-        
-        if (errors.error && errors.error.includes('No reservations found')) {
+      let json: Reservation[];
+      try {
+        json = await reservationService.findByBusiness(targetBusinessId, params) as unknown as Reservation[];
+      } catch (err) {
+        const errObj = err as any;
+        if (errObj?._status === 404) {
           setReservations([]);
           if (!noReservationsNotifiedRef.current) {
             showNotification('No tienes reservaciones registradas aún', 'info');
@@ -454,31 +285,23 @@ export default function BusinessReservations() {
           return;
         }
         
-        throw new Error(`Error ${response.status}: ${errors.message || errors.error || 'Error al obtener las reservaciones'}`);
+        if (errObj?.error && errObj.error.includes('No reservations found')) {
+          setReservations([]);
+          if (!noReservationsNotifiedRef.current) {
+            showNotification('No tienes reservaciones registradas aún', 'info');
+            noReservationsNotifiedRef.current = true;
+          }
+          return;
+        }
+        
+        throw err;
       }
-      
-      const json: ReservationResponse = await response.json();
     
-      // DEBUG: Ver qué datos llegan exactamente
-      console.log('Reservaciones recibidas:', json.data?.length || 0);
-      if (json.data && json.data.length > 0) {
-        console.log('Primera reservación:', json.data[0]);
-        console.log('Estados encontrados:', json.data.map(r => r.status));
-        console.log('Formato de hora ejemplo:', json.data[0].ReservationTime);
-        console.log('Formato de fecha ejemplo (RAW):', json.data[0].ReservationDate);
-        console.log('Fecha procesada:', extractDate(json.data[0].ReservationDate));
-      }
-  
-      // MAPEAR ESTADOS DEL BACKEND AL FRONTEND
-      const reservationsWithMappedStatus = json.data?.map(reservation => ({
+      const reservationsWithMappedStatus = json?.map(reservation => ({
         ...reservation,
         status: mapStatusFromBackend(reservation.status) as any
       })) || [];
 
-      console.log('Estados originales del backend:', json.data?.map(r => r.status));
-      console.log('Estados mapeados para frontend:', reservationsWithMappedStatus.map(r => r.status));
-
-      // Al recibir datos válidos, resetear la bandera de notificación
       noReservationsNotifiedRef.current = false;
       setReservations(reservationsWithMappedStatus);
 
@@ -494,19 +317,14 @@ export default function BusinessReservations() {
         setLoading(false);
       }
     }
-  }, [businessId, getBusinessId, token, showNotification]);
+  }, [businessId, getBusinessId, showNotification]);
 
-  
-
-  // Al delegar filtrado al backend, mostrar directamente lo que llega
   useEffect(() => {
     setFilteredReservations(reservations);
   }, [reservations]);
 
-  // Helpers para actualizar query params desde la UI
   const applyFilter = (filter: FilterType) => {
     const params = new URLSearchParams(searchParams.toString());
-    // Al aplicar un filtro por estado, limpiamos el rango de fechas
     params.delete('startDate');
     params.delete('endDate');
     params.delete('status');
@@ -520,7 +338,6 @@ export default function BusinessReservations() {
 
   const applyDateFilter = () => {
     const params = new URLSearchParams(searchParams.toString());
-    // Al aplicar fecha, limpiamos filtros por estado
     params.delete('filter');
     params.delete('status');
     if (startDateInput) params.set('startDate', startDateInput); else params.delete('startDate');
@@ -537,10 +354,8 @@ export default function BusinessReservations() {
     setEndDateInput('');
   };
 
-  // Actualizar query params en vivo mientras el usuario selecciona fechas
   const updateDateParam = (key: 'startDate' | 'endDate', value?: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    // Al aplicar fecha, limpiamos filtros por estado para delegar al backend
     params.delete('filter');
     params.delete('status');
     if (value) params.set(key, value); else params.delete(key);
@@ -559,14 +374,12 @@ export default function BusinessReservations() {
     updateDateParam('endDate', value || undefined);
   };
 
-  // Efecto: cuando cambian los query params, pedir datos al backend con esos filtros
   useEffect(() => {
     if (isLoading || !token) return;
 
     const statusParam = searchParams.get('status');
     const filterParam = searchParams.get('filter');
 
-    // Sincronizar los inputs de fecha con los query params (útil cuando se cambian desde otros controles)
     const startParamInput = searchParams.get('startDate') || '';
     const endParamInput = searchParams.get('endDate') || '';
     setStartDateInput(startParamInput);
@@ -575,7 +388,6 @@ export default function BusinessReservations() {
     const start = searchParams.get('startDate') || undefined;
     const end = searchParams.get('endDate') || undefined;
 
-    // Actualizar UI para reflejar params
     if (statusParam) {
       setActiveFilter(mapStatusFromBackend(statusParam) as FilterType);
     } else if (filterParam) {
@@ -584,7 +396,6 @@ export default function BusinessReservations() {
       setActiveFilter('all');
     }
 
-    // Preparar status para el backend
     let backendStatus = statusParam || undefined;
     let s = start;
     let e = end;
@@ -599,11 +410,9 @@ export default function BusinessReservations() {
       }
     }
 
-    // Llamar al backend con los filtros construidos (no mostrar carga global)
     getReservations(undefined, { status: backendStatus, startDate: s, endDate: e }, { showGlobalLoading: false });
   }, [searchParams, getReservations, isLoading, token]);
 
-  //FUNCIÓN PARA REINICIALIZAR
   const initializeData = useCallback(async () => {
     try {
       setError(false);
@@ -618,7 +427,6 @@ export default function BusinessReservations() {
 
       const currentBusinessId = await getBusinessId();
       if (currentBusinessId) {
-        // Respetar filtros actuales en query params al hacer refresh
         const statusParam = searchParams.get('status');
         const filterParam = searchParams.get('filter');
         let backendStatus = statusParam || undefined;
@@ -644,14 +452,9 @@ export default function BusinessReservations() {
     }
   }, [token, getBusinessId, getReservations, showNotification]);
 
-
-
-  //FUNCIÓN PARA EXTRAER LA FECHA - ARREGLAR EL PROBLEMA DE ZONA HORARIA
   const extractDate = (dateTimeString: string) => {
     try {
-      // Si la fecha viene en formato YYYY-MM-DD, usarla directamente
       if (dateTimeString.includes('T')) {
-        // Si tiene formato ISO, extraer solo la parte de fecha
         const datePart = dateTimeString.split('T')[0];
         const [year, month, day] = datePart.split('-');
         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('es-ES', {
@@ -662,7 +465,6 @@ export default function BusinessReservations() {
         });
       }
       
-      // Si la fecha viene en formato YYYY-MM-DD
       if (dateTimeString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         const [year, month, day] = dateTimeString.split('-');
         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('es-ES', {
@@ -673,11 +475,8 @@ export default function BusinessReservations() {
         });
       }
       
-      // Fallback para otros formatos
       const date = new Date(dateTimeString);
       
-      //AGREGAR UN DÍA para compensar zona horaria si es necesario
-      //Solo si parece que perdió un día
       const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
       
       return utcDate.toLocaleDateString('es-ES', {
@@ -688,23 +487,18 @@ export default function BusinessReservations() {
       });
       
     } catch (error) {
-      console.error('Error procesando fecha:', dateTimeString, error);
       return dateTimeString || 'Fecha inválida';
     }
   };
 
-  // FUNCIÓN PARA EXTRAER LA HORA
   const extractTime = (timeString: string) => {
-    // Si ReservationTime es solo hora (ej: "14:30" o "14:30:00")
     if (timeString && timeString.includes(':')) {
-      // Si ya es formato de hora, devolverlo directamente
       const timeParts = timeString.split(':');
       if (timeParts.length >= 2) {
         return `${timeParts[0]}:${timeParts[1]}`;
       }
     }
     
-    // Si es una fecha completa, extraer la hora
     const date = new Date(timeString);
     if (!isNaN(date.getTime())) {
       return date.toLocaleTimeString('es-ES', {
@@ -713,11 +507,9 @@ export default function BusinessReservations() {
       });
     }
     
-    // Si nada funciona, devolver el string original o un placeholder
     return timeString || 'Hora no disponible';
   };
 
-  // FUNCIÓN PARA OBTENER COLOR DEL ESTADO (SOLO 4 ESTADOS)
   const getStatusColor = (status: string = 'pending') => {
     switch (status?.toLowerCase()) {
       case 'confirmed':
@@ -733,7 +525,6 @@ export default function BusinessReservations() {
     }
   };
 
-  // FUNCIÓN PARA OBTENER TEXTO DEL ESTADO (SOLO 4 ESTADOS)
   const getStatusText = (status: string = 'pending') => {
     switch (status?.toLowerCase()) {
       case 'confirmed':
@@ -749,7 +540,6 @@ export default function BusinessReservations() {
     }
   };
 
-  // FUNCIÓN PARA CALCULAR ESTADÍSTICAS (SOLO 4 ESTADOS)
   const getStats = () => {
     const today = new Date().toDateString();
     return {
@@ -766,8 +556,6 @@ export default function BusinessReservations() {
 
   const stats = getStats();
 
-  // MOSTRAR LOADING MIENTRAS SE CARGA LA AUTENTICACIÓN O LOS DATOS INICIALES
-  // Evitar mostrar la pantalla completa de carga cuando solo se están aplicando filtros (usar `listLoading`)
   if (isLoading || (loading && reservations.length === 0)) {
     return (
       <div className="loading-container">
@@ -782,17 +570,17 @@ export default function BusinessReservations() {
   if (hasNoBusiness) {
     return (
       <div className="no-business-container">
-        <h3>🏢 No tienes un negocio registrado</h3>
+        <h3>No tienes un negocio registrado</h3>
         <p>Para ver las reservaciones, primero debes registrar tu negocio.</p>
         <div className="action-buttons">
           <button 
             onClick={() => window.location.href = '/registerBusiness'} 
             className="primary-button"
           >
-            📝 Registrar mi negocio
+            Registrar mi negocio
           </button>
           <button onClick={initializeData} className="secondary-button">
-            🔄 Verificar nuevamente
+            Verificar nuevamente
           </button>
         </div>
       </div>
@@ -804,7 +592,7 @@ export default function BusinessReservations() {
       <div className="error-container">
         <p>Error al cargar las reservaciones del negocio</p>
         <button onClick={initializeData} className="retry-button">
-          🔄 Reintentar
+          Reintentar
         </button>
       </div>
     );
@@ -813,16 +601,14 @@ export default function BusinessReservations() {
   return (
     <div className="reservations-container">
       <div className="reservations-header">
-        <h2>📋 Reservaciones del Negocio</h2>
+        <h2>Reservaciones del Negocio</h2>
         <div className="reservations-summary">
           <strong>Total: {stats.total} reservaciones</strong>
           <span> | Negocio ID: {businessId}</span>
-          {/* MOSTRAR INFORMACIÓN DEL USUARIO AUTENTICADO */}
           {userData?.name && <span> | Usuario: {userData.name}</span>}
         </div>
       </div>
 
-      {/* FILTROS ACTUALIZADOS - SOLO 4 ESTADOS */}
       <div className="filters-section">
         <div className="filters-header">
           <h3>Filtros</h3>
@@ -842,42 +628,41 @@ export default function BusinessReservations() {
             className={`filter-button ${activeFilter === 'all' ? 'active' : ''}`}
             onClick={() => applyFilter('all')}
           >
-            📋 Todas
+            Todas
           </button>
           <button 
             className={`filter-button ${activeFilter === 'today' ? 'active' : ''}`}
             onClick={() => applyFilter('today')}
           >
-            📅 Hoy
+            Hoy
           </button>
           <button 
             className={`filter-button ${activeFilter === 'pending' ? 'active' : ''}`}
             onClick={() => applyFilter('pending')}
           >
-            ⏳ Pendientes
+            Pendientes
           </button>
           <button 
             className={`filter-button ${activeFilter === 'confirmed' ? 'active' : ''}`}
             onClick={() => applyFilter('confirmed')}
           >
-            🔄 En Curso
+            En Curso
           </button>
           <button 
             className={`filter-button ${activeFilter === 'completed' ? 'active' : ''}`}
             onClick={() => applyFilter('completed')}
           >
-            🏁 Completadas
+            Completadas
           </button>
           <button 
             className={`filter-button ${activeFilter === 'cancelled' ? 'active' : ''}`}
             onClick={() => applyFilter('cancelled')}
           >
-            ❌ Canceladas
+            Canceladas
           </button>
         </div>
       </div>
       
-      {/* TABLA CON ACCIONES ACTUALIZADAS - SOLO 4 ESTADOS */}
       <div className="table-container">
             {listLoading && (
               <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
@@ -936,10 +721,10 @@ export default function BusinessReservations() {
                     <div className="user-info">
                       <strong>{reservation.user?.name || 'Cliente'}</strong>
                       {reservation.user?.phone && (
-                        <small>📞 {reservation.user.phone}</small>
+                        <small>{reservation.user.phone}</small>
                       )}
                       {reservation.user?.email && (
-                        <small>✉️ {reservation.user.email}</small>
+                        <small>{reservation.user.email}</small>
                       )}
                     </div>
                   </td>
@@ -953,34 +738,26 @@ export default function BusinessReservations() {
                   </td>
                   <td>
                     <div className="action-buttons-container">
-                      {/* MENÚ DESPLEGABLE CON SOLO LOS 4 ESTADOS PERMITIDOS */}
                       <select 
                         value={reservation.status}
                         onChange={(e) => {
                           if (e.target.value !== reservation.status) {
-                            console.log('Cambio de estado solicitado:', {
-                              from: reservation.status,
-                              to: e.target.value,
-                              reservationId: reservation.id
-                            });
                             updateReservationStatus(reservation.id, e.target.value);
                           }
                         }}
                         disabled={updatingReservation === reservation.id}
                         className="status-select"
                       >
-                        <option value="pending">⏳ Pendiente</option>
-                        <option value="confirmed">🔄 En Curso</option>
-                        <option value="completed">🏁 Completada</option>
-                        <option value="cancelled">❌ Cancelada</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="confirmed">En Curso</option>
+                        <option value="completed">Completada</option>
+                        <option value="cancelled">Cancelada</option>
                       </select>
                       
-                      {/* INDICADOR DE LOADING */}
                       {updatingReservation === reservation.id && (
-                        <span style={{marginLeft: '8px', color: '#666'}}>⏳ Actualizando...</span>
+                        <span style={{marginLeft: '8px', color: '#666'}}>Actualizando...</span>
                       )}
                       
-                      {/*  INFORMACIÓN ADICIONAL DEL ESTADO ACTUAL */}
                       <div style={{marginTop: '4px', fontSize: '11px', color: '#666'}}>
                         Estado actual: <span style={{fontWeight: 'bold', color: '#333'}}>{getStatusText(reservation.status)}</span>
                       </div>
@@ -1002,7 +779,7 @@ export default function BusinessReservations() {
           <span> | Canceladas: {stats.cancelled}</span>
         </div>
         <button onClick={initializeData} className="refresh-button">
-          🔄 Actualizar lista
+          Actualizar lista
         </button>
       </div>
     </div>

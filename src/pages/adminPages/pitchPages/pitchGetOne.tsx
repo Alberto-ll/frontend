@@ -2,9 +2,10 @@ import type {Pitch} from '../../../types/pitchType.ts'
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService } from '../../../services';
 
 export default function PitchGetOne(){
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
@@ -12,16 +13,7 @@ export default function PitchGetOne(){
     const getOne = async (id:string) =>{
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/pitchs/getOne/'+id, {headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }})
-            if(!response.ok){
-                const errors = await response.json()
-                throw errors
-            }
-            const json:PitchResponse = await response.json()
+            const json = await pitchService.getOne(id);
             setData(json)
         }catch(error){
             showNotification(errorHandler(error),'error');
@@ -68,21 +60,17 @@ export default function PitchGetOne(){
                 </thead>
                 <tbody>
                     <tr>
-                        <td>{data.data.id}</td>
-                        <td>{data.data.business?.id ?? '-'}</td>
-                        <td>{('⭐️').repeat(data.data.rating)}</td>
-                        <td>${data.data.price}</td>
-                        <td>{data.data.size}</td>
-                        <td>{data.data.groundType}</td>
-                        <td>{data.data.roof ? 'Techado':'Sin techo'}</td>
+                        <td>{data.id}</td>
+                        <td>{typeof data.business === 'object' ? data.business?.id : data.business ?? '-'}</td>
+                        <td>{('⭐️').repeat(data.rating)}</td>
+                        <td>${data.price}</td>
+                        <td>{data.size}</td>
+                        <td>{data.groundType}</td>
+                        <td>{data.roof ? 'Techado':'Sin techo'}</td>
                     </tr>
                 </tbody>
                 </table>)}
                 </pre>
         </div>
     )
-}
-
-type PitchResponse = {
-    data:Pitch
 }

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import type {Pitch} from '../../../types/pitchType.ts'
 import { useNavigate, useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService } from '../../../services';
 
 export default function PitchUpdate(){
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
@@ -13,11 +14,6 @@ export default function PitchUpdate(){
     const update = async (pitch: Partial<Pitch> & { id: number }) => {
         try{
             setLoading(true)
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            
-            if (!token) {
-                throw new Error('Token de autenticación no encontrado');
-            }
             
             const payload: Record<string, any> = {};
             
@@ -37,23 +33,7 @@ export default function PitchUpdate(){
                 payload.roof = pitch.roof;
             }
 
-            console.log(' Payload a enviar:', payload); // DEBUG
-
-            const response = await fetch(`http://localhost:3000/api/pitchs/update/${pitch.id}`, {
-                method: "PATCH",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            })
-            
-            if(!response.ok){
-                const errors = await response.json()
-                throw errors
-            }
-            
-            const json: PitchResponse = await response.json()
+            const json = await pitchService.update(pitch.id, payload);
             setData(json)
             showNotification('Cancha actualizada con éxito!', 'success')
             navigate('/admin/pitchs/getAll')
@@ -224,18 +204,18 @@ export default function PitchUpdate(){
                         </thead>
                         <tbody>
                             <tr>
-                                <td>{data.updatedPitch.id}</td>
-                                <td>{data.updatedPitch.business?.id ?? '-'}</td>
-                                <td>{('⭐️').repeat(Math.floor(data.updatedPitch.rating))} ({data.updatedPitch.rating})</td>
-                                <td>${data.updatedPitch.price.toLocaleString()}</td>
+                                <td>{data.id}</td>
+                                <td>{typeof data.business === 'object' ? data.business?.id : data.business ?? '-'}</td>
+                                <td>{('⭐️').repeat(Math.floor(data.rating))} ({data.rating})</td>
+                                <td>${data.price.toLocaleString()}</td>
                                 <td>
-                                    {data.updatedPitch.size === '5v5' && '5v5 (20x40m)'}
-                                    {data.updatedPitch.size === '7v7' && '7v7 (40x60m)'}
-                                    {data.updatedPitch.size === '11v11' && '11v11 (90x120m)'}
-                                    {!['5v5', '7v7', '11v11'].includes(data.updatedPitch.size) && data.updatedPitch.size}
+                                    {data.size === '5v5' && '5v5 (20x40m)'}
+                                    {data.size === '7v7' && '7v7 (40x60m)'}
+                                    {data.size === '11v11' && '11v11 (90x120m)'}
+                                    {!['5v5', '7v7', '11v11'].includes(data.size) && data.size}
                                 </td>
-                                <td>{data.updatedPitch.groundType}</td>
-                                <td>{data.updatedPitch.roof ? '✅ Con techo' : '❌ Sin techo'}</td>
+                                <td>{data.groundType}</td>
+                                <td>{data.roof ? '✅ Con techo' : '❌ Sin techo'}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -243,8 +223,4 @@ export default function PitchUpdate(){
             )}
         </div>
     )
-}
-
-type PitchResponse = {
-    updatedPitch: Pitch
 }

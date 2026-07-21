@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import '../../../static/css/users/userCreate.css'; // Cambiar import
+import { categoryService, userService } from '../../../services/index.ts';
 
 interface Category {
   id: number;
-  name: string;
-  usertype?: string;
+  description: string;
+  usertype: string;
 }
 
 const UserCreate = () => {
@@ -32,28 +33,8 @@ const UserCreate = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-
-        // Obtener categorías
-        const categoriesResponse = await fetch('http://localhost:3000/api/category/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (categoriesResponse.ok) {
-          const categoriesResponseData = await categoriesResponse.json();
-          const categoriesData = categoriesResponseData.data || categoriesResponseData;
-          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        } else {
-          setCategories([]);
-        }
+        const categoriesData = await categoryService.getAll();
+        setCategories(Array.isArray(categoriesData) ? categoriesData as unknown as Category[] : []);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar categorías');
@@ -80,12 +61,6 @@ const UserCreate = () => {
     try {
       setSaving(true);
       setError(null);
-
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
 
       // Validaciones básicas
       if (!formData.name.trim()) {
@@ -125,27 +100,7 @@ const UserCreate = () => {
         createData.category = parseInt(formData.categoryId);
       }
       console.log('Datos a enviar para crear usuario:', createData);
-      const response = await fetch('http://localhost:3000/api/users/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(createData)
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMessage = `Error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = responseText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
+      await userService.add(createData);
 
       alert('Usuario creado con éxito');
       navigate('/admin/users/getAll');
@@ -255,7 +210,7 @@ const UserCreate = () => {
               <option value="">Seleccione una categoría (opcional)</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.usertype || category.name}
+                  {category.usertype || category.description}
                 </option>
               ))}
             </select>

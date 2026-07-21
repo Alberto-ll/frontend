@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
+import { categoryService } from '../../../services/index.ts';
 
 interface Category {
   id?: number;
@@ -28,39 +29,12 @@ const CategoryGetAll = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/category/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
+        const responseData = await categoryService.getAll();
         
         let categoryData: Category[] = [];
         
         if (Array.isArray(responseData)) {
-          categoryData = responseData;
-        } else if (responseData.categories && Array.isArray(responseData.categories)) {
-          categoryData = responseData.categories;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          categoryData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
+          categoryData = responseData as unknown as Category[];
         }
         
         setCategories(categoryData);
@@ -89,40 +63,7 @@ const CategoryGetAll = () => {
     setIsDeleting(true);
     
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-
-      const response = await fetch(`http://localhost:3000/api/category/remove/${categoryToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        
-        if (response.status === 404) {
-          throw new Error('Categoría no encontrada');
-        } else if (response.status === 403) {
-          throw new Error('No tienes permisos para eliminar esta categoría');
-        } else if (response.status === 409) {
-          throw new Error('No se puede eliminar la categoría porque está siendo utilizada');
-        } else {
-          let errorMessage = `Error: ${response.status}`;
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            errorMessage = responseText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-      }
+      await categoryService.remove(categoryToDelete.id);
 
       setCategories(prevCategories => 
         prevCategories.filter(category => category.id !== categoryToDelete.id)

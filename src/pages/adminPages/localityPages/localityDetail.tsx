@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/users/userDetail.css';
+import { localityService } from '../../../services/index.ts';
 
 interface Locality {
   id?: number;
@@ -24,38 +25,10 @@ const LocalityDetail = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
+        const localityData = await localityService.getOne(id!);
+        console.log('Response data:', localityData);
         
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        // URL actualizada para obtener una localidad
-        const url = `http://localhost:3000/api/localities/getOne/${id}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Localidad no encontrada');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Response data:', responseData); // Debug log
-        
-        // El backend puede devolver los datos directamente o dentro de 'data'
-        const localityData = responseData.data || responseData;
-        console.log('Locality data extracted:', localityData); // Debug log
-        
-        setLocality(localityData);
+        setLocality(localityData as Locality);
       } catch (err) {
         console.error('Error in fetchLocality:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar localidad');

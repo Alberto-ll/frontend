@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import '../../../static/css/users/userDetail.css';
+import { userService } from '../../../services/index.ts';
 
 interface User {
   id?: number;
@@ -8,27 +9,20 @@ interface User {
   surname: string;
   email: string;
   phoneNumber?: string;
-  categoryName?: string; // Cambiado para coincidir con el backend
+  categoryName?: string;
   category?: {
     id: number;
     name?: string;
-    usertype?: string; // Agregado usertype
+    usertype?: string;
   };
   createdAt?: string;
   updatedAt?: string;
-}
-
-interface Category {
-  id: number;
-  description: string;
-  usertype: string;
 }
 
 const UserDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,35 +32,8 @@ const UserDetail = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const url = `http://localhost:3000/api/users/findOne/${id}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Usuario no encontrado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        console.log('Response data:', responseData); // Debug log
-        
-        // El backend puede devolver los datos directamente o dentro de 'data'
-        const userData = responseData.data || responseData;
-        console.log('User data extracted:', userData); // Debug log
+        const userData = await userService.findOne(id!) as User;
+        console.log('Response data:', userData);
         
         setUser(userData);
       } catch (err) {
@@ -77,32 +44,8 @@ const UserDetail = () => {
       }
     };
 
-    const fetchCategories = async () => {
-      try {
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/category/getAll', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setCategories(data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-
     if (id) {
       fetchUser();
-      fetchCategories();
     } else {
       setError('No se proporcionó ID de usuario');
       setLoading(false);

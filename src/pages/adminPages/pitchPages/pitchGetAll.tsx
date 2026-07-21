@@ -2,31 +2,30 @@ import { useEffect, useState, useCallback } from 'react';
 import type {Pitch} from '../../../types/pitchType.ts'
 import { useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
+import { pitchService } from '../../../services';
 
 export default function PitchGetAll() {
-    const [data, setData] = useState<PitchResponse | null>(null);
+    const [data, setData] = useState<Pitch[] | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<boolean>(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
+    const normalizePitches = (response: unknown): Pitch[] => {
+        if (Array.isArray(response)) return response as Pitch[];
+
+        const typedResponse = response as { data?: unknown; pitches?: unknown };
+        if (Array.isArray(typedResponse?.data)) return typedResponse.data as Pitch[];
+        if (Array.isArray(typedResponse?.pitches)) return typedResponse.pitches as Pitch[];
+
+        return [];
+    };
+
     const getAll = useCallback(async () => {
         try {
             setLoading(true);
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/pitchs/getAll', {
-                method: "GET", 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (!response.ok) {
-                const errors = await response.json();
-                throw errors;
-            }
-            const json: PitchResponse = await response.json();
-            setData(json);
+            const json = await pitchService.getAll();
+            setData(normalizePitches(json));
         } catch (error) {
             showNotification(errorHandler(error), 'error');
             setError(true);
@@ -45,18 +44,7 @@ export default function PitchGetAll() {
     const remove = async (id: number) => {
         try {
             setLoading(true);
-            const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-            const response = await fetch('http://localhost:3000/api/pitchs/remove/' + id, {
-                method: "DELETE",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (!response.ok) {
-                const errors = await response.json();
-                throw errors;
-            }
+            await pitchService.remove(id);
             showNotification('Cancha eliminada con éxito!', 'success');
             getAll();
         } catch (error) {
@@ -79,7 +67,7 @@ export default function PitchGetAll() {
             <pre>
                 <table className='crudTable'>
                     <thead>
-                        <tr> {/* Agregado: envolver th en tr */}
+                        <tr>
                             <th>ID</th>
                             <th>Business ID</th>
                             <th>Rating</th>
@@ -91,10 +79,10 @@ export default function PitchGetAll() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data?.data.map((pitch) => (
+                        {data?.map((pitch) => (
                             <tr key={pitch.id}>
                                 <td>{pitch.id}</td>
-                                <td>{pitch.business?.id ?? '-'}</td>
+                                <td>{typeof pitch.business === 'object' ? pitch.business?.id : pitch.business ?? '-'}</td>
                                 <td>{('⭐️').repeat(pitch.rating)}</td>
                                 <td>${pitch.price}</td>
                                 <td>{pitch.size}</td>
@@ -109,7 +97,3 @@ export default function PitchGetAll() {
         </div>
     );
 }
-
-type PitchResponse = {
-    data: Pitch[];
-};

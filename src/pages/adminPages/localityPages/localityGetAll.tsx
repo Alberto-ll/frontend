@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import '../../../static/css/users/usersGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
+import { localityService } from '../../../services/index.ts';
 
 interface Locality {
   id?: number;
@@ -37,42 +38,9 @@ const LocalitiesGetAll = () => {
         setLoading(true);
         setError(null);
         
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
+        const localityData = await localityService.getAll();
         
-        if (!token) {
-          throw new Error('No se encontró token de autenticación');
-        }
-        
-        const response = await fetch('http://localhost:3000/api/localities/getAll', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          }
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseData = await response.json();
-        
-        let localityData: Locality[] = [];
-        
-        if (Array.isArray(responseData)) {
-          localityData = responseData;
-        } else if (responseData.localities && Array.isArray(responseData.localities)) {
-          localityData = responseData.localities;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          localityData = responseData.data;
-        } else {
-          throw new Error('Formato de respuesta inesperado');
-        }
-        
-        setLocalities(localityData);
+        setLocalities(localityData as Locality[]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar localidades');
       } finally {
@@ -128,24 +96,10 @@ const LocalitiesGetAll = () => {
     try {
       setDeleteModal(prev => ({ ...prev, isLoading: true }));
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      
-      const response = await fetch(`http://localhost:3000/api/localities/remove/${deleteModal.localityId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await localityService.remove(deleteModal.localityId);
 
-      if (!response.ok) {
-        throw new Error('Error al eliminar localidad');
-      }
-
-      // Eliminar la localidad del estado
       setLocalities(localities.filter(locality => locality.id !== deleteModal.localityId));
       
-      // Cerrar el modal
       setDeleteModal({
         isOpen: false,
         localityId: null,
@@ -153,12 +107,10 @@ const LocalitiesGetAll = () => {
         isLoading: false
       });
 
-      // Mostrar toast de éxito
       showToast('Localidad eliminada con éxito', 'success');
       
     } catch (err) {
       setDeleteModal(prev => ({ ...prev, isLoading: false }));
-      // Mostrar toast de error
       showToast('Error al eliminar localidad: ' + (err instanceof Error ? err.message : 'Error desconocido'), 'error');
     }
   };
