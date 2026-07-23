@@ -84,8 +84,10 @@ function App() {
           <Route path="pitchs/" element={<PitchHome />}>
             <Route path="getAll/" element={<PitchGetAll />}/>
             <Route path='getOne/' element={<PitchGetOne />}/>
+            <Route path='getOne/:id' element={<PitchGetOne />}/>
             <Route path='add/' element={<PitchAdd />}/>
             <Route path='update/' element={<PitchUpdate />}/>
+            <Route path='update/:id' element={<PitchUpdate />}/>
           </Route>
 
           <Route path="business/" element={<BusinessHome />}>

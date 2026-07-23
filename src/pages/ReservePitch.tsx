@@ -59,18 +59,7 @@ const ReservePitchPage: React.FC = () => {
 
       if (f.searchTerm && f.searchTerm.trim()) params.q = f.searchTerm.trim();
 
-      const responseData = await pitchService.getActive(params, { signal: abortRef.current.signal }) as any;
-
-      let pitchesData: ReservePitch[] = [];
-      if (Array.isArray(responseData)) {
-        pitchesData = responseData;
-      } else if (responseData.data && Array.isArray(responseData.data)) {
-        pitchesData = responseData.data;
-      } else if (responseData.pitches && Array.isArray(responseData.pitches)) {
-        pitchesData = responseData.pitches;
-      } else {
-        throw new Error('Formato de respuesta inesperado');
-      }
+      const pitchesData = await pitchService.getActive(params, { signal: abortRef.current.signal }) as ReservePitch[];
 
       setPitches(pitchesData);
 

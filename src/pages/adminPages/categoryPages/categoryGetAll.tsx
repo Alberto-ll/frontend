@@ -29,14 +29,7 @@ const CategoryGetAll = () => {
         setLoading(true);
         setError(null);
         
-        const responseData = await categoryService.getAll();
-        
-        let categoryData: Category[] = [];
-        
-        if (Array.isArray(responseData)) {
-          categoryData = responseData as unknown as Category[];
-        }
-        
+        const categoryData = await categoryService.getAll() as Category[];
         setCategories(categoryData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar categorías');

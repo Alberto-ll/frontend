@@ -135,12 +135,7 @@ export default function ReservePitchPageMakeReservation() {
         return [];
       }
 
-      const slotsData = await reservationService.findOccupiedSlotsByPitch(pitchId) as any;
-      
-      const slots = Array.isArray(slotsData) 
-        ? slotsData 
-        : slotsData.data || slotsData.occupiedSlots || slotsData.reservations || [];
-      
+      const slots = await reservationService.findOccupiedSlotsByPitch(pitchId) as OccupiedSlot[];
       setOccupiedSlots(slots);
       return slots;
     } catch (error) {
@@ -162,16 +157,7 @@ export default function ReservePitchPageMakeReservation() {
         return;
       }
 
-      const responseData = await pitchService.getOne(pitchId) as any;
-
-      let pitchData: PitchWithReservations;
-      if (responseData.data) {
-        pitchData = responseData.data;
-      } else if (responseData.pitch) {
-        pitchData = responseData.pitch;
-      } else {
-        pitchData = responseData;
-      }
+      const pitchData = await pitchService.getOne(pitchId) as PitchWithReservations;
 
       setPitch(pitchData);
 

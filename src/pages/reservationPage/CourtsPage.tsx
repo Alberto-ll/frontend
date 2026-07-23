@@ -39,18 +39,7 @@ const CourtsPage: React.FC = () => {
         return;
       }
 
-      const responseData = await pitchService.getActive() as any;
-
-      let courtsData: Court[] = [];
-      if (Array.isArray(responseData)) {
-        courtsData = responseData;
-      } else if (responseData.courts && Array.isArray(responseData.courts)) {
-        courtsData = responseData.courts;
-      } else if (responseData.data && Array.isArray(responseData.data)) {
-        courtsData = responseData.data;
-      } else {
-        throw new Error('Formato de respuesta inesperado');
-      }
+      const courtsData = await pitchService.getActive() as Court[];
 
       setCourts(courtsData);
       

@@ -62,17 +62,7 @@ export default function BusinessReservations() {
       }
 
       const businessData = await businessService.findByOwnerId(userData.id) as any;
-      
-      let extractedBusinessId;
-      if (businessData.id) {
-        extractedBusinessId = businessData.id;
-      } else if (businessData.data && businessData.data.id) {
-        extractedBusinessId = businessData.data.id;
-      } else if (Array.isArray(businessData) && businessData.length > 0) {
-        extractedBusinessId = businessData[0].id;
-      } else if (Array.isArray(businessData.data) && businessData.data.length > 0) {
-        extractedBusinessId = businessData.data[0].id;
-      }
+      const extractedBusinessId = businessData?.id;
       
       if (!extractedBusinessId) {
         setHasNoBusiness(true);

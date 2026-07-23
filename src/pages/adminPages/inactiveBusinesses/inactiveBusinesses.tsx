@@ -28,9 +28,8 @@ export default function InactiveBusinesses() {
     // Cargar localidades
     const fetchLocalities = async () => {
         try {
-            const localitiesData = await localityService.getAll();
-            const localitiesArray = Array.isArray(localitiesData) ? localitiesData as unknown as Locality[] : [];
-            setLocalities(localitiesArray);
+            const localitiesData = await localityService.getAll() as Locality[];
+            setLocalities(localitiesData);
         } catch (error) {
             console.error('Error cargando localidades:', error);
         }
@@ -39,9 +38,8 @@ export default function InactiveBusinesses() {
     // Cargar usuarios
     const fetchOwners = async () => {
         try {
-            const ownersData = await userService.findAll();
-            const ownersArray = Array.isArray(ownersData) ? ownersData as unknown as User[] : [];
-            setOwners(ownersArray);
+            const ownersData = await userService.findAll() as User[];
+            setOwners(ownersData);
         } catch (error) {
             console.error('Error cargando usuarios:', error);
         }
@@ -91,13 +89,7 @@ export default function InactiveBusinesses() {
     }, [showNotification])
 
     const fetchBusinesses = async () => {
-        const responseData = await businessService.findAll();
-        
-        let businessesData: BusinessData[] = [];
-        if (Array.isArray(responseData)) {
-            businessesData = responseData as unknown as BusinessData[];
-        }
-        
+        const businessesData = await businessService.findAll() as BusinessData[];
         setData(businessesData);
         
         // Filtrar negocios inactivos

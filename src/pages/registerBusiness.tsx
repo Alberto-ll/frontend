@@ -32,8 +32,8 @@ export function RegisterBusinessPage(){
         try{
             setLoading(true)
             if (!userData?.id) return;
-            const responseData = await userService.hasBusiness(userData.id) as { response: boolean };
-            setHasBusiness(responseData.response);
+            const responseData = await userService.hasBusiness(userData.id);
+            setHasBusiness(responseData.hasBusiness);
         }catch(error){
             showNotification('Error: ' + errorHandler(error), 'error')
             setLoading(false)
@@ -45,20 +45,7 @@ export function RegisterBusinessPage(){
         const fetchLocalities = async () => {
           try {
             setLoading(true);
-            const responseData = await localityService.getAll() as any;
-            
-            let localityData: Locality[] = [];
-            
-            if (Array.isArray(responseData)) {
-              localityData = responseData;
-            } else if (responseData.localities && Array.isArray(responseData.localities)) {
-              localityData = responseData.localities;
-            } else if (responseData.data && Array.isArray(responseData.data)) {
-              localityData = responseData.data;
-            } else {
-              throw new Error('Formato de respuesta inesperado');
-            }
-            
+            const localityData = await localityService.getAll() as Locality[];
             setLocalities(localityData);
           } catch (err) {
             showNotification("Error al cargar localidades: " + errorHandler(err), "error")

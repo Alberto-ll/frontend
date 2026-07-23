@@ -11,9 +11,9 @@ interface LoginResponse {
 }
 
 export async function login(user: { email: string; password: string }): Promise<LoginResponse> {
-  return api.post<LoginResponse>('/api/login', user, { auth: false });
+  return api.post<LoginResponse>('/api/login', user, { auth: false, suppressLogout: true });
 }
 
 export async function register(user: { name: string; surname: string; email: string; password: string; phoneNumber?: string }): Promise<void> {
-  return api.post<void>('/api/users/register', user, { auth: false });
+  return api.post<void>('/api/users/register', user, { auth: false, suppressLogout: true });
 }

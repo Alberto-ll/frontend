@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router"
 import { HomePageNav } from "../pages/homepage/homePageNav"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import HomeFooter from "../pages/homepage/homeFooter"
 import Toast from "../components/Toast"
 import { readStoredAuthSession } from "../services/authSession"
@@ -12,11 +12,11 @@ export function HomeLayout(){
         const [toastType, setToastType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
     
         //  FUNCIÓN PARA MOSTRAR TOAST
-        const showNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+        const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info') => {
             setToastMessage(message);
             setToastType(type);
             setShowToast(true);
-        };
+        }, []);
     
         //  FUNCIÓN PARA CERRAR TOAST
         const closeToast = () => {

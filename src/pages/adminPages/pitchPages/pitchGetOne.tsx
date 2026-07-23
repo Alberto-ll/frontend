@@ -1,27 +1,38 @@
 import type {Pitch} from '../../../types/pitchType.ts'
-import { useState } from 'react';
-import { useOutletContext } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useOutletContext, useParams } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
 import { pitchService } from '../../../services';
 
 export default function PitchGetOne(){
     const [data, setData] = useState<Pitch | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const { id } = useParams<{ id?: string }>();
+    const navigate = useNavigate();
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
     const getOne = async (id:string) =>{
         try{
             setLoading(true)
+            setError(null)
             const json = await pitchService.getOne(id);
             setData(json)
         }catch(error){
+            setError(errorHandler(error));
             showNotification(errorHandler(error),'error');
-            setLoading(false)
         }finally{
             setLoading(false)
         }
     }
+
+    useEffect(() => {
+        if (id) {
+            getOne(id);
+        }
+    }, [id]);
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -31,6 +42,29 @@ export default function PitchGetOne(){
         }
   };
     
+    if (id && loading) {
+        return (
+            <div className='crud-form-container'>
+                <h2 className='crud-form-title'>Conseguir cancha</h2>
+                <div className="loading-message">
+                    <p>Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (id && error && !data) {
+        return (
+            <div className='crud-form-container'>
+                <h2 className='crud-form-title'>Conseguir cancha</h2>
+                <div className="error-message">
+                    <p>{error}</p>
+                </div>
+                <button className='primary' onClick={() => navigate('/admin/pitchs/getAll/')}>Volver al listado</button>
+            </div>
+        );
+    }
+
     return (
         <div className='crud-form-container'>
             <h2 className='crud-form-title'>Conseguir cancha</h2>
@@ -43,7 +77,6 @@ export default function PitchGetOne(){
                     <button type="submit" className='primary'>Conseguir cancha</button>
                 </div>
             </form>
-            <pre>
             {loading && <p>Loading...</p>}
             {data && (
                 <table className='crudTable'>
@@ -70,7 +103,6 @@ export default function PitchGetOne(){
                     </tr>
                 </tbody>
                 </table>)}
-                </pre>
         </div>
     )
 }

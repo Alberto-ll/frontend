@@ -31,14 +31,7 @@ const UsersGetAll = () => {
         setLoading(true);
         setError(null);
         
-        const responseData = await userService.findAll();
-        
-        let userData: User[] = [];
-        
-        if (Array.isArray(responseData)) {
-          userData = responseData as unknown as User[];
-        }
-        
+        const userData = await userService.findAll() as User[];
         setUsers(userData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar usuarios');

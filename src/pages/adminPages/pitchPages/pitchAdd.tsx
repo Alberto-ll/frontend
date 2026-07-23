@@ -117,7 +117,7 @@ export default function PitchAdd(){
     const fetchBusinesses = useCallback(async () => {
         try {
             const json = await businessService.findAll();
-            setBusinesses((json as any).data);
+            setBusinesses(json);
         } catch (error) {
             showNotification(errorHandler(error), 'error');
             return [];
@@ -220,48 +220,50 @@ export default function PitchAdd(){
                     </button>
                 </div>
             </form>
-            
-            <pre>
-                {loading && <p>Cargando...</p>}
-                {data && (
-                    <table className='crudTable'>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Business</th>
-                                <th>Rating</th>
-                                <th>Price</th>
-                                <th>Size</th>
-                                <th>Ground type</th>
-                                <th>Roof</th>
-                                <th>Imagen</th>
-                                <th>Creado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>{data.id}</td>
-                                <td>{typeof data.business === 'object' ? data.business?.id : data.business}</td>
-                                <td>{('⭐️').repeat(data.rating)}</td>
-                                <td>${data.price}</td>
-                                <td>{data.size}</td>
-                                <td>{data.groundType}</td>
-                                <td>{data.roof ? 'Techado' : 'Sin techo'}</td>
-                                <td>
-                                    {data.imageUrl ? (
-                                        <img 
-                                            src={data.imageUrl} 
-                                            alt="Cancha" 
-                                            style={{width: '50px', height: '50px', objectFit: 'cover'}}
-                                        />
-                                    ) : 'Sin imagen'}
-                                </td>
-                                <td>{new Date(data.createdAt).toLocaleDateString()}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                )}
-            </pre>
+
+            {(loading || data) && (
+                <div>
+                    {loading && <p>Cargando...</p>}
+                    {data && (
+                        <table className='crudTable'>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Business</th>
+                                    <th>Rating</th>
+                                    <th>Price</th>
+                                    <th>Size</th>
+                                    <th>Ground type</th>
+                                    <th>Roof</th>
+                                    <th>Imagen</th>
+                                    <th>Creado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{data.id}</td>
+                                    <td>{typeof data.business === 'object' ? data.business?.id : data.business}</td>
+                                    <td>{('⭐️').repeat(data.rating)}</td>
+                                    <td>${data.price}</td>
+                                    <td>{data.size}</td>
+                                    <td>{data.groundType}</td>
+                                    <td>{data.roof ? 'Techado' : 'Sin techo'}</td>
+                                    <td>
+                                        {data.imageUrl ? (
+                                            <img 
+                                                src={data.imageUrl} 
+                                                alt="Cancha"
+                                                style={{width: '50px', height: '50px', objectFit: 'cover'}}
+                                            />
+                                        ) : 'Sin imagen'}
+                                    </td>
+                                    <td>{new Date(data.createdAt).toLocaleDateString()}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

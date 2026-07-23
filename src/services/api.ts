@@ -34,10 +34,10 @@ function buildQueryParams(params: Record<string, string | number | boolean | und
 }
 
 // Maneja la respuesta HTTP — parsea errores y maneja 401 automáticamente
-async function handleResponse(response: Response): Promise<unknown> {
+async function handleResponse(response: Response, suppressLogout: boolean = false): Promise<unknown> {
   if (!response.ok) {
     // 401: token expirado o inválido — limpiar y redirigir al login
-    if (response.status === 401) {
+    if (response.status === 401 && !suppressLogout) {
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
@@ -57,12 +57,18 @@ async function handleResponse(response: Response): Promise<unknown> {
   // 204 No Content
   if (response.status === 204) return null;
 
-  return response.json();
+  // Unwrap the standard { data: ... } envelope
+  const json = await response.json();
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data;
+  }
+  return json;
 }
 
 // Opciones comunes para los métodos HTTP
 interface RequestOptions {
   signal?: AbortSignal;
+  suppressLogout?: boolean;
 }
 
 // GET con query params opcionales
@@ -96,7 +102,7 @@ async function post<T>(
     body: body ? JSON.stringify(body) : undefined,
     signal: options?.signal,
   });
-  return handleResponse(response) as Promise<T>;
+  return handleResponse(response, options?.suppressLogout) as Promise<T>;
 }
 
 // PUT con body JSON

@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "../static/css/AdminLayout.css";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FaUserShield, FaBars, FaTimes, FaUsers, FaMapMarkerAlt, FaTicketAlt,FaArrowAltCircleLeft,FaFutbol, FaHome, FaStore } from "react-icons/fa";
 import HomeFooter from "../pages/homepage/homeFooter.js";
 import Toast from "../components/Toast.js";
@@ -17,11 +17,11 @@ export function AdminLayout() {
     const [toastType, setToastType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
     
     //    FUNCIÓN PARA MOSTRAR TOAST
-    const showNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info') => {
         setToastMessage(message);
         setToastType(type);
         setShowToast(true);
-    };
+    }, []);
     
     //    FUNCIÓN PARA CERRAR TOAST
     const closeToast = () => {

@@ -23,18 +23,8 @@ export default function PitchAdd() {
                 throw new Error('No hay datos de usuario');
             }
 
-            const businessData = await businessService.findByOwnerId(userData.id);
-            
-            let extractedBusinessId;
-            if ((businessData as any).id) {
-                extractedBusinessId = (businessData as any).id;
-            } else if ((businessData as any).data && (businessData as any).data.id) {
-                extractedBusinessId = (businessData as any).data.id;
-            } else if (Array.isArray(businessData) && (businessData as any[]).length > 0) {
-                extractedBusinessId = (businessData as any[])[0].id;
-            } else if ((businessData as any).data && Array.isArray((businessData as any).data) && (businessData as any).data.length > 0) {
-                extractedBusinessId = (businessData as any).data[0].id;
-            }
+            const businessData = await businessService.findByOwnerId(userData.id) as any;
+            const extractedBusinessId = businessData?.id;
             
             if (!extractedBusinessId) {
                 setHasNoBusiness(true);

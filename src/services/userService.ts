@@ -31,6 +31,6 @@ export async function remove(id: number | string): Promise<void> {
   return api.del<void>(`/api/users/delete/${id}`);
 }
 
-export async function hasBusiness(id: number | string): Promise<{ response: boolean }> {
-  return api.get<{ response: boolean }>(`/api/users/hasBusiness/${id}`);
+export async function hasBusiness(id: number | string): Promise<{ hasBusiness: boolean }> {
+  return api.get<{ hasBusiness: boolean }>(`/api/users/hasBusiness/${id}`);
 }
