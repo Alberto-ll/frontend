@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/users/userUpdate.css';
-import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
 import { localityService } from '../../../services/index.ts';
 
 interface Locality {
@@ -16,39 +15,18 @@ interface Locality {
 const LocalityUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [locality, setLocality] = useState<Locality | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para el Toast
-  const [toast, setToast] = useState({
-    isVisible: false,
-    message: '',
-    type: 'success' as 'success' | 'error' | 'warning' | 'info'
-  });
-
-  // Estados para el formulario
   const [formData, setFormData] = useState({
     name: '',
     postal_code: '',
     province: ''
   });
-
-  // Función para mostrar toast
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-    setToast({
-      isVisible: true,
-      message,
-      type
-    });
-  };
-
-  // Función para ocultar toast
-  const hideToast = () => {
-    setToast(prev => ({ ...prev, isVisible: false }));
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,8 +35,6 @@ const LocalityUpdate = () => {
         setError(null);
 
         const locality = await localityService.getOne(id!) as Locality;
-        
-        console.log('DATOS DE LA LOCALIDAD RECIBIDOS:', locality);
         setLocality(locality);
 
         setFormData({
@@ -68,7 +44,6 @@ const LocalityUpdate = () => {
         });
 
       } catch (err) {
-        console.error('ERROR EN FETCH:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar datos');
       } finally {
         setLoading(false);
@@ -101,20 +76,15 @@ const LocalityUpdate = () => {
         province: formData.province.trim()
       };
 
-      console.log('Datos a enviar al backend:', updateData);
-
       await localityService.update(id!, updateData);
 
-      showToast('Localidad actualizada con éxito', 'success');
-      
-      setTimeout(() => {
-        navigate(`/admin/localities/getOne/${id}`);
-      }, 1500);
+      showNotification('Localidad actualizada con éxito', 'success');
+      navigate(`/admin/localities/getOne/${id}`);
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar localidad';
       setError(errorMessage);
-      showToast(errorMessage, 'error');
+      showNotification(errorMessage, 'error');
     } finally {
       setSaving(false);
     }
@@ -151,14 +121,6 @@ const LocalityUpdate = () => {
 
   return (
     <div className="update-container">
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-        duration={4000}
-      />
-
       <h2 className="update-title">
         ✏️ Actualizar Localidad: {locality?.name}
       </h2>
@@ -169,7 +131,6 @@ const LocalityUpdate = () => {
         </div>
       )}
 
-      {/* Información actual de la localidad */}
       {locality && (
         <div className="current-user-info">
           <h3>📊 Información Actual de la Localidad</h3>

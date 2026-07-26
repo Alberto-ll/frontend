@@ -15,12 +15,7 @@ export default function BusinessPitchGetAll() {
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
-    const { userData } = useAuth();
-
-    if (!userData) {
-        alert('sesion no iniciada');
-        return <Navigate to="/login" />;
-    }
+    const { userData, isLoading } = useAuth();
 
     const getBusinessId = useCallback(async () => {
         try {
@@ -29,7 +24,7 @@ export default function BusinessPitchGetAll() {
             }
 
             const businessData = await businessService.findByOwnerId(userData.id) as any;
-            const extractedBusinessId = businessData?.id;
+            const extractedBusinessId = Array.isArray(businessData) ? businessData[0]?.id : businessData?.id;
             
             if (!extractedBusinessId) {
                 setHasNoBusiness(true);
@@ -103,8 +98,21 @@ export default function BusinessPitchGetAll() {
     }, [getBusinessId, getAll]);
 
     useEffect(() => {
-        initializeData();
-    }, []);
+        if (!isLoading) {
+            initializeData();
+        }
+    }, [isLoading, initializeData]);
+
+    if (isLoading) {
+        return <div>Cargando...</div>;
+    }
+    if (!userData) {
+        alert('sesion no iniciada');
+        return <Navigate to="/login" />;
+    }
+    if (userData.category !== "business_owner" && userData.category !== "admin") {
+        return <Navigate to="/" />;
+    }
 
     const remove = async (id: number) => {
         try {

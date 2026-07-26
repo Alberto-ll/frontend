@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Pitch } from '../../types/pitchType.ts';
-import { useNavigate, useOutletContext } from 'react-router';
+import { useNavigate, useOutletContext, Navigate } from 'react-router';
 import { useAuth } from '../../components/Auth.tsx';
 import { businessService, pitchService } from '../../services';
 import { errorHandler } from '../../types/apiError.ts';
@@ -24,7 +24,7 @@ export default function PitchAdd() {
             }
 
             const businessData = await businessService.findByOwnerId(userData.id) as any;
-            const extractedBusinessId = businessData?.id;
+            const extractedBusinessId = Array.isArray(businessData) ? businessData[0]?.id : businessData?.id;
             
             if (!extractedBusinessId) {
                 setHasNoBusiness(true);
@@ -77,10 +77,8 @@ export default function PitchAdd() {
         );
     }
 
-    if (!userData) {
-        alert('Sesión no iniciada o inválida');
-        navigate('/login');
-        return null;
+    if (userData && userData.category !== "business_owner" && userData.category !== "admin") {
+        return <Navigate to="/" />;
     }
 
     // MANEJO DE ESTADOS DE CARGA Y ERROR

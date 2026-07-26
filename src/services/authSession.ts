@@ -3,7 +3,7 @@ import type { UserData } from '../types/userData';
 
 export interface StoredAuthSession {
   token: string;
-  user?: Partial<UserData> & { category?: { usertype?: string } };
+  user?: Omit<Partial<UserData>, 'category'> & { category?: string | { usertype?: string } };
 }
 
 export function readStoredAuthSession(): StoredAuthSession | null {

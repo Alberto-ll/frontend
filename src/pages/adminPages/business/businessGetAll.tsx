@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import { localityService, userService, businessService } from '../../../services/index.ts';
@@ -41,10 +41,8 @@ const BusinessGetAll = () => {
   const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  // Función para obtener el nombre de la localidad
   const getLocalityName = (locality: number | Locality): string => {
     if (typeof locality === 'object' && locality !== null) {
       return locality.name;
@@ -55,7 +53,6 @@ const BusinessGetAll = () => {
     return 'N/A';
   };
 
-  // Función para obtener el nombre del dueño
   const getOwnerName = (owner: number | User): string => {
     if (typeof owner === 'object' && owner !== null) {
       return owner.name || owner.email || 'N/A';
@@ -66,7 +63,6 @@ const BusinessGetAll = () => {
     return 'N/A';
   };
 
-  // Cargar localidades
   const fetchLocalities = async () => {
     try {
       const localitiesData = await localityService.getAll();
@@ -77,7 +73,6 @@ const BusinessGetAll = () => {
     }
   };
 
-  // Cargar usuarios
   const fetchOwners = async () => {
     try {
       const ownersData = await userService.findAll();
@@ -88,38 +83,37 @@ const BusinessGetAll = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const getAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Cargar negocios, localidades y usuarios en paralelo
-        const [businessesResponseData] = await Promise.all([
-          businessService.findAll(),
-          fetchLocalities(),
-          fetchOwners()
-        ]);
-        
-        let businessData: Business[] = [];
-        
-        if (Array.isArray(businessesResponseData)) {
-          businessData = businessesResponseData as unknown as Business[];
-        }
-        
-        setBusinesses(businessData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar negocios');
-      } finally {
-        setLoading(false);
+      const [businessesResponseData] = await Promise.all([
+        businessService.findAll(),
+        fetchLocalities(),
+        fetchOwners()
+      ]);
+      
+      let businessData: Business[] = [];
+      
+      if (Array.isArray(businessesResponseData)) {
+        businessData = businessesResponseData as unknown as Business[];
       }
-    };
-
-    fetchData();
+      
+      setBusinesses(businessData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar negocios');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    getAll();
+  }, [getAll]);
+
   const handleRetry = () => {
-    window.location.reload();
+    getAll();
   };
 
   // FUNCIÓN PARA MOSTRAR EL MODAL (reemplaza la confirmación antigua)

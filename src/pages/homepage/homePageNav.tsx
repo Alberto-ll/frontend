@@ -40,7 +40,7 @@ export function HomePageNav({ showNotification }: HomePageNavProps){
                         <li>
                             <Link to="/admin">Admin Dashboard</Link>
                         </li>}
-                        {(userData?.category === 'business_owner') &&
+                        {(userData?.category === 'business_owner' || userData?.category === 'admin') &&
                         <li>
                             <Link to="/myBusiness">Mi negocio</Link> 
                         </li>}

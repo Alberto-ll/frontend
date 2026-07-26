@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useOutletContext } from "react-router";
 import '../../../static/css/users/usersGetAll.css';
 import { userService } from '../../../services/index.ts';
+import DeleteConfirm from '../../../components/deleteConfirm';
+import { errorHandler } from '../../../types/apiError';
 
 interface User {
   id?: number;
@@ -24,41 +26,68 @@ const UsersGetAll = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    userId: null as number | null,
+    userName: '',
+    isLoading: false
+  });
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const userData = await userService.findAll() as User[];
-        setUsers(userData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+  const getAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const userData = await userService.findAll() as User[];
+      setUsers(userData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    getAll();
+  }, [getAll]);
+
   const handleRetry = () => {
-    window.location.reload();
+    getAll();
   };
 
-  const handleDelete = async (userId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      return;
-    }
+  const handleDeleteClick = (userId: number, userName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      userId,
+      userName,
+      isLoading: false,
+    });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModal({
+      isOpen: false,
+      userId: null,
+      userName: '',
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.userId) return;
 
     try {
-      await userService.remove(userId);
+      setDeleteModal((prev) => ({ ...prev, isLoading: true }));
 
-      setUsers(users.filter(user => user.id !== userId));
-      alert('Usuario eliminado con éxito');
+      await userService.remove(deleteModal.userId);
+
+      setUsers((prev) => prev.filter((user) => user.id !== deleteModal.userId));
+      handleCancelDelete();
+      showNotification('Usuario eliminado con éxito', 'success');
     } catch (err) {
-      alert('Error al eliminar usuario: ' + (err instanceof Error ? err.message : 'Error desconocido'));
+      setDeleteModal((prev) => ({ ...prev, isLoading: false }));
+      showNotification('Error al eliminar usuario: ' + errorHandler(err), 'error');
     }
   };
 
@@ -96,6 +125,17 @@ const UsersGetAll = () => {
 
   return (
     <div className="users-getall-container">
+      <DeleteConfirm
+        isOpen={deleteModal.isOpen}
+        title="Confirmar Eliminación de Usuario"
+        message="¿Estás seguro de que quieres eliminar este usuario?"
+        itemName={deleteModal.userName}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        confirmText="Eliminar Usuario"
+        cancelText="Cancelar"
+        isLoading={deleteModal.isLoading}
+      />
       <div className="users-container">
         <h2 className="users-title">Lista de Usuarios</h2>
         
@@ -152,7 +192,7 @@ const UsersGetAll = () => {
                             Editar
                           </Link>
                           <button 
-                            onClick={() => user.id && handleDelete(user.id)} 
+                            onClick={() => user.id && handleDeleteClick(user.id, `${user.name} ${user.surname}`)} 
                             className="action-button delete-button"
                             title="Eliminar usuario"
                           >

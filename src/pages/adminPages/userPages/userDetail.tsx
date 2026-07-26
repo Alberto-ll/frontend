@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router";
 import '../../../static/css/users/userDetail.css';
 import { userService } from '../../../services/index.ts';
 
@@ -33,11 +33,9 @@ const UserDetail = () => {
         setError(null);
         
         const userData = await userService.findOne(id!) as User;
-        console.log('Response data:', userData);
         
         setUser(userData);
       } catch (err) {
-        console.error('Error in fetchUser:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar usuario');
       } finally {
         setLoading(false);

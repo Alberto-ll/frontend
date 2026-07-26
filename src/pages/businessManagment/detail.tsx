@@ -1,5 +1,5 @@
 import type { Pitch } from '../../types/pitchType.ts';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext, useParams, Navigate } from 'react-router';
 
 import '../../static/css/MybusinessDetail.css'
@@ -15,14 +15,9 @@ export default function businessPitchDetail() {
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const { id } = useParams<{ id: string }>();
 
-    const { userData } = useAuth();
+    const { userData, isLoading } = useAuth();
 
-    if (!userData) {
-        alert('sesion no iniciada');
-        return <Navigate to="/login" />;
-    }
-
-    const getOne = async (pitchId: string) => {
+    const getOne = useCallback(async (pitchId: string) => {
         try {
             setLoading(true);
             setError(false);
@@ -37,13 +32,24 @@ export default function businessPitchDetail() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [showNotification]);
 
     useEffect(() => {
-        if (id) {
+        if (!isLoading && id) {
             getOne(id);
         }
-    }, [id]);
+    }, [id, isLoading, getOne]);
+
+    if (isLoading) {
+        return <div>Cargando...</div>;
+    }
+    if (!userData) {
+        alert('sesion no iniciada');
+        return <Navigate to="/login" />;
+    }
+    if (userData.category !== "business_owner" && userData.category !== "admin") {
+        return <Navigate to="/" />;
+    }
 
     if (loading) {
         return (

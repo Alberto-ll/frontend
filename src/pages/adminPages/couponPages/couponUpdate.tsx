@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type {Coupon} from '../../../types/couponType.ts'
-import { useOutletContext } from 'react-router';
+import { useNavigate, useOutletContext } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
 import { couponService } from '../../../services/index.ts';
 
@@ -8,6 +8,7 @@ import { couponService } from '../../../services/index.ts';
 export default function CouponUpdate(){
     const [data, setData] = useState<Coupon | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
     
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
@@ -38,6 +39,10 @@ export default function CouponUpdate(){
         }
       };
 
+      const cancel = () => {
+        navigate('/admin/coupons')
+      }
+
     return (
     <div className='crud-form-container'>
             <h2 className='crud-form-title'>Actualizar cupón</h2>
@@ -59,11 +64,10 @@ export default function CouponUpdate(){
                     <input type="date" name="expiringDate" required />
                 </div>
                 <div className='crud-form-actions'>
-                    <button className='secondary' type="submit">Cancelar</button>
+                    <button className='secondary' type="button" onClick={cancel}>Cancelar</button>
                     <button className='primary' type="submit">Actualizar</button>
                 </div>
             </form>
-            <pre>
             {loading && <p>Loading...</p>}
             {data && (
                 <table className='couponTable'>
@@ -84,6 +88,5 @@ export default function CouponUpdate(){
                     </tr>
                 </tbody>
                 </table>)}
-                </pre>
         </div>)
 }

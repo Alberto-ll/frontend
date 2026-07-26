@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryDetail.css';
 import { businessService, localityService, userService } from '../../../services/index.ts';
+import DeleteConfirm from '../../../components/deleteConfirm';
+import { errorHandler } from '../../../types/apiError';
 
 interface Business {
   id: number;
@@ -31,13 +33,17 @@ interface User {
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   const [business, setBusiness] = useState<Business | null>(null);
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [owners, setOwners] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    isLoading: false
+  });
 
-  // Cargar localidades
   const fetchLocalities = async () => {
     try {
       const localitiesData = await localityService.getAll();
@@ -48,7 +54,6 @@ const BusinessDetail = () => {
     }
   };
 
-  // Cargar usuarios
   const fetchOwners = async () => {
     try {
       const ownersData = await userService.findAll();
@@ -59,7 +64,6 @@ const BusinessDetail = () => {
     }
   };
 
-  // Función para obtener el nombre de la localidad
   const getLocalityName = (locality: number | { id: number; name: string }): string => {
     if (typeof locality === 'object' && locality !== null) {
       return locality.name;
@@ -70,7 +74,6 @@ const BusinessDetail = () => {
     return 'N/A';
   };
 
-  // Función para obtener el nombre del dueño
   const getOwnerName = (owner: number | { id: number; name: string; email: string }): string => {
     if (typeof owner === 'object' && owner !== null) {
       return owner.name || owner.email || 'N/A';
@@ -87,7 +90,12 @@ const BusinessDetail = () => {
         setLoading(true);
         setError(null);
         
-        // Cargar datos en paralelo
+        const fetchBusinessData = async () => {
+          const responseData = await businessService.findOne(id!);
+          const businessData = responseData as unknown as Business;
+          setBusiness(businessData);
+        };
+
         await Promise.all([
           fetchBusinessData(),
           fetchLocalities(),
@@ -95,21 +103,10 @@ const BusinessDetail = () => {
         ]);
         
       } catch (err) {
-        console.error('Error in fetchBusiness:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar negocio');
       } finally {
         setLoading(false);
       }
-    };
-
-    const fetchBusinessData = async () => {
-      const responseData = await businessService.findOne(id!);
-      console.log('Response data:', responseData);
-      
-      const businessData = responseData as unknown as Business;
-      console.log('Business data extracted:', businessData);
-      
-      setBusiness(businessData);
     };
 
     if (id) {
@@ -120,12 +117,37 @@ const BusinessDetail = () => {
     }
   }, [id]);
 
-  // Función para formatear el porcentaje de depósito
+  const handleDeleteClick = () => {
+    setDeleteModal({ isOpen: true, isLoading: false });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModal({ isOpen: false, isLoading: false });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!business) return;
+
+    try {
+      setDeleteModal(prev => ({ ...prev, isLoading: true }));
+      await businessService.remove(business.id);
+      showNotification('Negocio eliminado con éxito', 'success');
+      navigate('/admin/business/getAll');
+    } catch (err) {
+      setDeleteModal(prev => ({ ...prev, isLoading: false }));
+      const errorMsg = err instanceof Error ? err.message : '';
+      if (errorMsg.includes('foreign key') || errorMsg.includes('constraint') || errorMsg.includes('FK')) {
+        showNotification('No se puede eliminar el negocio porque tiene canchas asociadas. Elimine las canchas primero.', 'error');
+      } else {
+        showNotification('Error al eliminar negocio: ' + errorHandler(err), 'error');
+      }
+    }
+  };
+
   const formatDepositPercentage = (percentage: number) => {
     return `${(percentage * 100).toFixed(1)}%`;
   };
 
-  // Función para formatear la fecha
   const formatDate = (dateString?: Date) => {
     if (!dateString) return 'No activado';
     const date = new Date(dateString);
@@ -163,6 +185,18 @@ const BusinessDetail = () => {
 
   return (
     <div className="detail-container">
+      <DeleteConfirm
+        isOpen={deleteModal.isOpen}
+        title="Confirmar Eliminación de Negocio"
+        message="¿Estás seguro de que quieres eliminar este negocio? Esta acción no se puede deshacer. Las canchas asociadas deben eliminarse primero."
+        itemName={business.businessName}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        confirmText="Eliminar Negocio"
+        cancelText="Cancelar"
+        isLoading={deleteModal.isLoading}
+      />
+
       <h2 className="detail-title">🏢 Detalle del Negocio</h2>
       
       <div className="detail-card">
@@ -227,7 +261,6 @@ const BusinessDetail = () => {
           </div>
         </div>
 
-        {/* Información adicional */}
         <div className="additional-info">
           <h4>📊 Información Adicional</h4>
           <div className="info-grid">
@@ -255,18 +288,13 @@ const BusinessDetail = () => {
           ← Volver a la lista
         </button>
         <Link 
-          to={`/admin/businesses/update/${business.id}`}
+          to={`/admin/business/update/${business.id}`}
           className="edit-button"
         >
           ✏️ Editar Negocio
         </Link>
         <button 
-          onClick={() => {
-            if (window.confirm('¿Estás seguro de que deseas eliminar este negocio? Esta acción no se puede deshacer.')) {
-              console.log('Eliminar negocio:', business.id);
-              // Aquí iría la lógica para eliminar el negocio
-            }
-          }}
+          onClick={handleDeleteClick}
           className="delete-button"
         >
           🗑️ Eliminar Negocio

@@ -51,10 +51,6 @@ export default function BusinessReservations() {
   
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  if (!isLoading && !token) {
-    return <Navigate to="/login" />;
-  }
-
   const getBusinessId = useCallback(async () => {
     try {
       if (!userData?.id) {
@@ -62,7 +58,7 @@ export default function BusinessReservations() {
       }
 
       const businessData = await businessService.findByOwnerId(userData.id) as any;
-      const extractedBusinessId = businessData?.id;
+      const extractedBusinessId = Array.isArray(businessData) ? businessData[0]?.id : businessData?.id;
       
       if (!extractedBusinessId) {
         setHasNoBusiness(true);
@@ -441,6 +437,16 @@ export default function BusinessReservations() {
       setLoading(false);
     }
   }, [token, getBusinessId, getReservations, showNotification]);
+
+  if (isLoading) {
+    return <div>Cargando...</div>;
+  }
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+  if (userData && userData.category !== "business_owner" && userData.category !== "admin") {
+    return <Navigate to="/" />;
+  }
 
   const extractDate = (dateTimeString: string) => {
     try {

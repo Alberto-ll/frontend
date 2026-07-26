@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router";
 import '../../../static/css/users/userDetail.css';
 import { localityService } from '../../../services/index.ts';
 
@@ -26,11 +26,9 @@ const LocalityDetail = () => {
         setError(null);
         
         const localityData = await localityService.getOne(id!);
-        console.log('Response data:', localityData);
         
         setLocality(localityData as Locality);
       } catch (err) {
-        console.error('Error in fetchLocality:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar localidad');
       } finally {
         setLoading(false);

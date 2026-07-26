@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryCreate.css';
 import { localityService, userService, businessService } from '../../../services/index.ts';
 
@@ -16,6 +16,7 @@ interface User {
 
 const BusinessCreate = () => {
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -115,11 +116,9 @@ const BusinessCreate = () => {
         averageRating: 0.0
       };
 
-      console.log(createData)
-
       await businessService.add(createData);
       
-      alert('Negocio creado con éxito. Debe ser activado por un administrador.');
+      showNotification('Negocio creado con éxito. Debe ser activado por un administrador.', 'success');
       navigate('/admin/business/getAll');
       
     } catch (err) {

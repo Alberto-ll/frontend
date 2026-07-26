@@ -25,7 +25,7 @@ export function RegisterBusinessPage(){
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
-    const { userData } = useAuth();
+    const { userData, isLoading } = useAuth();
 
     useEffect(() => {
         const previousBusiness = async () =>{
@@ -57,13 +57,17 @@ export function RegisterBusinessPage(){
         fetchLocalities();
       }, [showNotification, userData]);
 
+    if (isLoading) {
+        return <div>Cargando...</div>;
+    }
+
     if(!userData){
         return <Navigate to="/"/>
     }
 
     const ownerId = userData.id;
 
-    if(userData.category == "owner"){
+    if(userData.category == "business_owner"){
         alert("Usted ya tiene un negocio en su nombre")
         return <Navigate to="/"/> 
     }

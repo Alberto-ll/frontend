@@ -43,7 +43,6 @@ export default function CouponGetOne(){
                 <button type="submit" className='primary'>Conseguir cupón</button>
                 </div>
             </form>
-            <pre>
             {loading && <p>Loading...</p>}
             {data && (
                 <table className='crudTable'>
@@ -64,7 +63,6 @@ export default function CouponGetOne(){
                     </tr>
                 </tbody>
                 </table>)}
-                </pre>
         </div>
     )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/users/userUpdate.css';
 import { categoryService, userService } from '../../../services/index.ts';
 
@@ -28,6 +28,7 @@ interface Category {
 const UserUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [user, setUser] = useState<User | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -66,17 +67,12 @@ const UserUpdate = () => {
 
         const user = userResponseData as unknown as User;
         
-        console.log('DATOS DEL USUARIO RECIBIDOS:', user);
         setUser(user);
 
         let currentCategoryId = '';
         
         if (user.category && user.category.id) {
           currentCategoryId = String(user.category.id);
-          console.log(' CategoryId encontrado:', currentCategoryId);
-          console.log(' Categoría completa:', user.category);
-        } else {
-          console.log(' Usuario sin categoría');
         }
 
         // Establecer form data
@@ -89,7 +85,6 @@ const UserUpdate = () => {
         });
 
       } catch (err) {
-        console.error('ERROR EN FETCH:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar datos');
         setCategories([]);
       } finally {
@@ -122,14 +117,12 @@ const UserUpdate = () => {
         surname: formData.surname.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim() || undefined,
-        categoryId: formData.categoryId ? parseInt(formData.categoryId) : undefined // Enviar como número
+        categoryId: formData.categoryId ? parseInt(formData.categoryId) : undefined
       };
-
-      console.log('Datos a enviar al backend:', updateData);
 
       await userService.update(id!, updateData);
 
-      alert('Usuario actualizado con éxito');
+      showNotification('Usuario actualizado con éxito', 'success');
       navigate(`/admin/users/detail/${id}`);
       
     } catch (err) {

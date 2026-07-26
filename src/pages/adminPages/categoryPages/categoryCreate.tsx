@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryCreate.css';
 import { categoryService } from '../../../services/index.ts';
 
 const CategoryCreate = () => {
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +46,7 @@ const CategoryCreate = () => {
 
       await categoryService.add(createData);
 
-      alert('Categoría creada con éxito');
+      showNotification('Categoría creada con éxito', 'success');
       navigate('/admin/categories/getAll');
       
     } catch (err) {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState,} from 'react'; 
 import type {ChangeEvent, FormEvent } from 'react';
 import type { Pitch } from '../../types/pitchType.ts';
-import { useNavigate, useOutletContext, useParams } from 'react-router';
+import { useNavigate, useOutletContext, useParams, Navigate } from 'react-router';
 import { errorHandler } from '../../types/apiError.ts';
 import { useAuth } from '../../components/Auth.tsx';
 import { pitchService } from '../../services';
@@ -32,7 +32,7 @@ export default function BusinessPitchEdit() {
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
-    const { token, isLoading } = useAuth();
+    const { userData, token, isLoading } = useAuth();
 
 
     const getOne = useCallback(async () => {
@@ -190,6 +190,10 @@ export default function BusinessPitchEdit() {
 
     if (isLoading || loading && !pitch) {
         return <div>Cargando datos de la cancha...</div>
+    }
+
+    if (!isLoading && userData && userData.category !== "business_owner" && userData.category !== "admin") {
+        return <Navigate to="/" />;
     }
 
     return (

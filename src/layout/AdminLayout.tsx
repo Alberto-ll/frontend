@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, Navigate } from "react-router";
 import "../static/css/AdminLayout.css";
 import { useCallback, useState } from "react";
 import { FaUserShield, FaBars, FaTimes, FaUsers, FaMapMarkerAlt, FaTicketAlt,FaArrowAltCircleLeft,FaFutbol, FaHome, FaStore } from "react-icons/fa";
@@ -9,7 +9,7 @@ import { useAuth } from "../components/Auth.js";
 export function AdminLayout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
-    const {userData} = useAuth();
+    const {userData, isLoading} = useAuth();
 
     //    NUEVOS ESTADOS PARA EL TOAST
     const [showToast, setShowToast] = useState(false);
@@ -31,10 +31,23 @@ export function AdminLayout() {
     const toggleMobileMenu = () => {
         setMobileMenuOpen(!mobileMenuOpen);
     };
+
+    if (isLoading) {
+        return (
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Cargando...</p>
+            </div>
+        );
+    }
+
+    if (!userData || userData.category !== "admin") {
+        return <Navigate to="/" />;
+    }
     
     const handleLogout = () =>{
-        localStorage.clear() //temporal
-        alert('sesion cerrada')
+        localStorage.clear()
+        showNotification('Sesión cerrada', 'info')
         navigate('/')
     }
 
@@ -196,6 +209,16 @@ export function AdminLayout() {
                     >
                         <div className="nav-icon"><FaUserShield /></div>
                         <div className="nav-text">Categorías</div>
+                    </NavLink>
+                    <NavLink 
+                        to="business/" 
+                        className={({ isActive }) => 
+                            `nav-item ${isActive ? 'active' : ''}`
+                        }
+                        onClick={toggleMobileMenu}
+                    >
+                        <div className="nav-icon"><FaStore /></div>
+                        <div className="nav-text">Business</div>
                     </NavLink>
                     <NavLink 
                         to="pitchs/" 

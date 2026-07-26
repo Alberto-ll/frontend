@@ -105,7 +105,6 @@ export default function PitchAdd(){
         pitchData.append('groundType', selectedGroundType);
         pitchData.append('roof', formData.get("roof") ? 'true' : 'false');
         
-        console.log(pitchData);
         // Agregar la imagen si existe
         if (imageFile) {
             pitchData.append('image', imageFile);

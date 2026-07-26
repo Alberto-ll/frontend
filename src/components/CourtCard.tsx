@@ -1,44 +1,23 @@
 // CourtCard.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// Interfaces TypeScript - EXPORTADAS
-export interface Business {
-  id: number;
-  owner: number;
-  locality: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt: string;
-}
-
-export interface Court {
-  id: number;
-  rating: number;
-  size: string;
-  groundType: string;
-  roof: boolean;
-  price: number;
-  business: Business;
-  imageUrl: string;
-  driveFileId: string;
-  createdAt: string;
-  updatedAt: string;
-  reservations: [];
-}
+import type { Pitch } from '../types/pitchType';
 
 interface CourtCardProps {
-  court: Court;
-  // onReserve removed to force SPA navigation
+  court: Pitch;
 }
 
 const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
   const navigate = useNavigate();
 
-  // Función para renderizar estrellas de rating
+  const businessName = typeof court.business === 'object' && court.business !== null
+    ? court.business.businessName
+    : 'Negocio desconocido';
+  
+  const businessAddress = typeof court.business === 'object' && court.business !== null
+    ? court.business.address
+    : '';
+
   const renderStars = (rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -55,7 +34,6 @@ const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
     return stars.join('');
   };
 
-  // Función para formatear el precio
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -65,15 +43,16 @@ const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
   };
 
   const handleReserveClick = () => {
-    // Navegación SPA a la página de reserva (siempre)
-    navigate(`/makeReservation/${court.id}`);
+    if (court.id) {
+      navigate(`/makeReservation/${court.id}`);
+    }
   };
 
   return (
     <div className="court-card-item">
       <img 
-        src={court.imageUrl} 
-        alt={`Cancha ${court.business.businessName}`}
+        src={court.imageUrl || 'https://via.placeholder.com/350x200/4a90e2/ffffff?text=Cancha+Deportiva'} 
+        alt={`Cancha ${court.id ?? ''}`}
         className="court-card-image"
         onError={(e) => {
           e.currentTarget.src = 'https://via.placeholder.com/350x200/4a90e2/ffffff?text=Cancha+Deportiva';
@@ -83,8 +62,8 @@ const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
       <div className="court-card-content">
         <div className="court-card-header">
           <div>
-            <h2 className="court-card-name">Cancha #{court.id}</h2>
-            <p className="court-card-business">{court.business.businessName}</p>
+            <h2 className="court-card-name">Cancha #{court.id ?? '?'}</h2>
+            <p className="court-card-business">{businessName}</p>
           </div>
           <div className="court-card-rating">
             <span className="court-rating-value">{court.rating.toFixed(1)}</span>
@@ -105,10 +84,12 @@ const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
             <span className="court-detail-icon">🏠</span>
             <span>{court.roof ? 'Con techo' : 'Sin techo'}</span>
           </div>
-          <div className="court-detail-item">
-            <span className="court-detail-icon">📍</span>
-            <span>{court.business.address}</span>
-          </div>
+          {businessAddress && (
+            <div className="court-detail-item">
+              <span className="court-detail-icon">📍</span>
+              <span>{businessAddress}</span>
+            </div>
+          )}
         </div>
         
         <div className="court-card-price-section">

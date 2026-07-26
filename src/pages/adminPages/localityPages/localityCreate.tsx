@@ -1,42 +1,20 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/users/userCreate.css';
-import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
 import { localityService } from '../../../services/index.ts';
 
 const LocalityCreate = () => {
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para el Toast
-  const [toast, setToast] = useState({
-    isVisible: false,
-    message: '',
-    type: 'success' as 'success' | 'error' | 'warning' | 'info'
-  });
-
-  // Estados para el formulario - con valores iniciales vacíos
   const [formData, setFormData] = useState({
     name: '',
     postal_code: '',
     province: ''
   });
-
-  // Función para mostrar toast
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-    setToast({
-      isVisible: true,
-      message,
-      type
-    });
-  };
-
-  // Función para ocultar toast
-  const hideToast = () => {
-    setToast(prev => ({ ...prev, isVisible: false }));
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -78,16 +56,13 @@ const LocalityCreate = () => {
 
       await localityService.add(createData);
 
-      showToast('Localidad creada con éxito', 'success');
-      
-      setTimeout(() => {
-        navigate('/admin/localities/getAll');
-      }, 1500);
+      showNotification('Localidad creada con éxito', 'success');
+      navigate('/admin/localities/getAll');
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear localidad';
       setError(errorMessage);
-      showToast(errorMessage, 'error');
+      showNotification(errorMessage, 'error');
     } finally {
       setSaving(false);
     }
@@ -99,14 +74,6 @@ const LocalityCreate = () => {
 
   return (
     <div className="update-container">
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-        duration={4000}
-      />
-
       <h2 className="update-title">Crear Nueva Localidad</h2>
       
       {error && (

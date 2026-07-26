@@ -1,6 +1,6 @@
 import type {Pitch} from '../../../types/pitchType.ts'
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router';
+import { useNavigate, useOutletContext, useParams } from 'react-router';
 import { errorHandler } from '../../../types/apiError.ts';
 import { pitchService } from '../../../services';
 

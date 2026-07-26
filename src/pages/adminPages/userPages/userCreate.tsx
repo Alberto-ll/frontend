@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import '../../../static/css/users/userCreate.css'; // Cambiar import
+import { useNavigate, useOutletContext } from "react-router";
+import '../../../static/css/users/userCreate.css';
 import { categoryService, userService } from '../../../services/index.ts';
 
 interface Category {
@@ -11,6 +11,7 @@ interface Category {
 
 const UserCreate = () => {
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,10 +100,9 @@ const UserCreate = () => {
       if (formData.categoryId && !isNaN(parseInt(formData.categoryId))) {
         createData.category = parseInt(formData.categoryId);
       }
-      console.log('Datos a enviar para crear usuario:', createData);
       await userService.add(createData);
 
-      alert('Usuario creado con éxito');
+      showNotification('Usuario creado con éxito', 'success');
       navigate('/admin/users/getAll');
       
     } catch (err) {

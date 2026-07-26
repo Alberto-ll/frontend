@@ -40,6 +40,7 @@ import InactiveBusinesses from '../adminPages/inactiveBusinesses/inactiveBusines
 import BusinessCreate from '../adminPages/business/businessCreate.tsx';
 import BusinessUpdate from '../adminPages/business/businessUpdate.tsx';
 import BusinessDetail from '../adminPages/business/businessDetail.tsx';
+import BusinessPitchDetail from '../businessManagment/detail.tsx';
 import ReservePitchPage from '../ReservePitch.tsx';
 import MyReservations from '../homepage/myReservations.tsx';
 import BusinessPitchHome from '../businessManagment/home.tsx';
@@ -66,7 +67,7 @@ function App() {
             <Route path='getAll/' element={<BusinessPitchGetAll />} />
             <Route path='add/' element={<BusinessPitchAdd />} />
             <Route path='edit/:id' element={<BusinessPitchEdit />} />
-            <Route path='detail/:id' element={<BusinessDetail />} />
+            <Route path='detail/:id' element={<BusinessPitchDetail />} />
             <Route path='getReservations/' element={<BusinessReservations />} />
           </Route>
         </Route>

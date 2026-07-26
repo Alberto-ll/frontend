@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useOutletContext } from "react-router";
 import '../../../static/css/users/usersGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
-import Toast from '../../../components/Toast'; // Ajusta la ruta según tu estructura
 import { localityService } from '../../../services/index.ts';
+import { errorHandler } from '../../../types/apiError';
 
 interface Locality {
   id?: number;
@@ -16,8 +16,8 @@ const LocalitiesGetAll = () => {
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  // Estados para el modal de confirmación
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     localityId: null as number | null,
@@ -25,51 +25,28 @@ const LocalitiesGetAll = () => {
     isLoading: false
   });
 
-  // Estados para el Toast
-  const [toast, setToast] = useState({
-    isVisible: false,
-    message: '',
-    type: 'success' as 'success' | 'error' | 'warning' | 'info'
-  });
-
-  useEffect(() => {
-    const fetchLocalities = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const localityData = await localityService.getAll();
-        
-        setLocalities(localityData as Locality[]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar localidades');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLocalities();
+  const getAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const localityData = await localityService.getAll();
+      setLocalities(localityData as Locality[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar localidades');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Función para mostrar toast
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-    setToast({
-      isVisible: true,
-      message,
-      type
-    });
-  };
-
-  // Función para ocultar toast
-  const hideToast = () => {
-    setToast(prev => ({ ...prev, isVisible: false }));
-  };
+  useEffect(() => {
+    getAll();
+  }, [getAll]);
 
   const handleRetry = () => {
-    window.location.reload();
+    getAll();
   };
 
-  // Función para abrir el modal de confirmación
   const handleDeleteClick = (localityId: number, localityName: string) => {
     setDeleteModal({
       isOpen: true,
@@ -79,7 +56,6 @@ const LocalitiesGetAll = () => {
     });
   };
 
-  // Función para cancelar la eliminación
   const handleCancelDelete = () => {
     setDeleteModal({
       isOpen: false,
@@ -89,7 +65,6 @@ const LocalitiesGetAll = () => {
     });
   };
 
-  // Función para confirmar la eliminación
   const handleConfirmDelete = async () => {
     if (!deleteModal.localityId) return;
 
@@ -98,20 +73,12 @@ const LocalitiesGetAll = () => {
 
       await localityService.remove(deleteModal.localityId);
 
-      setLocalities(localities.filter(locality => locality.id !== deleteModal.localityId));
-      
-      setDeleteModal({
-        isOpen: false,
-        localityId: null,
-        localityName: '',
-        isLoading: false
-      });
-
-      showToast('Localidad eliminada con éxito', 'success');
-      
+      setLocalities(prev => prev.filter(locality => locality.id !== deleteModal.localityId));
+      handleCancelDelete();
+      showNotification('Localidad eliminada con éxito', 'success');
     } catch (err) {
       setDeleteModal(prev => ({ ...prev, isLoading: false }));
-      showToast('Error al eliminar localidad: ' + (err instanceof Error ? err.message : 'Error desconocido'), 'error');
+      showNotification('Error al eliminar localidad: ' + errorHandler(err), 'error');
     }
   };
 
@@ -149,13 +116,6 @@ const LocalitiesGetAll = () => {
 
   return (
     <div className="users-getall-container">
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-        duration={4000}
-      />
       <DeleteConfirm
         isOpen={deleteModal.isOpen}
         title="Confirmar Eliminación de Localidad"

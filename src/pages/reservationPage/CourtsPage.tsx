@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CourtList from './CourtList';
-import type { Court } from '../../components/CourtCard';
+import type { Pitch } from '../../types/pitchType';
 import '../../static/css/courtPages.css';
 import { useAuth } from '../../components/Auth';
 import { pitchService } from '../../services';
 import { errorHandler } from '../../types/apiError';
 
 const CourtsPage: React.FC = () => {
-  const [courts, setCourts] = useState<Court[]>([]);
+  const [courts, setCourts] = useState<Pitch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +39,7 @@ const CourtsPage: React.FC = () => {
         return;
       }
 
-      const courtsData = await pitchService.getActive() as Court[];
+      const courtsData = await pitchService.getActive();
 
       setCourts(courtsData);
       
@@ -107,8 +107,15 @@ const CourtsPage: React.FC = () => {
   };
 
   const filteredCourts = courts.filter(court => {
-    const matchesSearch = court.business.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          court.business.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const businessName = typeof court.business === 'object' && court.business !== null
+      ? court.business.businessName.toLowerCase()
+      : '';
+    const businessAddress = typeof court.business === 'object' && court.business !== null
+      ? court.business.address.toLowerCase()
+      : '';
+    
+    const matchesSearch = businessName.includes(searchTerm.toLowerCase()) ||
+                          businessAddress.includes(searchTerm.toLowerCase()) ||
                           court.groundType.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesRoof = filterRoof === 'all' || 

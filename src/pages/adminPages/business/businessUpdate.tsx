@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryUpdate.css';
 import { businessService, localityService, userService } from '../../../services/index.ts';
 
@@ -31,6 +31,7 @@ interface User {
 const BusinessUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [business, setBusiness] = useState<Business | null>(null);
   const [localities, setLocalities] = useState<Locality[]>([]);
@@ -73,7 +74,6 @@ const BusinessUpdate = () => {
 
         const business = businessResponseData as unknown as Business;
         
-        console.log('DATOS DEL NEGOCIO RECIBIDOS:', business);
         setBusiness(business);
 
         const localitiesArray = Array.isArray(localitiesResponseData) ? localitiesResponseData as unknown as Locality[] : [];
@@ -98,7 +98,6 @@ const BusinessUpdate = () => {
         });
 
       } catch (err) {
-        console.error('ERROR EN FETCH:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar datos');
       } finally {
         setLoading(false);
@@ -165,16 +164,12 @@ const BusinessUpdate = () => {
         active: formData.active
       };
 
-      console.log('Datos a enviar al backend:', updateData);
+      await businessService.update(id, updateData);
 
-      const result = await businessService.update(id, updateData) as Record<string, unknown>;
-      console.log('Respuesta del servidor:', result);
-
-      alert('Negocio actualizado con éxito');
+      showNotification('Negocio actualizado con éxito', 'success');
       navigate(`/admin/business/detail/${id}`);
       
     } catch (err) {
-      console.error('ERROR COMPLETO:', err);
       setError(err instanceof Error ? err.message : 'Error al actualizar negocio');
     } finally {
       setSaving(false);
@@ -183,9 +178,9 @@ const BusinessUpdate = () => {
 
   const handleCancel = () => {
     if (id) {
-      navigate(`/admin/businesses/detail/${id}`);
+      navigate(`/admin/business/detail/${id}`);
     } else {
-      navigate('/admin/businesses/getAll');
+      navigate('/admin/business/getAll');
     }
   };
 
@@ -221,7 +216,7 @@ const BusinessUpdate = () => {
         <div className="error-message">
           <p>❌ Error: No se proporcionó un ID válido para el negocio</p>
         </div>
-        <button onClick={() => navigate('/admin/businesses/getAll')} className="cancel-button">
+        <button onClick={() => navigate('/admin/business/getAll')} className="cancel-button">
           Volver a la lista
         </button>
       </div>
@@ -246,7 +241,7 @@ const BusinessUpdate = () => {
         <div className="error-message">
           <p>❌ Error: {error}</p>
         </div>
-        <button onClick={() => navigate('/admin/businesses/getAll')} className="cancel-button">
+        <button onClick={() => navigate('/admin/business/getAll')} className="cancel-button">
           Volver a la lista
         </button>
       </div>

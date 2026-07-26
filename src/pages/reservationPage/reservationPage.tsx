@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Business as CourtBusiness } from '../../components/CourtCard';
+import type { BusinessData } from '../../types/businessType';
 import '../../static/css/reservationPage.css';
 import { useAuth } from '../../components/Auth';
 import { pitchService, reservationService } from '../../services';
@@ -11,11 +11,8 @@ interface OccupiedSlot {
   ReservationTime: string;
 }
 
-interface Business extends CourtBusiness {
-  businessName: string;
+interface Business extends BusinessData {
   name?: string;
-  openingAt: string;
-  closingAt: string;
 }
 
 interface PitchWithReservations {

@@ -16,7 +16,7 @@ export default function CouponAdd(){
             setLoading(true)
             const json = await couponService.add(coupon)
             setData(json)
-            showNotification('Cupón actualizado con éxito!', 'success')
+            showNotification('Cupón creado con éxito!', 'success')
             navigate('/admin/coupons/getAll')
         }catch(error){
             showNotification(errorHandler(error), 'error');
@@ -60,11 +60,10 @@ export default function CouponAdd(){
                     <input type="date" name="expiringDate" required />
                 </div>
                 <div className='crud-form-actions'>
-                    <button onClick={cancel} className='secondary'>Cancelar</button>
+                    <button type="button" onClick={cancel} className='secondary'>Cancelar</button>
                     <button type="submit" className='primary'>Crear</button>
                 </div>
             </form>
-            <pre>
             {loading && <p>Loading...</p>}
             {data && (
                 <table className='crudTable'>
@@ -85,6 +84,5 @@ export default function CouponAdd(){
                     </tr>
                 </tbody>
                 </table>)}
-                </pre>
         </div>)
 }

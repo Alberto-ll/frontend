@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryUpdate.css';
 import { categoryService } from '../../../services/index.ts';
 
@@ -12,6 +12,7 @@ interface Category {
 const CategoryUpdate = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
   
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,6 @@ const CategoryUpdate = () => {
         const responseData = await categoryService.getOne(id!);
         const category = responseData as unknown as Category;
         
-        console.log('DATOS DE LA CATEGORÍA RECIBIDOS:', category);
         setCategory(category);
 
         setFormData({
@@ -43,7 +43,6 @@ const CategoryUpdate = () => {
         });
 
       } catch (err) {
-        console.error('ERROR EN FETCH:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar datos');
       } finally {
         setLoading(false);
@@ -75,11 +74,9 @@ const CategoryUpdate = () => {
         usertype: formData.usertype.trim()
       };
 
-      console.log('Datos a enviar al backend:', updateData);
-
       await categoryService.update(id!, updateData);
 
-      alert('Categoría actualizada con éxito');
+      showNotification('Categoría actualizada con éxito', 'success');
       navigate(`/admin/categories/detail/${id}`);
       
     } catch (err) {

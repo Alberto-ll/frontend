@@ -59,11 +59,13 @@ export default function MyReservations() {
             <h1>Mis Reservas</h1>
             <table className='crudTable'>
                 <thead>
-                    <th>ID de reserva</th>
-                    <th>Negocio</th>
-                    <th>ID Cancha</th>
-                    <th>Fecha y hora de reserva</th>
-                    <th></th>
+                    <tr>
+                        <th>ID de reserva</th>
+                        <th>Negocio</th>
+                        <th>ID Cancha</th>
+                        <th>Fecha y hora de reserva</th>
+                        <th></th>
+                    </tr>
                 </thead>
                 <tbody>
                     {data?.

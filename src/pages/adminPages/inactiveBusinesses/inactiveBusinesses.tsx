@@ -110,7 +110,7 @@ export default function InactiveBusinesses() {
             
             await businessService.activate(id)
             
-            showNotification('Negocio habilitado con éxito!', 'success');
+            showNotification('Negocio habilitado. El usuario deberá iniciar sesión nuevamente para acceder a funciones de dueño.', 'success');
             
             // Recargar los datos después de activar
             getAll();

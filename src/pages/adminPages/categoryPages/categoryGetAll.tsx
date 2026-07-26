@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import { categoryService } from '../../../services/index.ts';
@@ -23,26 +23,26 @@ const CategoryGetAll = () => {
   // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const categoryData = await categoryService.getAll() as Category[];
-        setCategories(categoryData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar categorías');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
+  const getAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const categoryData = await categoryService.getAll() as Category[];
+      setCategories(categoryData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar categorías');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    getAll();
+  }, [getAll]);
+
   const handleRetry = () => {
-    window.location.reload();
+    getAll();
   };
 
   const handleDeleteClick = (category: Category) => {

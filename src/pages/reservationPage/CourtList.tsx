@@ -1,8 +1,9 @@
 import React from 'react';
-import CourtCard, { type Court } from '../../components/CourtCard'; // Usar type-only import
+import CourtCard from '../../components/CourtCard';
+import type { Pitch } from '../../types/pitchType';
 
 interface CourtListProps {
-  courts: Court[];
+  courts: Pitch[];
 }
 
 const CourtList: React.FC<CourtListProps> = ({ courts }) => {

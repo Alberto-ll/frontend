@@ -1,8 +1,22 @@
-import { Link, Outlet, useOutletContext } from "react-router";
+import { Link, Outlet, useOutletContext, Navigate } from "react-router";
+import { useAuth } from '../../components/Auth';
 /*import '../../static/css/crudTable.css' */
 
 export default function BusinessPitchHome() {
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
+  const { userData, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Cargando...</div>;
+  }
+  if (!userData) {
+    alert('sesion no iniciada');
+    return <Navigate to="/login" />;
+  }
+  if (userData.category !== "business_owner" && userData.category !== "admin") {
+    return <Navigate to="/" />;
+  }
+
   return (
     <div style={{ padding: '2rem' }}>
         <div className="crud-home-container">

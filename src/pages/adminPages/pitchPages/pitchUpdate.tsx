@@ -151,8 +151,6 @@ export default function PitchUpdate(){
         const imageValue = (e.currentTarget.elements.namedItem('image') as HTMLInputElement | null)?.files?.[0] ?? null;
         const selectedImage = imageValue instanceof File && imageValue.size > 0 ? imageValue : null;
 
-        console.log(' Datos del formulario:', pitch); // DEBUG
-
         // Verificar que al menos un campo se va a actualizar
         const { id, ...fieldsToUpdate } = pitch;
         if (Object.keys(fieldsToUpdate).length === 0) {
