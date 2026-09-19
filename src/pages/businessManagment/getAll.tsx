@@ -148,6 +148,11 @@ export default function BusinessPitchGetAll() {
         navigate(`/myBusiness/edit/${pitchId}`);
     };
 
+    // FUNCIÓN PARA NAVEGAR A EDITAR EL NEGOCIO
+    const handleEditBusiness = () => {
+        navigate('/myBusiness/editBusiness/');
+    };
+
     if (loading) {
         return (
             <div className="loading-container">
@@ -213,6 +218,13 @@ export default function BusinessPitchGetAll() {
     return (
         <div>
             <div className="table-header">
+                <button 
+                    className="primary-button"
+                    onClick={handleEditBusiness}
+                    style={{ marginBottom: '1rem' }}
+                >
+                    Editar mi negocio
+                </button>
             </div>
             
             <table className='crudTable'>

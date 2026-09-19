@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryCreate.css';
 import { localityService, userService, businessService } from '../../../services/index.ts';
+import { ScheduleEditor } from '../../../components/ScheduleEditor';
+import type { ScheduleItem } from '../../../components/ScheduleEditor';
 
 interface Locality {
   id: number;
@@ -28,9 +30,17 @@ const BusinessCreate = () => {
     localityId: '',
     ownerId: '',
     reservationDepositPercentage: '0.10',
-    openingAt: '08:00',
-    closingAt: '20:00'
   });
+
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([
+    { day: 1, open: null, close: null },
+    { day: 2, open: null, close: null },
+    { day: 3, open: null, close: null },
+    { day: 4, open: null, close: null },
+    { day: 5, open: null, close: null },
+    { day: 6, open: null, close: null },
+    { day: 7, open: null, close: null },
+  ]);
 
   // Estados para datos de selección
   const [localities, setLocalities] = useState<Locality[]>([]);
@@ -98,21 +108,20 @@ const BusinessCreate = () => {
         throw new Error('El porcentaje de depósito debe ser entre 0 y 1 (0% a 100%)');
       }
 
-      // Validar horarios
-      if (formData.openingAt >= formData.closingAt) {
-        throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
+      // Validar schedule
+      if (!schedule || schedule.length !== 7) {
+        throw new Error('El schedule debe tener exactamente 7 días');
       }
 
-      // Preparar datos para enviar - CORREGIDO para usar la estructura correcta
+      // Preparar datos para enviar
       const createData = {
         businessName: formData.businessName.trim(),
         address: formData.address.trim(),
-        locality: parseInt(formData.localityId), // Enviar solo el ID como número
-        owner: parseInt(formData.ownerId), // Enviar solo el ID como número
+        locality: parseInt(formData.localityId),
+        owner: parseInt(formData.ownerId),
         reservationDepositPercentage: depositPercentage,
-        openingAt: formData.openingAt, // Añadir segundos si es necesario
-        closingAt: formData.closingAt, // Añadir segundos si es necesario
-        active: false, // Por defecto inactivo hasta que un admin lo active
+        schedule,
+        active: false,
         averageRating: 0.0
       };
 
@@ -308,40 +317,6 @@ const BusinessCreate = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="openingAt">Hora de Apertura</label>
-            <input
-              type="time"
-              id="openingAt"
-              name="openingAt"
-              value={formData.openingAt}
-              onChange={handleInputChange}
-              required
-              className="form-input"
-            />
-            <small className="form-help">
-              Horario de apertura del negocio
-            </small>
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="closingAt">Hora de Cierre</label>
-            <input
-              type="time"
-              id="closingAt"
-              name="closingAt"
-              value={formData.closingAt}
-              onChange={handleInputChange}
-              required
-              className="form-input"
-            />
-            <small className="form-help">
-              Horario de cierre del negocio
-            </small>
-          </div>
-
-          <div className="form-group">
             <label className="info-message">
               ⓘ Estado del Negocio
             </label>
@@ -349,6 +324,12 @@ const BusinessCreate = () => {
               <p><strong>Estado inicial:</strong> <span className="input-invalid">Inactivo</span></p>
               <small>El negocio deberá ser activado por un administrador antes de poder operar.</small>
             </div>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group" style={{ flex: 1 }}>
+            <ScheduleEditor value={schedule} onChange={setSchedule} />
           </div>
         </div>
 
@@ -362,7 +343,11 @@ const BusinessCreate = () => {
               <p><strong>Localidad:</strong> {localities.find(l => l.id === parseInt(formData.localityId))?.name || 'No seleccionada'}</p>
               <p><strong>Dueño:</strong> {owners.find(o => o.id === parseInt(formData.ownerId))?.name || 'No seleccionado'}</p>
               <p><strong>Depósito:</strong> {depositPercentageDisplay}%</p>
-              <p><strong>Horario:</strong> {formData.openingAt} - {formData.closingAt}</p>
+              <p><strong>Horario:</strong> {
+                schedule.some(s => s.open !== null)
+                  ? schedule.filter(s => s.open !== null).length + ' días abiertos'
+                  : 'Sin horarios configurados'
+              }</p>
               <p><strong>Estado:</strong> <span className="input-invalid">Inactivo (requiere activación)</span></p>
             </div>
           </div>

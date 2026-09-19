@@ -6,6 +6,7 @@ export type Reservation = {
   ReservationDate: string;
   ReservationTime: string;
   status?: string;
+  pitchRating?: number;
   pitch: Pitch; 
   user: UserData;
 };

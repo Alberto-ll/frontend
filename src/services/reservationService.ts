@@ -48,3 +48,7 @@ export async function cancel(id: number | string): Promise<Reservation> {
 export async function remove(id: number | string): Promise<void> {
   return api.del<void>(`/api/reservations/remove/${id}`);
 }
+
+export async function rate(id: number, rating: number): Promise<Reservation> {
+  return api.put<Reservation>(`/api/reservations/rate/${id}`, { rating });
+}

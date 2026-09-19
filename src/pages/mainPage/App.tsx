@@ -47,6 +47,7 @@ import BusinessPitchHome from '../businessManagment/home.tsx';
 import BusinessPitchAdd from '../businessManagment/add.tsx';
 import BusinessPitchEdit from '../businessManagment/edit.tsx';
 import BusinessPitchGetAll from '../businessManagment/getAll.tsx';
+import EditBusiness from '../businessManagment/editBusiness.tsx';
 import BusinessReservations from '../businessManagment/getReservations.tsx';
 import ReservePitchPageMakeReservation from '../reservationPage/reservationPage.tsx';
 
@@ -69,6 +70,7 @@ function App() {
             <Route path='edit/:id' element={<BusinessPitchEdit />} />
             <Route path='detail/:id' element={<BusinessPitchDetail />} />
             <Route path='getReservations/' element={<BusinessReservations />} />
+            <Route path='editBusiness/' element={<EditBusiness />} />
           </Route>
         </Route>
 

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryUpdate.css';
 import { businessService, localityService, userService } from '../../../services/index.ts';
+import { ScheduleEditor } from '../../../components/ScheduleEditor';
+import type { ScheduleItem } from '../../../components/ScheduleEditor';
 
 interface Business {
   id: number;
@@ -11,8 +13,7 @@ interface Business {
   reservationDepositPercentage: number;
   active: boolean;
   activatedAt?: Date;
-  openingAt: string;
-  closingAt: string;
+  schedule: ScheduleItem[];
   locality: number | { id: number; name: string };
   owner: number | { id: number; name: string; email: string };
 }
@@ -47,10 +48,18 @@ const BusinessUpdate = () => {
     localityId: '',
     ownerId: '',
     reservationDepositPercentage: '0.10',
-    openingAt: '08:00',
-    closingAt: '20:00',
     active: false
   });
+
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([
+    { day: 1, open: null, close: null },
+    { day: 2, open: null, close: null },
+    { day: 3, open: null, close: null },
+    { day: 4, open: null, close: null },
+    { day: 5, open: null, close: null },
+    { day: 6, open: null, close: null },
+    { day: 7, open: null, close: null },
+  ]);
 
   // Cargar negocio, localidades y dueños
   useEffect(() => {
@@ -92,10 +101,13 @@ const BusinessUpdate = () => {
           localityId: localityId?.toString() || '',
           ownerId: ownerId?.toString() || '',
           reservationDepositPercentage: business.reservationDepositPercentage?.toString() || '0.10',
-          openingAt: business.openingAt || '08:00',
-          closingAt: business.closingAt || '20:00',
           active: business.active || false
         });
+
+        // Cargar schedule existente
+        if (business.schedule && business.schedule.length === 7) {
+          setSchedule(business.schedule);
+        }
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar datos');
@@ -148,8 +160,9 @@ const BusinessUpdate = () => {
         throw new Error('El porcentaje de depósito debe ser entre 0 y 1 (0% a 100%)');
       }
 
-      if (formData.openingAt >= formData.closingAt) {
-        throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
+      // Validar schedule
+      if (!schedule || schedule.length !== 7) {
+        throw new Error('El schedule debe tener exactamente 7 días');
       }
 
       const updateData = {
@@ -159,8 +172,7 @@ const BusinessUpdate = () => {
         locality: parseInt(formData.localityId),
         owner: formData.ownerId ? parseInt(formData.ownerId) : undefined,
         reservationDepositPercentage: depositPercentage,
-        openingAt: formData.openingAt,
-        closingAt: formData.closingAt,
+        schedule,
         active: formData.active
       };
 
@@ -417,30 +429,8 @@ const BusinessUpdate = () => {
         </div>
 
         <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="openingAt">Hora de Apertura</label>
-            <input
-              type="time"
-              id="openingAt"
-              name="openingAt"
-              value={formData.openingAt}
-              onChange={handleInputChange}
-              required
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="closingAt">Hora de Cierre</label>
-            <input
-              type="time"
-              id="closingAt"
-              name="closingAt"
-              value={formData.closingAt}
-              onChange={handleInputChange}
-              required
-              className="form-input"
-            />
+          <div className="form-group" style={{ flex: 1 }}>
+            <ScheduleEditor value={schedule} onChange={setSchedule} />
           </div>
         </div>
 

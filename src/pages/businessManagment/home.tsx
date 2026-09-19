@@ -35,6 +35,9 @@ export default function BusinessPitchHome() {
               <Link to="/myBusiness/getReservations/" className="menu-item">
                 Ver Reservas
               </Link>
+              <Link to="/myBusiness/editBusiness/" className="menu-item">
+                Editar Negocio
+              </Link>
             </nav>
           </div>
 

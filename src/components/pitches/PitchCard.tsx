@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReservePitch } from '../../types/reservePitchTypes';
 import '../../static/css/components/PitchCard.css';
+import StarRating from '../StarRating';
 
 interface PitchCardProps {
   pitch: ReservePitch;
@@ -8,26 +9,6 @@ interface PitchCardProps {
 }
 
 const PitchCard: React.FC<PitchCardProps> = ({ pitch, onReserve }) => {
-  // Render star rating
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const stars = [];
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push('★');
-    }
-    if (hasHalfStar) {
-      stars.push('⯨');
-    }
-    const emptyStars = 5 - stars.length;
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push('☆');
-    }
-
-    return stars.join('');
-  };
-
   // Format price
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -65,7 +46,7 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, onReserve }) => {
       <div className="pitch-card-content">
         <div className="pitch-card-header">
           <h3 className="pitch-card-business-name">{businessName} - Cancha N°{pitch.id}</h3>
-          <p className="pitch-card-stars">{renderStars(pitch.rating)}</p>
+          <p className="pitch-card-stars"><StarRating rating={pitch.rating} size="small" /></p>
         </div>
 
         <div className="pitch-card-details">

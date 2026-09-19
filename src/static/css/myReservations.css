@@ -672,3 +672,51 @@
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
 .mt-3 { margin-top: 1.5rem; }
+
+/* ============ MODAL DE CALIFICACIÓN ============ */
+
+.rating-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.rating-modal {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  min-width: 320px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.rating-modal h3 {
+  margin: 0 0 1.5rem 0;
+  color: var(--dark-color);
+  font-size: 1.25rem;
+}
+
+.rating-modal-stars {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.rating-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.rating-modal-actions button {
+  min-width: 120px;
+}
+
+.rating-modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

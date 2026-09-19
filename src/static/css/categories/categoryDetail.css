@@ -112,6 +112,19 @@
   margin-bottom: 1rem;
 }
 
+/* Business Rating */
+.business-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.business-rating .rating-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .detail-container {

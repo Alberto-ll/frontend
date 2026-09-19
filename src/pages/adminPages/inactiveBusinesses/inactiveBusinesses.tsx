@@ -209,7 +209,7 @@ export default function InactiveBusinesses() {
                                             </div>
                                         </td>
                                         <td>{business.address}</td>
-                                        <td>{business.openingAt} - {business.closingAt}</td>
+                                        <td>{business.schedule?.filter(s => s.open !== null).length || 0} días abiertos</td>
                                         <td>{formatDepositPercentage(business.reservationDepositPercentage)}</td>
                                         <td>
                                             <button 

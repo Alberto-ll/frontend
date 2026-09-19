@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Pitch } from '../types/pitchType';
+import StarRating from './StarRating';
 
 interface CourtCardProps {
   court: Pitch;
@@ -17,22 +18,6 @@ const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
   const businessAddress = typeof court.business === 'object' && court.business !== null
     ? court.business.address
     : '';
-
-  const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push('★');
-    }
-    
-    const emptyStars = 5 - stars.length;
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push('☆');
-    }
-    
-    return stars.join('');
-  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -67,7 +52,7 @@ const CourtCard: React.FC<CourtCardProps> = ({ court }) => {
           </div>
           <div className="court-card-rating">
             <span className="court-rating-value">{court.rating.toFixed(1)}</span>
-            <span className="court-rating-stars">{renderStars(court.rating)}</span>
+            <span className="court-rating-stars"><StarRating rating={court.rating} size="small" /></span>
           </div>
         </div>
         

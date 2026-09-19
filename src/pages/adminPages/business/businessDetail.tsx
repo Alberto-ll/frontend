@@ -4,6 +4,7 @@ import '../../../static/css/categories/categoryDetail.css';
 import { businessService, localityService, userService } from '../../../services/index.ts';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import { errorHandler } from '../../../types/apiError';
+import StarRating from '../../../components/StarRating';
 
 interface Business {
   id: number;
@@ -13,8 +14,7 @@ interface Business {
   reservationDepositPercentage: number;
   active: boolean;
   activatedAt?: Date;
-  openingAt: string;
-  closingAt: string;
+  schedule: { day: number; open: string | null; close: string | null }[];
   locality: number | { id: number; name: string };
   owner: number | { id: number; name: string; email: string };
 }
@@ -235,7 +235,10 @@ const BusinessDetail = () => {
           
           <div className="detail-item">
             <label>Rating Promedio:</label>
-            <span className="rating-text">{business.averageRating?.toFixed(1) || '0.0'} ⭐</span>
+            <div className="business-rating">
+              <StarRating rating={business.averageRating} size="medium" />
+              <span className="rating-text">{business.averageRating?.toFixed(1) || '0.0'}</span>
+            </div>
           </div>
           
           <div className="detail-item">
@@ -244,8 +247,37 @@ const BusinessDetail = () => {
           </div>
           
           <div className="detail-item">
-            <label>Horario de Atención:</label>
-            <span className="schedule-text">{business.openingAt} - {business.closingAt}</span>
+            <label>Horarios de Atención:</label>
+            <div className="schedule-text" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {(() => {
+                const DAYS = [
+                  { day: 1, name: 'Lunes' },
+                  { day: 2, name: 'Martes' },
+                  { day: 3, name: 'Miércoles' },
+                  { day: 4, name: 'Jueves' },
+                  { day: 5, name: 'Viernes' },
+                  { day: 6, name: 'Sábado' },
+                  { day: 7, name: 'Domingo' },
+                ];
+                if (!business.schedule || business.schedule.length === 0) {
+                  return <span>Sin horarios configurados</span>;
+                }
+                return DAYS.map(({ day, name }) => {
+                  const item = business.schedule.find(s => s.day === day);
+                  const isOpen = item?.open !== null && item?.close !== null;
+                  return (
+                    <div key={day} style={{ display: 'flex', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 600, minWidth: '90px' }}>{name}:</span>
+                      {isOpen ? (
+                        <span>{item?.open} - {item?.close}</span>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Cerrado</span>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
           
           <div className="detail-item">
@@ -265,8 +297,10 @@ const BusinessDetail = () => {
           <h4>📊 Información Adicional</h4>
           <div className="info-grid">
             <div className="info-item">
-              <span className="info-label">Horario Comercial:</span>
-              <span className="info-value">{business.openingAt} a {business.closingAt}</span>
+              <span className="info-label">Días abiertos:</span>
+              <span className="info-value">
+                {business.schedule?.filter(s => s.open !== null).length || 0} de 7 días
+              </span>
             </div>
             <div className="info-item">
               <span className="info-label">Política de Depósito:</span>

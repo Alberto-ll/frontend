@@ -42,12 +42,13 @@ async function handleResponse(response: Response, suppressLogout: boolean = fals
       window.location.href = '/login';
     }
 
-    // Parsear el body del error
+    // Parsear el body del error — lectura única como text para evitar "body already consumed"
+    const rawText = await response.text();
     let body: Record<string, unknown>;
     try {
-      body = await response.json();
+      body = JSON.parse(rawText);
     } catch {
-      body = { message: await response.text() || `HTTP ${response.status}` };
+      body = { message: rawText || `HTTP ${response.status}` };
     }
     // Adjuntar el status code para que los componentes puedan inspeccionarlo
     body._status = response.status;

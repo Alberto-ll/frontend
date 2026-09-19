@@ -23,8 +23,7 @@ interface Business {
   reservationDepositPercentage: number;
   active: boolean;
   activatedAt?: Date;
-  openingAt: string;
-  closingAt: string;
+  schedule: { day: number; open: string | null; close: string | null }[];
   locality: number | Locality; // Puede ser ID u objeto
   owner: number | User; // Puede ser ID u objeto
 }
@@ -253,7 +252,7 @@ const BusinessGetAll = () => {
                       <td className="table-cell">{getOwnerName(business.owner)}</td>
                       <td className="table-cell">{business.averageRating?.toFixed(1) || '0.0'}</td>
                       <td className="table-cell">{formatPercentage(business.reservationDepositPercentage)}</td>
-                      <td className="table-cell">{business.openingAt} - {business.closingAt}</td>
+                      <td className="table-cell">{business.schedule?.filter(s => s.open !== null).length || 0} días</td>
                       <td className="table-cell">{formatActiveStatus(business.active)}</td>
                       <td className="table-cell">
                         <div className="action-buttons">

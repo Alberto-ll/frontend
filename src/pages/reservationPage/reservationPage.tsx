@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { BusinessData } from '../../types/businessType';
+import type { BusinessData, ScheduleItem } from '../../types/businessType';
 import '../../static/css/reservationPage.css';
 import { useAuth } from '../../components/Auth';
 import { pitchService, reservationService } from '../../services';
@@ -50,6 +50,16 @@ export default function ReservePitchPageMakeReservation() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+
+  const getScheduleForDate = useCallback((schedule: ScheduleItem[] | undefined, dateStr: string): { open: string; close: string } | null => {
+    if (!schedule || schedule.length !== 7 || !dateStr) return null;
+    const date = new Date(dateStr + 'T00:00:00');
+    const jsDay = date.getDay(); // 0=dom, 1=lun, ..., 6=sab
+    const scheduleDay = jsDay === 0 ? 7 : jsDay; // 1=lun, 7=dom
+    const daySchedule = schedule.find(s => s.day === scheduleDay);
+    if (!daySchedule || daySchedule.open === null || daySchedule.close === null) return null;
+    return { open: daySchedule.open, close: daySchedule.close };
+  }, []);
 
   const generateTimeSlots = useCallback((openingAt: string, closingAt: string): TimeSlot[] => {
     const slots: TimeSlot[] = [];
@@ -158,15 +168,7 @@ export default function ReservePitchPageMakeReservation() {
 
       setPitch(pitchData);
 
-      if (pitchData.business?.openingAt && pitchData.business?.closingAt) {
-        const generatedSlots = generateTimeSlots(
-          pitchData.business.openingAt,
-          pitchData.business.closingAt
-        );
-        setTimeSlots(generatedSlots);
-      } else {
-        setTimeSlots(generateDefaultTimeSlots());
-      }
+      // Time slots will be generated when a date is selected
 
       await fetchOccupiedSlots(pitchId);
 
@@ -201,8 +203,17 @@ export default function ReservePitchPageMakeReservation() {
   useEffect(() => {
     if (date) {
       setSelectedTime('');
+      // Generate time slots based on the schedule for the selected date
+      const dayHours = getScheduleForDate(pitch?.business?.schedule, date);
+      if (dayHours) {
+        const generatedSlots = generateTimeSlots(dayHours.open, dayHours.close);
+        setTimeSlots(generatedSlots);
+      } else {
+        // Business closed on this day or no schedule
+        setTimeSlots([]);
+      }
     }
-  }, [date]);
+  }, [date, pitch?.business?.schedule, getScheduleForDate, generateTimeSlots]);
 
   useEffect(() => {
     if (date && timeSlots.length > 0) {
@@ -242,15 +253,21 @@ export default function ReservePitchPageMakeReservation() {
     setError(null);
 
     try {
-      const datetime = new Date(`${date}`);
-      if (isNaN(datetime.getTime())) throw new Error('Fecha inválida');
+      // selectedTime puede ser "15" o "15:00" — manejar ambos formatos
+      const timeParts = selectedTime.split(':');
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = timeParts[1] ? parseInt(timeParts[1], 10) : 0;
+      const datetime = new Date(date + 'T00:00:00');
+      datetime.setHours(hours, minutes, 0, 0);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      datetime.setHours(0, 0, 0, 0);
-      
-      if (datetime < today) {
-        throw new Error('No puedes reservar en fechas pasadas');
+      if (isNaN(datetime.getTime())) {
+        throw new Error('Fecha u hora inválida');
+      }
+
+      const now = new Date();
+
+      if (datetime <= now) {
+        throw new Error('El horario de reserva ya pasó. Por favor seleccioná una fecha y hora futuras.');
       }
 
       const body = {
@@ -410,8 +427,17 @@ export default function ReservePitchPageMakeReservation() {
               {pitch.roof && <span className="feature-badge covered">Cubierta</span>}
               <span className="feature-badge size">{pitch.size}</span>
               <span className="feature-badge ground">{pitch.groundType}</span>
-              {pitch.business?.openingAt && pitch.business?.closingAt && (
-                <span className="feature-badge hours">{pitch.business.openingAt} - {pitch.business.closingAt}</span>
+              {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
+                <span className="feature-badge hours">
+                  {(() => {
+                    const openDays = pitch.business.schedule.filter(s => s.open !== null).length;
+                    if (date) {
+                      const dayHours = getScheduleForDate(pitch.business.schedule, date);
+                      return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado';
+                    }
+                    return `${openDays} días/semana`;
+                  })()}
+                </span>
               )}
             </div>
           </div>
@@ -433,12 +459,21 @@ export default function ReservePitchPageMakeReservation() {
               </div>
             </div>
 
-            {pitch.business?.openingAt && pitch.business?.closingAt && (
+            {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
               <div className="detail-item">
                 <span className="detail-icon">.</span>
                 <div className="detail-content">
                   <strong>Horario de atención:</strong>
-                  <span>{pitch.business.openingAt} - {pitch.business.closingAt}</span>
+                  <span>
+                    {(() => {
+                      if (date) {
+                        const dayHours = getScheduleForDate(pitch.business!.schedule, date);
+                        return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado este día';
+                      }
+                      const openDays = pitch.business!.schedule.filter(s => s.open !== null).length;
+                      return `${openDays} días/semana`;
+                    })()}
+                  </span>
                 </div>
               </div>
             )}
@@ -526,9 +561,14 @@ export default function ReservePitchPageMakeReservation() {
           <div className="form-header">
             <h3>Selecciona fecha y horario</h3>
             <p>Elige cuándo quieres reservar esta cancha (turnos de 1 hora)</p>
-            {pitch.business?.openingAt && pitch.business?.closingAt && (
+            {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
               <p style={{fontSize: '0.9rem', color: '#3498db', marginTop: '5px'}}>
-                Horario del negocio: {pitch.business.openingAt} - {pitch.business.closingAt}
+                Horario del negocio: {
+                  date ? (() => {
+                    const dayHours = getScheduleForDate(pitch.business!.schedule, date);
+                    return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado este día';
+                  })() : `${pitch.business!.schedule.filter(s => s.open !== null).length} días/semana`
+                }
               </p>
             )}
           </div>
@@ -544,7 +584,7 @@ export default function ReservePitchPageMakeReservation() {
                 value={date} 
                 onChange={(e) => setDate(e.target.value)} 
                 className="form-input"
-                min={new Date().toISOString().split('T')[0]}
+                min={new Date().toLocaleDateString('en-CA')}
                 required 
               />
             </div>
@@ -560,40 +600,60 @@ export default function ReservePitchPageMakeReservation() {
                     </span>
                   )}
                 </label>
-                <div className="time-slots-grid">
-                  {timeSlots.map((slot) => {
-                    const isAvailable = isTimeSlotAvailable(date, slot.time);
-                    const isSelected = selectedTime === slot.time;
-                    
-                    return (
-                      <button
-                        key={slot.time}
-                        type="button"
-                        className={`time-slot ${isSelected ? 'time-slot-selected' : ''} ${
-                          isAvailable ? 'time-slot-available' : 'time-slot-unavailable'
-                        }`}
-                        onClick={() => {
-                          if (isAvailable) {
-                            setSelectedTime(slot.time);
-                          }
-                        }}
-                        disabled={!isAvailable}
-                        title={isAvailable ? 'Horario disponible' : 'Horario ocupado'}
-                      >
-                        <div className="time-slot-content">
-                          <div className="time-slot-label">{slot.label}</div>
-                          <div className="time-slot-status">
-                            {isAvailable ? 'Disponible' : 'Ocupado'}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedTime && (
-                  <div className="selected-time-info">
-                    <strong>Horario seleccionado:</strong> {timeSlots.find(slot => slot.time === selectedTime)?.label}
+                {timeSlots.length === 0 ? (
+                  <div style={{
+                    padding: '20px',
+                    background: '#f8d7da',
+                    border: '1px solid #f5c6cb',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    color: '#721c24'
+                  }}>
+                    <p style={{margin: 0, fontWeight: 'bold'}}>
+                      ⚠️ No hay horarios disponibles para este día
+                    </p>
+                    <p style={{margin: '10px 0 0 0', fontSize: '0.9rem'}}>
+                      El negocio está cerrado. Por favor selecciona otra fecha.
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    <div className="time-slots-grid">
+                      {timeSlots.map((slot) => {
+                        const isAvailable = isTimeSlotAvailable(date, slot.time);
+                        const isSelected = selectedTime === slot.time;
+                        
+                        return (
+                          <button
+                            key={slot.time}
+                            type="button"
+                            className={`time-slot ${isSelected ? 'time-slot-selected' : ''} ${
+                              isAvailable ? 'time-slot-available' : 'time-slot-unavailable'
+                            }`}
+                            onClick={() => {
+                              if (isAvailable) {
+                                setSelectedTime(slot.time);
+                              }
+                            }}
+                            disabled={!isAvailable}
+                            title={isAvailable ? 'Horario disponible' : 'Horario ocupado'}
+                          >
+                            <div className="time-slot-content">
+                              <div className="time-slot-label">{slot.label}</div>
+                              <div className="time-slot-status">
+                                {isAvailable ? 'Disponible' : 'Ocupado'}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedTime && (
+                      <div className="selected-time-info">
+                        <strong>Horario seleccionado:</strong> {timeSlots.find(slot => slot.time === selectedTime)?.label}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -615,7 +675,26 @@ export default function ReservePitchPageMakeReservation() {
               </div>
             )}
 
-            {date && busyTimes.length === 0 && occupiedSlots.length > 0 && (
+            {date && timeSlots.length === 0 && (
+              <div className="closed-day-warning" style={{
+                background: '#fee',
+                border: '2px solid #c33',
+                padding: '15px',
+                borderRadius: '8px',
+                marginTop: '15px'
+              }}>
+                <div className="warning-header" style={{color: '#c33', marginBottom: '10px'}}>
+                  <span className="warning-icon">⚠️</span>
+                  <strong>Negocio cerrado este día</strong>
+                </div>
+                <p style={{color: '#600', margin: '5px 0'}}>
+                  Lo sentimos, el negocio no abre los {formatSpanishDate(date).split(',')[0]}. 
+                  Por favor selecciona otro día para realizar tu reserva.
+                </p>
+              </div>
+            )}
+
+            {date && timeSlots.length > 0 && busyTimes.length === 0 && occupiedSlots.length > 0 && (
               <div className="available-times-info">
                 <div className="info-header">
                   <span className="info-icon">.</span>
@@ -644,10 +723,19 @@ export default function ReservePitchPageMakeReservation() {
                 <span>Precio por hora:</span>
                 <strong>${pitch.price}</strong>
               </div>
-              {pitch.business?.openingAt && pitch.business?.closingAt && (
+              {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
                 <div className="summary-item">
                   <span>Horario negocio:</span>
-                  <strong>{pitch.business.openingAt} - {pitch.business.closingAt}</strong>
+                  <strong>
+                    {(() => {
+                      if (date) {
+                        const dayHours = getScheduleForDate(pitch.business!.schedule, date);
+                        return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado';
+                      }
+                      const openDays = pitch.business!.schedule.filter(s => s.open !== null).length;
+                      return `${openDays} días/semana`;
+                    })()}
+                  </strong>
                 </div>
               )}
               {date && selectedTime && (
@@ -682,12 +770,17 @@ export default function ReservePitchPageMakeReservation() {
               <button 
                 type="submit" 
                 className="btn btn-primary"
-                disabled={submitting || !date || !selectedTime || !isTimeSlotAvailable(date, selectedTime)}
+                disabled={submitting || !date || !selectedTime || !isTimeSlotAvailable(date, selectedTime) || timeSlots.length === 0}
               >
                 {submitting ? (
                   <>
                     <span className="button-spinner"></span>
                     Procesando reserva...
+                  </>
+                ) : timeSlots.length === 0 ? (
+                  <>
+                    <span className="button-icon">⚠️</span>
+                    Negocio cerrado este día
                   </>
                 ) : (
                   <>

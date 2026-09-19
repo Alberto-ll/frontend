@@ -1,10 +1,11 @@
 import '../static/css/registerBusiness.css'
-import type { BusinessData } from '../types/businessType';
+import type { BusinessData, ScheduleItem } from '../types/businessType';
 import { Navigate, useOutletContext, useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../components/Auth';
 import { userService, localityService, businessService } from '../services';
 import { errorHandler } from '../types/apiError';
+import { ScheduleEditor } from '../components/ScheduleEditor';
 
 interface Locality {
   id?: number;
@@ -16,6 +17,15 @@ interface Locality {
 export function RegisterBusinessPage(){
     const [localidad, setLocalidad] = useState("")
     const [hasBusiness, setHasBusiness] = useState(false)
+    const [schedule, setSchedule] = useState<ScheduleItem[]>([
+        { day: 1, open: null, close: null },
+        { day: 2, open: null, close: null },
+        { day: 3, open: null, close: null },
+        { day: 4, open: null, close: null },
+        { day: 5, open: null, close: null },
+        { day: 6, open: null, close: null },
+        { day: 7, open: null, close: null },
+    ]);
     const handleLocalityChange = (e:React.ChangeEvent<HTMLSelectElement>) => {
         setLocalidad(e.target.value);
      };
@@ -100,8 +110,7 @@ export function RegisterBusinessPage(){
                     id:0,
                     owner:ownerId,
                     active:false,
-                    openingAt:String(formData.get("businessOpen")),
-                    closingAt:String(formData.get("businessClose"))
+                    schedule
                 }
                 if(business && !hasBusiness) {
                     create(business);
@@ -145,13 +154,8 @@ export function RegisterBusinessPage(){
                         <input type='number' required id="businessPercentage" step="0.01" name="businessPercentage" max={0.5} />
                     </div>
                     <div className='input'>
-                          <label htmlFor='businessOpen'>Horario de apertura</label>
-                          <input type='time' required id="businessOpen" name="businessOpen"/>
-                        </div>
-                        <div className='input'>
-                          <label htmlFor='businessClose'>Horario de cierre</label>
-                          <input type='time' required id="businessClose" name="businessClose"/>
-                        </div>
+                        <ScheduleEditor value={schedule} onChange={setSchedule} />
+                    </div>
                 </div>}
                 {loading && <div>Cargando...</div>}
                 <div className="submit">
