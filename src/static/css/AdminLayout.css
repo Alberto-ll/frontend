@@ -16,10 +16,19 @@
     --border: #bdc3c7;
 }
 
+/* Wrapper para layout anidado dentro de HomeLayout */
+.admin-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
 /* Estilos generales */
 .admin-container {
     display: flex;
-    min-height: 100vh;
+    flex: 1;
     position: relative;
     background-color: var(--light-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -45,9 +54,7 @@
     padding: 15px 20px;
     justify-content: space-between;
     align-items: center;
-    position: fixed;
     width: 100%;
-    top: 0;
     z-index: 1000;
     box-shadow: 0 2px 15px rgba(44, 62, 80, 0.2);
     border-bottom: 2px solid var(--primary-color);
@@ -98,11 +105,11 @@
 /* Sidebar para móvil (oculto por defecto) */
 .mobile-sidebar {
     display: none;
-    position: fixed;
-    top: 60px;
+    position: absolute;
+    top: 0;
     left: -280px;
     width: 280px;
-    height: calc(100vh - 60px);
+    height: 100%;
     background: linear-gradient(180deg, var(--dark-color) 0%, #34495e 100%);
     color: var(--surface);
     transition: all 0.3s ease;
@@ -118,11 +125,11 @@
 /* Overlay para móvil (oculto por defecto) */
 .menu-overlay {
     display: none;
-    position: fixed;
-    top: 60px;
+    position: absolute;
+    top: 0;
     left: 0;
     width: 100%;
-    height: calc(100vh - 60px);
+    height: 100%;
     background-color: rgba(44, 62, 80, 0.7);
     z-index: 998;
     transition: opacity 0.3s ease;
@@ -244,7 +251,7 @@
     padding: 30px;
     transition: margin-left 0.3s ease;
     background-color: var(--light-color);
-    min-height: 100vh;
+    min-height: 0;
 }
 
 /* Scrollbar personalizado para sidebar móvil */
@@ -304,14 +311,12 @@
     .admin-content {
         margin-left: 0;
         padding: 20px 15px;
-        padding-top: 80px;
     }
 }
 
 @media (max-width: 768px) {
     .admin-content {
         padding: 15px 10px;
-        padding-top: 75px;
     }
     
     .sidebar-header {
@@ -342,7 +347,6 @@
 @media (max-width: 480px) {
     .admin-content {
         padding: 10px 8px;
-        padding-top: 70px;
     }
     
     .mobile-header {

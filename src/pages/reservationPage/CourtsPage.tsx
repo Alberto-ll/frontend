@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import CourtList from './CourtList';
 import type { Pitch } from '../../types/pitchType';
 import '../../static/css/courtPages.css';
-import { useAuth } from '../../components/Auth';
 import { pitchService } from '../../services';
 import { errorHandler } from '../../types/apiError';
 
@@ -17,14 +15,6 @@ const CourtsPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 10000 });
   const [priceInputs, setPriceInputs] = useState<{ min: string; max: string }>({ min: '0', max: '10000' });
   
-  const navigate = useNavigate();
-  const { token } = useAuth();
-  
-  if (!token) {
-    alert('Tienes que iniciar sesión para ingresar a esta página');
-    navigate('/');
-  }
-
   useEffect(() => {
     fetchCourts();
   }, []);
@@ -33,11 +23,6 @@ const CourtsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
-      if (!token) {
-        navigate('/login');
-        return;
-      }
 
       const courtsData = await pitchService.getActive();
 
@@ -62,7 +47,7 @@ const CourtsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, token]);
+  }, []);
 
   const handleMinPriceChange = (value: string) => {
     setPriceInputs(prev => ({ ...prev, min: value }));

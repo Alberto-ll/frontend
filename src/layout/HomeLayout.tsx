@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from "react"
 import HomeFooter from "../pages/homepage/homeFooter"
 import Toast from "../components/Toast"
 import { readStoredAuthSession } from "../services/authSession"
+import { LayoutProvider, useLayoutMode } from "../components/LayoutContext"
 
-export function HomeLayout(){
+function HomeLayoutInner() {
+    const { headerMode, setHeaderMode } = useLayoutMode();
+    
     //  NUEVOS ESTADOS PARA EL TOAST
         const [showToast, setShowToast] = useState(false);
         const [toastMessage, setToastMessage] = useState('');
@@ -48,8 +51,8 @@ export function HomeLayout(){
         
     return (
         <section className="homeLayout">
-            <HomePageNav showNotification={showNotification}/>
-            <Outlet context={{showNotification}}/>
+            <HomePageNav showNotification={showNotification} simple={headerMode === 'simple'}/>
+            <Outlet context={{showNotification, setHeaderMode}}/>
             <HomeFooter />
             <Toast
             message={toastMessage}
@@ -59,5 +62,13 @@ export function HomeLayout(){
             duration={4000}
             />
         </section>
+    )
+}
+
+export function HomeLayout(){
+    return (
+        <LayoutProvider>
+            <HomeLayoutInner />
+        </LayoutProvider>
     )
 }

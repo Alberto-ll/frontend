@@ -45,5 +45,12 @@ export function useAuth() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [checkAuth]);
 
-  return { userData, token, isLoading, checkAuth };
+  const hasRole = useCallback((roles: string[]): boolean => {
+    if (!userData || !userData.category) return false;
+    return roles.includes(userData.category);
+  }, [userData]);
+
+  const isAuthenticated = !!token;
+
+  return { userData, token, isLoading, checkAuth, hasRole, isAuthenticated };
 }

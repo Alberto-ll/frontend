@@ -11,7 +11,7 @@ import { errorHandler } from '../types/apiError';
 const ReservePitchPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const {userData, token} = useAuth()
+  const {userData} = useAuth()
 
   const [pitches, setPitches] = useState<ReservePitch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,11 +33,6 @@ const ReservePitchPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
-      if (!token) {
-        navigate('/login');
-        return;
-      }
 
       if (abortRef.current) abortRef.current.abort();
       abortRef.current = new AbortController();
@@ -85,7 +80,7 @@ const ReservePitchPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, token]);
+  }, []);
 
   useEffect(() => {
     if (!userData) return;
@@ -118,16 +113,6 @@ const ReservePitchPage: React.FC = () => {
   const handleReserve = (pitchId: number) => {
     navigate(`/makeReservation/${pitchId}`);
   };
-
-  if (!token) {
-    return (
-      <div className="reserve-pitch-container">
-        <div className="reserve-pitch-loading">
-          <p className="loading-text">Debes iniciar sesión para ingresar a esta página correctamente.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="reserve-pitch-container">

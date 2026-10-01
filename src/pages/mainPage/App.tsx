@@ -50,6 +50,8 @@ import BusinessPitchGetAll from '../businessManagment/getAll.tsx';
 import EditBusiness from '../businessManagment/editBusiness.tsx';
 import BusinessReservations from '../businessManagment/getReservations.tsx';
 import ReservePitchPageMakeReservation from '../reservationPage/reservationPage.tsx';
+import ProtectedRoute from '../../components/ProtectedRoute';
+import NotFound from '../../components/NotFound';
 
 function App() {
   return (
@@ -58,13 +60,13 @@ function App() {
         <Route element={<HomeLayout />}>
           <Route index path='/' element={<Homepage/>}/>
           <Route path='login/' element={<LoginPage/>}/>
-          <Route path='makeReservation/:id' element={<ReservePitchPageMakeReservation/>} />
+          <Route path='makeReservation/:id' element={<ProtectedRoute><ReservePitchPageMakeReservation/></ProtectedRoute>} />
           <Route path='about/' element={<AboutUs/>}/>
-          <Route path='registerBusiness/' element={<RegisterBusinessPage/>}/>
-          <Route path='reservation/' element={<CourtsPage/>}/>
-          <Route path='reserve-pitch/' element={<ReservePitchPage/>}/>
-          <Route path='myReservations/' element={<MyReservations/>}/>
-          <Route path='myBusiness/' element={<BusinessPitchHome />}>
+          <Route path='registerBusiness/' element={<ProtectedRoute><RegisterBusinessPage/></ProtectedRoute>}/>
+          <Route path='reservation/' element={<ProtectedRoute><CourtsPage/></ProtectedRoute>}/>
+          <Route path='reserve-pitch/' element={<ProtectedRoute><ReservePitchPage/></ProtectedRoute>}/>
+          <Route path='myReservations/' element={<ProtectedRoute><MyReservations/></ProtectedRoute>}/>
+          <Route path='myBusiness/' element={<ProtectedRoute requiredRoles={['business_owner', 'admin']}><BusinessPitchHome /></ProtectedRoute>}>
             <Route path='getAll/' element={<BusinessPitchGetAll />} />
             <Route path='add/' element={<BusinessPitchAdd />} />
             <Route path='edit/:id' element={<BusinessPitchEdit />} />
@@ -72,57 +74,56 @@ function App() {
             <Route path='getReservations/' element={<BusinessReservations />} />
             <Route path='editBusiness/' element={<EditBusiness />} />
           </Route>
-        </Route>
+          {/* Admin routes — inside HomeLayout so auth messages get header + footer */}
+          <Route path="admin/" element={<ProtectedRoute requiredRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="coupons/" element={<CouponHome />}>
+              <Route path="getAll/" element={<CouponGetAll />}/>
+              <Route path='getOne/' element={<CouponGetOne />}/>
+              <Route path='add/' element={<CouponAdd />}/>
+              <Route path='update/' element={<CouponUpdate />}/>
+            </Route>
 
-        <Route path="admin/" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="coupons/" element={<CouponHome />}>
-            <Route path="getAll/" element={<CouponGetAll />}/>
-            <Route path='getOne/' element={<CouponGetOne />}/>
-            <Route path='add/' element={<CouponAdd />}/>
-            <Route path='update/' element={<CouponUpdate />}/>
+            <Route path="pitchs/" element={<PitchHome />}>
+              <Route path="getAll/" element={<PitchGetAll />}/>
+              <Route path='getOne/' element={<PitchGetOne />}/>
+              <Route path='getOne/:id' element={<PitchGetOne />}/>
+              <Route path='add/' element={<PitchAdd />}/>
+              <Route path='update/' element={<PitchUpdate />}/>
+              <Route path='update/:id' element={<PitchUpdate />}/>
+            </Route>
+
+            <Route path="business/" element={<BusinessHome />}>
+              <Route path="getAll/" element={<BusinessGetAll />}/>
+              <Route path='create/' element={<BusinessCreate />}/>
+              <Route path='update/:id' element={<BusinessUpdate />}/>
+              <Route path='detail/:id' element={<BusinessDetail />}/>
+              <Route path="inactiveBusinesses/" element={<InactiveBusinesses />} />
+            </Route>
+
+            <Route path="localities/" element={<LocalityHome />} >
+              <Route path="getAll/" element={<LocalitiesGetAll />} />
+              <Route path="create/" element={<LocalityCreate />} />
+              <Route path="getOne/:id" element={<LocalityDetail />} />
+              <Route path="update/:id" element={<LocalityUpdate />} />
+              <Route path="remove/:id" element={<LocalityHome />} />
+            </Route>
+
+            <Route path="categories/" element={<CategoryHome />} >
+              <Route path="getAll/" element={<CategoryGetAll />} />
+              <Route path="create/" element={<CategoryCreate />} />
+              <Route path="detail/:id" element={<CategoryDetail />} />
+              <Route path="update/:id" element={<CategoryUpdate />} />
+            </Route>
+            <Route path="users/" element={<UserHome />}>
+              <Route path="getAll/" element={<UserGetAll />} />
+              <Route path="detail/:id" element={<UserDetail />} />
+              <Route path="update/:id" element={<UserUpdate />} />
+              <Route path="createUser/" element={<UserCreate />} />
+            </Route>
           </Route>
 
-
-          <Route path="pitchs/" element={<PitchHome />}>
-            <Route path="getAll/" element={<PitchGetAll />}/>
-            <Route path='getOne/' element={<PitchGetOne />}/>
-            <Route path='getOne/:id' element={<PitchGetOne />}/>
-            <Route path='add/' element={<PitchAdd />}/>
-            <Route path='update/' element={<PitchUpdate />}/>
-            <Route path='update/:id' element={<PitchUpdate />}/>
-          </Route>
-
-          <Route path="business/" element={<BusinessHome />}>
-            <Route path="getAll/" element={<BusinessGetAll />}/>
-            <Route path='create/' element={<BusinessCreate />}/>
-            {/*<Route path='add/' element={<BusinessAdd />}/> */}
-            <Route path='update/:id' element={<BusinessUpdate />}/>
-            <Route path='detail/:id' element={<BusinessDetail />}/>
-            <Route path="inactiveBusinesses/" element={<InactiveBusinesses />} />
-
-          </Route>
-
-          <Route path="localities/" element={<LocalityHome />} >
-            <Route path="getAll/" element={<LocalitiesGetAll />} />
-            <Route path="create/" element={<LocalityCreate />} />
-            <Route path="getOne/:id" element={<LocalityDetail />} />
-            <Route path="update/:id" element={<LocalityUpdate />} />
-            <Route path="remove/:id" element={<LocalityHome />} />
-          </Route>
-
-          <Route path="categories/" element={<CategoryHome />} >
-            <Route path="getAll/" element={<CategoryGetAll />} />
-            <Route path="create/" element={<CategoryCreate />} />
-            <Route path="detail/:id" element={<CategoryDetail />} />
-            <Route path="update/:id" element={<CategoryUpdate />} />
-          </Route>
-          <Route path="users/" element={<UserHome />}>
-            <Route path="getAll/" element={<UserGetAll />} />
-            <Route path="detail/:id" element={<UserDetail />} />
-            <Route path="update/:id" element={<UserUpdate />} />
-            <Route path="createUser/" element={<UserCreate />} />
-          </Route>
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
   </BrowserRouter>

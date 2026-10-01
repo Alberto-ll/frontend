@@ -10,6 +10,14 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Layout principal: flex column para que el footer se pegue al fondo
+   y el contenido llene el espacio restante */
+.homeLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 /* Navegación principal */
 nav {
   display: flex;

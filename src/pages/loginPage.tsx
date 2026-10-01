@@ -4,12 +4,13 @@ import type { UserData } from '../types/userData.js';
 import Toast from '../components/Toast.js';
 import { errorHandler } from '../types/apiError.js';
 import { authService } from '../services/index.js';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 
 export function LoginPage(){
     const [loginPage, changePage] = useState<boolean>(true);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
@@ -31,7 +32,8 @@ export function LoginPage(){
         try{
             const session = await authService.login(user)
             localStorage.setItem('user', JSON.stringify(session))
-            navigate('/reserve-pitch/', { replace: true });
+            const redirectTo = searchParams.get('redirect') || '/reserve-pitch/';
+            navigate(redirectTo, { replace: true });
         }catch(err:unknown){
             showNotification(errorHandler(err),'error');}
     }

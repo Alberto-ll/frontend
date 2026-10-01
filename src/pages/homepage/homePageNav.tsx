@@ -5,9 +5,10 @@ import { useAuth } from "../../components/Auth";
 
 interface HomePageNavProps {
   showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+  simple?: boolean;
 }
 
-export function HomePageNav({ showNotification }: HomePageNavProps){
+export function HomePageNav({ showNotification, simple = false }: HomePageNavProps){
     const navigate = useNavigate()
     
     const {userData} = useAuth();
@@ -28,7 +29,7 @@ export function HomePageNav({ showNotification }: HomePageNavProps){
                         <div className="navIcon"><FaFutbol /></div>
                         FútbolYa
                     </h1>
-                    <ul>
+                    {!simple && <ul>
                         <li>
                             <Link to="/about">Sobre nosotros</Link>
                         </li>
@@ -59,7 +60,7 @@ export function HomePageNav({ showNotification }: HomePageNavProps){
                             <Link to="/" onClick={handleLogout}>Cerrar sesión</Link>}
                         </li>  
                         
-                    </ul>   
+                    </ul>}
                 </div>
             </header>
     )

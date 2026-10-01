@@ -1,15 +1,14 @@
-import { NavLink, Outlet, useNavigate, Navigate } from "react-router";
+import { NavLink, Outlet, useNavigate } from "react-router";
 import "../static/css/AdminLayout.css";
 import { useCallback, useState } from "react";
 import { FaUserShield, FaBars, FaTimes, FaUsers, FaMapMarkerAlt, FaTicketAlt,FaArrowAltCircleLeft,FaFutbol, FaHome, FaStore } from "react-icons/fa";
-import HomeFooter from "../pages/homepage/homeFooter.js";
 import Toast from "../components/Toast.js";
 import { useAuth } from "../components/Auth.js";
 
 export function AdminLayout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
-    const {userData, isLoading} = useAuth();
+    const {userData} = useAuth();
 
     //    NUEVOS ESTADOS PARA EL TOAST
     const [showToast, setShowToast] = useState(false);
@@ -32,19 +31,6 @@ export function AdminLayout() {
         setMobileMenuOpen(!mobileMenuOpen);
     };
 
-    if (isLoading) {
-        return (
-            <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p>Cargando...</p>
-            </div>
-        );
-    }
-
-    if (!userData || userData.category !== "admin") {
-        return <Navigate to="/" />;
-    }
-    
     const handleLogout = () =>{
         localStorage.clear()
         showNotification('Sesión cerrada', 'info')
@@ -52,7 +38,7 @@ export function AdminLayout() {
     }
 
     return (
-        <div>
+        <div className="admin-wrapper">
         <div className="admin-container">
             {/* Sidebar para desktop */}
             <aside className="admin-sidebar">
@@ -245,8 +231,8 @@ export function AdminLayout() {
                 <Outlet context={{showNotification}}/>
             </main>
             
+            
         </div>
-        <HomeFooter />
         <Toast
             message={toastMessage}
             type={toastType}

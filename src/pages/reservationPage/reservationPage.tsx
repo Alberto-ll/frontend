@@ -138,10 +138,6 @@ export default function ReservePitchPageMakeReservation() {
 
   const fetchOccupiedSlots = useCallback(async (pitchId: string) => {
     try {
-      if (!token) {
-        return [];
-      }
-
       const slots = await reservationService.findOccupiedSlotsByPitch(pitchId) as OccupiedSlot[];
       setOccupiedSlots(slots);
       return slots;
@@ -149,7 +145,7 @@ export default function ReservePitchPageMakeReservation() {
       console.error('Error obteniendo horarios ocupados:', error);
       return [];
     }
-  }, [token]);
+  }, []);
 
   const fetchPitch = useCallback(async (pitchId: string) => {
     try {
@@ -157,12 +153,6 @@ export default function ReservePitchPageMakeReservation() {
       setError(null);
       
       if (!pitchId) throw new Error('ID de cancha faltante');
-      
-      if (!token) {
-        alert('Debes iniciar sesión para reservar una cancha');
-        navigate('/login');
-        return;
-      }
 
       const pitchData = await pitchService.getOne(pitchId) as PitchWithReservations;
 
@@ -178,19 +168,9 @@ export default function ReservePitchPageMakeReservation() {
     } finally {
       setLoading(false);
     }
-  }, [token, navigate, fetchOccupiedSlots, generateTimeSlots]);
+  }, [fetchOccupiedSlots]);
 
   useEffect(() => {
-    if (!token) {
-      const timer = setTimeout(() => {
-        if (!token) {
-          navigate('/login');
-        }
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-
     if (!id) {
       setError('ID de cancha inválida');
       setLoading(false);
@@ -198,7 +178,7 @@ export default function ReservePitchPageMakeReservation() {
     }
     
     fetchPitch(id);
-  }, [id, token, fetchPitch, navigate]);
+  }, [id, fetchPitch]);
 
   useEffect(() => {
     if (date) {
@@ -243,9 +223,7 @@ export default function ReservePitchPageMakeReservation() {
       return;
     }
 
-    if (!token || !userData) {
-      alert('Debes iniciar sesión');
-      navigate('/login');
+    if (!userData) {
       return;
     }
 
@@ -330,15 +308,6 @@ export default function ReservePitchPageMakeReservation() {
       day: 'numeric'
     });
   };
-
-  if (!token) {
-    return (
-      <div className="reserve-pitch-loading">
-        <div className="loading-spinner"></div>
-        <p className="loading-text">Verificando autenticación...</p>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

@@ -71,13 +71,9 @@ export function RegisterBusinessPage(){
         return <div>Cargando...</div>;
     }
 
-    if(!userData){
-        return <Navigate to="/"/>
-    }
+    const ownerId = userData!.id;
 
-    const ownerId = userData.id;
-
-    if(userData.category == "business_owner"){
+    if(userData!.category == "business_owner"){
         alert("Usted ya tiene un negocio en su nombre")
         return <Navigate to="/"/> 
     }
