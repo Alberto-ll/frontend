@@ -33,7 +33,6 @@ interface PitchWithReservations {
 interface TimeSlot {
   time: string;
   label: string;
-  available: boolean;
 }
 
 export default function ReservePitchPageMakeReservation() {
@@ -50,6 +49,7 @@ export default function ReservePitchPageMakeReservation() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [dayStatus, setDayStatus] = useState<'closed' | 'unavailable' | 'ok' | null>(null);
 
   const getScheduleForDate = useCallback((schedule: ScheduleItem[] | undefined, dateStr: string): { open: string; close: string } | null => {
     if (!schedule || schedule.length !== 7 || !dateStr) return null;
@@ -62,46 +62,63 @@ export default function ReservePitchPageMakeReservation() {
   }, []);
 
   const generateTimeSlots = useCallback((openingAt: string, closingAt: string): TimeSlot[] => {
+    // Parse estricto HH:MM; ante datos inválidos se devuelve array vacío (sin fallback hardcoded)
+    const parseHour = (time: string): number | null => {
+      if (!time || typeof time !== 'string') return null;
+      const match = time.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+      if (!match) return null;
+      return parseInt(match[1], 10);
+    };
+
+    const openHour = parseHour(openingAt);
+    const closeHour = parseHour(closingAt);
+
+    if (openHour === null || closeHour === null) {
+      console.warn('Horarios de negocio inválidos:', { openingAt, closingAt });
+      return [];
+    }
+
+    // open === close → día sin turnos útiles
+    if (openHour === closeHour) {
+      return [];
+    }
+
+    const formatHour = (hour: number): string => hour.toString().padStart(2, '0');
+
     const slots: TimeSlot[] = [];
-    
-    const openTime = parseInt(openingAt.split(':')[0]);
-    const closeTime = parseInt(closingAt.split(':')[0]);
-    
-    if (isNaN(openTime) || isNaN(closeTime) || openTime >= closeTime) {
-      console.warn('Horarios de negocio inválidos, usando horarios por defecto');
-      return generateDefaultTimeSlots();
+
+    if (openHour < closeHour) {
+      // Horario normal: 10-18 → 10,11,12,13,14,15,16,17
+      for (let hour = openHour; hour < closeHour; hour++) {
+        const startTime = formatHour(hour);
+        const endTime = formatHour(hour + 1);
+        slots.push({
+          time: startTime,
+          label: `${startTime}:00 - ${endTime}:00`,
+        });
+      }
+    } else {
+      // Cruza medianoche: 22-02 → 22,23,00,01
+      for (let hour = openHour; hour < 24; hour++) {
+        const startTime = formatHour(hour);
+        const endTime = formatHour(hour + 1 === 24 ? 0 : hour + 1);
+        slots.push({
+          time: startTime,
+          label: `${startTime}:00 - ${endTime}:00`,
+        });
+      }
+      for (let hour = 0; hour < closeHour; hour++) {
+        const startTime = formatHour(hour);
+        const endTime = formatHour(hour + 1);
+        slots.push({
+          time: startTime,
+          label: `${startTime}:00 - ${endTime}:00`,
+        });
+      }
     }
-    
-    for (let hour = openTime; hour < closeTime; hour++) {
-      const startTime = `${hour.toString().padStart(2, '0')}`;
-      const endTime = `${(hour + 1).toString().padStart(2, '0')}`;
-      const label = `${startTime}:00 - ${endTime}:00`;
-      
-      slots.push({
-        time: startTime,
-        label: label,
-        available: true
-      });
-    }
-    
+
     return slots;
   }, []);
-
-  const generateDefaultTimeSlots = (): TimeSlot[] => {
-    const defaultSlots: TimeSlot[] = [];
-    for (let hour = 8; hour < 22; hour++) {
-      const startTime = `${hour.toString().padStart(2, '0')}`;
-      const endTime = `${(hour + 1).toString().padStart(2, '0')}`;
-      const label = `${startTime} - ${endTime}`;
-      
-      defaultSlots.push({
-        time: startTime,
-        label: label,
-        available: true
-      });
-    }
-    return defaultSlots;
-  };
 
   const formatDate = (date: Date): string => {
     return date.toISOString().split('T')[0];
@@ -183,28 +200,31 @@ export default function ReservePitchPageMakeReservation() {
   useEffect(() => {
     if (date) {
       setSelectedTime('');
-      // Generate time slots based on the schedule for the selected date
-      const dayHours = getScheduleForDate(pitch?.business?.schedule, date);
-      if (dayHours) {
-        const generatedSlots = generateTimeSlots(dayHours.open, dayHours.close);
-        setTimeSlots(generatedSlots);
-      } else {
-        // Business closed on this day or no schedule
+      const schedule = pitch?.business?.schedule;
+
+      // Schedule ausente o incompleto → no hay slots (sin fallback)
+      if (!schedule || schedule.length !== 7) {
         setTimeSlots([]);
+        setDayStatus('unavailable');
+        return;
       }
+
+      const dayHours = getScheduleForDate(schedule, date);
+      if (!dayHours) {
+        // Día cerrado (null/null) o sin configuración para ese día
+        setTimeSlots([]);
+        setDayStatus('closed');
+        return;
+      }
+
+      const generatedSlots = generateTimeSlots(dayHours.open, dayHours.close);
+      setTimeSlots(generatedSlots);
+      // Vacío por open===close o datos inválidos → "Horario no disponible"
+      setDayStatus(generatedSlots.length === 0 ? 'unavailable' : 'ok');
+    } else {
+      setDayStatus(null);
     }
   }, [date, pitch?.business?.schedule, getScheduleForDate, generateTimeSlots]);
-
-  useEffect(() => {
-    if (date && timeSlots.length > 0) {
-      const updatedSlots = timeSlots.map(slot => ({
-        ...slot,
-        available: isTimeSlotAvailable(date, slot.time)
-      }));
-      
-      setTimeSlots(updatedSlots);
-    }
-  }, [date, occupiedSlots, isTimeSlotAvailable]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -463,14 +483,14 @@ export default function ReservePitchPageMakeReservation() {
                   </span>
                 )}
               </div>
-              {date && (
+              {date && timeSlots.length > 0 && (
                 <div className="availability-details">
                   <div className="availability-progress">
-                    <div 
+                    <div
                       className="progress-bar"
                       style={{
                         width: `${(busyTimes.length / timeSlots.length) * 100}%`,
-                        backgroundColor: busyTimes.length === 0 ? '#2ecc71' : 
+                        backgroundColor: busyTimes.length === 0 ? '#2ecc71' :
                                        busyTimes.length === timeSlots.length ? '#e74c3c' : '#f39c12'
                       }}
                     ></div>
@@ -579,10 +599,12 @@ export default function ReservePitchPageMakeReservation() {
                     color: '#721c24'
                   }}>
                     <p style={{margin: 0, fontWeight: 'bold'}}>
-                      ⚠️ No hay horarios disponibles para este día
+                      {dayStatus === 'closed' ? 'Negocio cerrado este día' : 'Horario no disponible'}
                     </p>
                     <p style={{margin: '10px 0 0 0', fontSize: '0.9rem'}}>
-                      El negocio está cerrado. Por favor selecciona otra fecha.
+                      {dayStatus === 'closed'
+                        ? 'El negocio está cerrado. Por favor selecciona otra fecha.'
+                        : 'No hay turnos configurados para este horario. Por favor selecciona otra fecha.'}
                     </p>
                   </div>
                 ) : (
@@ -644,7 +666,7 @@ export default function ReservePitchPageMakeReservation() {
               </div>
             )}
 
-            {date && timeSlots.length === 0 && (
+            {date && dayStatus === 'closed' && (
               <div className="closed-day-warning" style={{
                 background: '#fee',
                 border: '2px solid #c33',
@@ -657,8 +679,27 @@ export default function ReservePitchPageMakeReservation() {
                   <strong>Negocio cerrado este día</strong>
                 </div>
                 <p style={{color: '#600', margin: '5px 0'}}>
-                  Lo sentimos, el negocio no abre los {formatSpanishDate(date).split(',')[0]}. 
+                  Lo sentimos, el negocio no abre los {formatSpanishDate(date).split(',')[0]}.
                   Por favor selecciona otro día para realizar tu reserva.
+                </p>
+              </div>
+            )}
+
+            {date && dayStatus === 'unavailable' && (
+              <div className="closed-day-warning" style={{
+                background: '#fff3cd',
+                border: '2px solid #ffc107',
+                padding: '15px',
+                borderRadius: '8px',
+                marginTop: '15px'
+              }}>
+                <div className="warning-header" style={{color: '#856404', marginBottom: '10px'}}>
+                  <span className="warning-icon">⚠️</span>
+                  <strong>Horario no disponible</strong>
+                </div>
+                <p style={{color: '#856404', margin: '5px 0'}}>
+                  No se pudieron generar turnos para el horario configurado de este día.
+                  Por favor selecciona otra fecha o contactá al negocio.
                 </p>
               </div>
             )}
@@ -749,7 +790,7 @@ export default function ReservePitchPageMakeReservation() {
                 ) : timeSlots.length === 0 ? (
                   <>
                     <span className="button-icon">⚠️</span>
-                    Negocio cerrado este día
+                    {dayStatus === 'closed' ? 'Negocio cerrado este día' : 'Horario no disponible'}
                   </>
                 ) : (
                   <>

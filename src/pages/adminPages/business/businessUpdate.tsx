@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryUpdate.css';
 import { businessService, localityService, userService } from '../../../services/index.ts';
 import { ScheduleEditor } from '../../../components/ScheduleEditor';
-import type { ScheduleItem } from '../../../components/ScheduleEditor';
+import type { ScheduleItem } from '../../../types/businessType';
 
 interface Business {
   id: number;

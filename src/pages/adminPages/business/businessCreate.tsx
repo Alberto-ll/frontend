@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryCreate.css';
 import { localityService, userService, businessService } from '../../../services/index.ts';
 import { ScheduleEditor } from '../../../components/ScheduleEditor';
-import type { ScheduleItem } from '../../../components/ScheduleEditor';
+import type { ScheduleItem } from '../../../types/businessType';
 
 interface Locality {
   id: number;

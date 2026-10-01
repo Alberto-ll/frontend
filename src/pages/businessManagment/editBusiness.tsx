@@ -3,7 +3,8 @@ import { useNavigate, useOutletContext, Navigate } from "react-router";
 import '../../static/css/categories/categoryUpdate.css';
 import { businessService, localityService } from '../../services/index.ts';
 import { ScheduleEditor } from '../../components/ScheduleEditor';
-import type { ScheduleItem } from '../../components/ScheduleEditor';
+import type { ScheduleItem } from '../../types/businessType';
+import { createDefaultSchedule, isDayInvalid } from '../../utils/scheduleUtils';
 import { useAuth } from '../../components/Auth.tsx';
 import { errorHandler } from '../../types/apiError.ts';
 
@@ -42,15 +43,10 @@ const EditBusiness = () => {
     reservationDepositPercentage: '0.10',
   });
 
-  const [schedule, setSchedule] = useState<ScheduleItem[]>([
-    { day: 1, open: null, close: null },
-    { day: 2, open: null, close: null },
-    { day: 3, open: null, close: null },
-    { day: 4, open: null, close: null },
-    { day: 5, open: null, close: null },
-    { day: 6, open: null, close: null },
-    { day: 7, open: null, close: null },
-  ]);
+  const [schedule, setSchedule] = useState<ScheduleItem[]>(() => createDefaultSchedule());
+  const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
+
+  const isScheduleComplete = schedule.length === 7 && !schedule.some(isDayInvalid);
 
   const fetchData = useCallback(async () => {
     try {
@@ -91,6 +87,18 @@ const EditBusiness = () => {
       // Cargar schedule existente
       if (singleBusiness.schedule && singleBusiness.schedule.length === 7) {
         setSchedule(singleBusiness.schedule);
+        if (singleBusiness.schedule.some(isDayInvalid)) {
+          const msg = 'Horarios no configurados correctamente';
+          setScheduleWarning(msg);
+          showNotification(msg, 'warning');
+        } else {
+          setScheduleWarning(null);
+        }
+      } else {
+        const msg = 'Horarios no configurados correctamente';
+        setSchedule(createDefaultSchedule());
+        setScheduleWarning(msg);
+        showNotification(msg, 'warning');
       }
 
     } catch (err: any) {
@@ -163,7 +171,11 @@ const EditBusiness = () => {
       }
 
       if (!schedule || schedule.length !== 7) {
-        throw new Error('El schedule debe tener exactamente 7 días');
+        throw new Error('Horarios no configurados correctamente: el schedule debe tener exactamente 7 días');
+      }
+
+      if (schedule.some(isDayInvalid)) {
+        throw new Error('Horarios no configurados correctamente: hay días con estado inválido (open y close deben ser ambos nulos o ambos con hora, y no pueden ser iguales)');
       }
 
       const updateData = {
@@ -227,6 +239,25 @@ const EditBusiness = () => {
       {error && (
         <div className="error-message">
           <p>{error}</p>
+        </div>
+      )}
+
+      {scheduleWarning && (
+        <div
+          style={{
+            background: '#fff3cd',
+            border: '2px solid #ffc107',
+            borderRadius: '6px',
+            padding: '12px 16px',
+            marginBottom: '1rem',
+            color: '#856404',
+          }}
+          role="alert"
+        >
+          <strong>⚠️ {scheduleWarning}</strong>
+          <p style={{ margin: '6px 0 0 0', fontSize: '0.9rem' }}>
+            Revisá los horarios de atención antes de guardar. Podés restaurar los horarios por defecto (todos cerrados) y configurarlos.
+          </p>
         </div>
       )}
 
@@ -306,7 +337,24 @@ const EditBusiness = () => {
 
         <div className="form-row">
           <div className="form-group" style={{ flex: 1 }}>
-            <ScheduleEditor value={schedule} onChange={setSchedule} />
+            <ScheduleEditor value={schedule} onChange={(next) => {
+              setSchedule(next);
+              setScheduleWarning(null);
+            }} />
+            <button
+              type="button"
+              onClick={() => {
+                const defaults = createDefaultSchedule();
+                setSchedule(defaults);
+                setScheduleWarning(null);
+                showNotification('Horarios restaurados a valor por defecto (todos cerrados)', 'info');
+              }}
+              className="cancel-button"
+              style={{ marginTop: '0.75rem' }}
+              disabled={saving}
+            >
+              Restaurar horarios por defecto
+            </button>
           </div>
         </div>
 
@@ -322,7 +370,7 @@ const EditBusiness = () => {
           <button
             type="submit"
             className="save-button"
-            disabled={saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId}
+            disabled={saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId || !isScheduleComplete}
           >
             {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
