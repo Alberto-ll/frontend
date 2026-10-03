@@ -1,60 +1,31 @@
-import { useEffect, useState, useCallback } from 'react';
-import type {Coupon} from '../../../types/couponType.ts'
 import { useOutletContext } from 'react-router';
-import { errorHandler } from '../../../types/apiError.ts';
 import { couponService } from '../../../services/couponService.ts';
+import { useCrud } from '../../../hooks/useCrud.ts';
 
 export default function CouponGetAll() {
-    const [data, setData] = useState<Coupon[] | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [ error, setError ] = useState<boolean>(false);
+    const { error : fetchError, loading : fetchLoading, data, execute : refetch} = useCrud(() => couponService.getAll())
+
+    const { execute : removeCoupon} = useCrud((id:number) => couponService.remove(id))
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-    const getAll = useCallback(async () =>{
-            try{
-                setLoading(true)
-                const json : Coupon[] = await couponService.getAll()
-                setData(json)
-            }catch(error){
-                showNotification(errorHandler(error), 'error');
-                setError(true);
-                setLoading(false)
-            }finally{
-                setLoading(false)
-            }
-        }, [showNotification])
-
-        useEffect(()=>{
-            if(!error){
-                getAll();
-            }
-        }, [error, getAll])
-    
-    const remove = async (id:number) =>{
-            try{
-                setLoading(true)
-                const response = await fetch('http://localhost:3000/api/coupons/remove/'+id,{method:"DELETE"}
-                )
-                if(!response.ok){
-                    const errors = await response.json()
-                    throw errors
-                }
-                showNotification('Cupón eliminado con éxito!', 'success')
-                getAll();
-            }catch(error){
-                 showNotification(errorHandler(error), 'error');
-            }
-        }
-
-  const handleDeleteSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDeleteSubmit = async (id:number) => {
         if(confirm("¿Estas seguro que quieres eliminar el cupón seleccionado?")){
-            if(e.currentTarget.value) {
-                remove(Number(e.currentTarget.value));
+            if(id) {
+                try {
+                    await removeCoupon(id);
+                    showNotification('Cupón eliminado con éxito', 'success');
+                    refetch(); 
+                } catch (err) {
+                    showNotification('¡No se ha podido eliminar el cupón! error: ', 'error');
+                    console.log(err)
+                }
             }
         }
       };
-     if (loading) return 'Loading...';
+     if (fetchLoading) return 'Loading...';
+
+     if(fetchError) return 'Error obteniendo los cupones';
   return (
     <div>
         <pre>
@@ -73,7 +44,7 @@ export default function CouponGetAll() {
               <td>{coupon.discount}</td>
               <td>{coupon.status}</td>
               <td>{coupon.expiringDate}</td>
-              <td><button className='action-button delete' onClick={handleDeleteSubmit} value={coupon.id}>Eliminar</button></td>
+              <td><button className='action-button delete' onClick={() => handleDeleteSubmit(coupon.id)} value={coupon.id}>Eliminar</button></td>
             </tr>
           ))}
                 </tbody>

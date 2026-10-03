@@ -9,11 +9,7 @@ import { useCrud } from "../../../hooks/useCrud";
 const CategoryGetAll = () => {
   const {error, loading, data : categories, execute : refetchCategories} = useCrud(() => categoryService.getAll())
   
-  const {error : delError, loading : delLoading, execute : removeCategory} = useCrud(() =>  
-    {if (categoryToDelete?.id) {
-            return categoryService.remove(categoryToDelete.id);
-        }
-      return Promise.reject("No hay ID para eliminar");}
+  const {error : delError, loading : delLoading, execute : removeCategory} = useCrud((id:string) => categoryService.remove(id), {manual:true}
     )
 
   // Estados para el modal de confirmación
@@ -23,20 +19,25 @@ const CategoryGetAll = () => {
   // Contexto para usar la funcion del Toast
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  const deleteCategory = async () => {
+  const deleteCategory = async (id:string) => {
     if(categoryToDelete){
-      removeCategory()
-
-      if(!delError){
-        setTimeout(() => refetchCategories(), 500)
+      try{
+        await removeCategory(id)
         showNotification(
           `Categoría "${categoryToDelete.description}" eliminada con éxito`,
           "success",
         )
         setShowDeleteModal(false);
         setCategoryToDelete(null);
-      }else{
+        try{
+          await refetchCategories()
+        }catch(err){
+          showNotification('¡No se han podido recargar las categorías!', 'error')
+          console.log(err)
+        }
+      }catch(err){
         showNotification('¡No se ha podido eliminar la categoría!', 'error')
+        console.log(err)
       }
     }
   }
@@ -53,7 +54,7 @@ const CategoryGetAll = () => {
   const handleConfirmDelete = async () => {
     if (!categoryToDelete || !categoryToDelete.id) return;
     
-    deleteCategory()
+    deleteCategory(categoryToDelete.id)
   };
 
   const handleCancelDelete = () => {

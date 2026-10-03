@@ -6,37 +6,37 @@ import { useState } from 'react';
 import { COUPON_STATUS } from '../../../helpers/constants.ts';
 
 export default function CouponAdd(){
-    const {data, loading, error, execute : addCoupon} = useCrud(() => {
-        const coupon:Coupon = {
-            id:0,
-            discount:Number(formData.discount),
-            status:String(formData.status),
-            expiringDate:String(formData.expiringDate)
-        }
-        return couponService.add(coupon)
-    }, {manual: true})
+    const {data, loading, execute : addCoupon} = useCrud((coupon: Coupon) =>  couponService.add(coupon), {manual: true})
 
     const [formData, setFormData] = useState({
         discount: 0,
-        status: '',
+        status: COUPON_STATUS[0],
         expiringDate: ''
     })
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
     const navigate = useNavigate();
+
+    const discountPercentageDisplay = (formData.discount * 100).toFixed(1);
     
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
         if(!Object.values(formData).includes('')){
-            addCoupon();
-            if(!error) {
-                setTimeout(() => {
-                    showNotification('Cupón creado con éxito!', 'success')
-                    navigate('/admin/coupons/getAll')
-                }, 500);   
-            }else{
+
+            try{
+                const coupon:Coupon = {
+                    id:0,
+                    discount:Number(formData.discount),
+                    status:String(formData.status),
+                    expiringDate:String(formData.expiringDate)
+                }
+                await addCoupon(coupon);
+                showNotification('Cupón creado con éxito!', 'success')
+                navigate('/admin/coupons/getAll')
+            }catch(err){
                 showNotification('¡No se ha podido crear el botón!', 'error')
+                console.log(err)
             }
         }else{
             showNotification('¡Todos los campos son obligatorios!', 'warning')
@@ -60,8 +60,23 @@ export default function CouponAdd(){
             <h2 className='crud-form-title'>Crear cupón</h2>
             <form onSubmit={handleSubmit} className='crud-form'>
                 <div className='crud-form-item'>
-                    <label>Porcentaje de descuento</label>
-                    <input name="discount" type="number" step="0.01" min={0} max={1} onChange={handleInputChange} value={formData.discount} required/>
+                    <label htmlFor="discount">
+                    Porcentaje de descuento ({discountPercentageDisplay}%)
+                    </label>
+                    <input
+                    type="range"
+                    id="discount"
+                    name="discount"
+                    value={formData.discount}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    className="form-input"
+                    />
+                    <small className="form-help">
+                    Porcentaje del total de descuento (0% a 100%)
+                    </small>
                 </div>
                 <div className='crud-form-item'>
                     <label>Estado del cupón</label>

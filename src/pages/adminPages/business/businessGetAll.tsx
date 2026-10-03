@@ -3,58 +3,53 @@ import { Link, useOutletContext } from "react-router-dom";
 import '../../../static/css/categories/categoryGetAll.css';
 import DeleteConfirm from '../../../components/deleteConfirm';
 import { businessService } from "../../../services/businessService";
-import type { BusinessData } from "../../../types/businessType";
 import { useCrud } from "../../../hooks/useCrud";
+import type { BusinessData } from "../../../types/businessType";
 
 const BusinessGetAll = () => {
   // Estados para el modal de confirmación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [businessToDelete, setBusinessToDelete] = useState<BusinessData | null>(null);
 
-  // Contexto para usar la funcion del Toast
+  const [businessToDelete, setBusinessToDelete] = useState<BusinessData | null>(null)
+
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
   const {error : bussError, loading : bussLoading, data : businesses, execute : fetchBusinesses} = useCrud(businessService.getAll)
 
-  const {error : delError, loading : delLoading, execute : deleteBusiness} = useCrud(() => 
-      {if (businessToDelete?.id) {
-          return businessService.remove(businessToDelete.id);
-      }
-      return Promise.reject("No hay ID para eliminar");}
-  )
+  const {loading : delLoading, execute : deleteBusiness} = useCrud((id:number) => businessService.remove(id),{manual:true})
 
   const handleRetry = () => {
     window.location.reload();
   };
 
   // FUNCIÓN PARA MOSTRAR EL MODAL (reemplaza la confirmación antigua)
-  const handleDeleteClick = (business: BusinessData) => {
-    setBusinessToDelete(business);
+  const handleDeleteClick = (business : BusinessData) => {
+    setBusinessToDelete(business)
     setShowDeleteModal(true);
   };
 
   // FUNCIÓN PARA CONFIRMAR LA ELIMINACIÓN - MODIFICADA
-  const handleConfirmDelete = async () => {
-    if (businessToDelete){
-      deleteBusiness()
-      if(delError) {
-          setShowDeleteModal(false);
-          setBusinessToDelete(null);
-          showNotification(
-              `Negocio "${businessToDelete.businessName}" eliminado con éxito`, 
-              'success'
+  const handleConfirmDelete = async (business:BusinessData) => {
+    if (business.id){
+      try{
+        await deleteBusiness(business.id)
+        setShowDeleteModal(false);
+        showNotification(
+                `Negocio eliminado con éxito`, 
+                'success'
           );
-          setTimeout(() => fetchBusinesses(), 500)
-        }else{
+        await fetchBusinesses()
+      }catch(err){
           showNotification(`¡No se ha podido eliminar el negocio!`, 'error')
+          console.log(err)
         }
-    } 
-  };
+    }
+  }
 
   // FUNCIÓN PARA CANCELAR LA ELIMINACIÓN
   const handleCancelDelete = () => {
+    setBusinessToDelete(null)
     setShowDeleteModal(false);
-    setBusinessToDelete(null);
   };
 
   // Función para formatear el estado activo/inactivo
@@ -185,7 +180,7 @@ const BusinessGetAll = () => {
         title="Eliminar Negocio"
         message="¿Estás seguro de que quieres eliminar este negocio? Esta acción afectará a todas las canchas asociadas y no se puede deshacer."
         itemName={businessToDelete ? `${businessToDelete.businessName} (${(typeof businessToDelete.locality === 'object' ? businessToDelete.locality.name : businessToDelete.locality)})` : undefined}
-        onConfirm={handleConfirmDelete}
+        onConfirm={() => handleConfirmDelete(businessToDelete!)}
         onCancel={handleCancelDelete}
         confirmText="Eliminar Negocio"
         cancelText="Cancelar"

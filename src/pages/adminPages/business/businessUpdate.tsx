@@ -13,20 +13,7 @@ const BusinessUpdate = () => {
 
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  const {loading:saving, error:bussError, execute: updateBusiness} = useCrud(() => {
-    const businessData : BusinessData = {
-        id: Number(id),
-        businessName: formData.businessName.trim(),
-        address: formData.address.trim(),
-        locality: parseInt(formData.localityId), 
-        owner: parseInt(formData.ownerId), 
-        reservationDepositPercentage: parseFloat(formData.reservationDepositPercentage),
-        openingAt: formData.openingAt,
-        closingAt: formData.closingAt,
-        active: false, 
-        averageRating: 0.0
-      }
-      return businessService.update(businessData)}, {manual:true})
+  const {loading:saving, error:bussError, execute: updateBusiness} = useCrud((businessData : BusinessData) => businessService.update(businessData), {manual:true})
   
   const {data: business} = useCrud(() => businessService.getOne(id!))
 
@@ -81,17 +68,27 @@ const BusinessUpdate = () => {
         throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
       }
 
-      updateBusiness()
-
-      if(!bussError){
-        setTimeout(() => {
-            showNotification('¡Negocio creado con éxito!', 'success')
-            navigate('/admin/business/detail/'+id);
+      try{
+          const businessData : BusinessData = {
+            id: Number(id),
+            businessName: formData.businessName.trim(),
+            address: formData.address.trim(),
+            locality: parseInt(formData.localityId), 
+            owner: parseInt(formData.ownerId), 
+            reservationDepositPercentage: parseFloat(formData.reservationDepositPercentage),
+            openingAt: formData.openingAt,
+            closingAt: formData.closingAt,
+            active: false, 
+            averageRating: 0.0
           }
-          ,500)
-      }else{
-        showNotification('¡No se ha podido actualizar el negocio!', 'error')
+          await updateBusiness(businessData)
+          showNotification('¡Negocio creado con éxito!', 'success')
+          navigate('/admin/business/detail/'+id);
+      }catch(err){
+          showNotification('¡No se ha podido actualizar el negocio!', 'error')
+          console.log(err)
       }
+
   };
 
   const handleCancel = () => {

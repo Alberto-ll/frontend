@@ -1,33 +1,24 @@
-import type {Coupon} from '../../../types/couponType.ts'
-import { useState } from 'react';
 import { useOutletContext } from 'react-router';
-import { errorHandler } from '../../../types/apiError.ts';
 import { couponService } from '../../../services/couponService.ts';
+import { useCrud } from '../../../hooks/useCrud.ts';
 
 export default function CouponGetOne(){
-    const [data, setData] = useState<Coupon | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const {data, loading, execute : getCoupon } = useCrud((id:string) => couponService.getOne(id))
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-    const getOne = async (id:string) =>{
-        try{
-            setLoading(true)
-            const json : Coupon = await couponService.getOne(id)
-            setData(json)
-        }catch(error){
-             showNotification(errorHandler(error), 'error');
-            setLoading(false)
-        }finally{
-            setLoading(false)
-        }
-    }
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const id = formData.get("id") as string;
         if (id) {
-            getOne(id);
+            try{
+                await getCoupon(id)
+            } catch(err){
+                showNotification('¡No se ha podido obtener el cupón!', 'error')
+                console.log(err)
+            }
         }
   };
     

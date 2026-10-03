@@ -12,18 +12,7 @@ const BusinessCreate = () => {
 
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  const {error: bussError, loading: saving, execute : addBusiness } = useCrud(() => {
-    const businessData : BusinessData = {businessName: formData.businessName.trim(),
-        address: formData.address.trim(),
-        locality: parseInt(formData.localityId), 
-        owner: parseInt(formData.ownerId), 
-        reservationDepositPercentage: parseFloat(formData.reservationDepositPercentage),
-        openingAt: formData.openingAt,
-        closingAt: formData.closingAt,
-        active: false, 
-        averageRating: 0.0
-      }
-      return businessService.add(businessData)},{manual:true})
+  const {loading: saving, execute : addBusiness } = useCrud((business : BusinessData) => businessService.add(business),{manual:true})
 
   // Estados para el formulario
   const [formData, setFormData] = useState({
@@ -77,16 +66,23 @@ const BusinessCreate = () => {
         throw new Error('La hora de apertura debe ser anterior a la hora de cierre');
       }
 
-      addBusiness()
-
-      if(!bussError){
-        setTimeout(() => {
-            showNotification('¡Negocio creado con éxito!', 'success')
-            navigate('/admin/business/getAll');
-          }
-          ,500)
-      }else{
+      try{
+        const businessData : BusinessData = {businessName: formData.businessName.trim(),
+          address: formData.address.trim(),
+          locality: parseInt(formData.localityId), 
+          owner: parseInt(formData.ownerId), 
+          reservationDepositPercentage: parseFloat(formData.reservationDepositPercentage),
+          openingAt: formData.openingAt,
+          closingAt: formData.closingAt,
+          active: false, 
+          averageRating: 0.0
+        }
+        await addBusiness(businessData)
+        showNotification('¡Negocio creado con éxito!', 'success')
+        navigate('/admin/business/getAll');
+      }catch(err){
         showNotification('¡No se ha podido crear el negocio!', 'error')
+        console.log(err)
       }
       
   };
@@ -333,16 +329,16 @@ const BusinessCreate = () => {
             type="button"
             onClick={handleCancel}
             className="cancel-button"
-            disabled={!saving}
+            disabled={saving}
           >
             Cancelar
           </button>
           <button
             type="submit"
             className="save-button"
-            disabled={!saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId || !formData.ownerId}
+            disabled={saving || !formData.businessName.trim() || !formData.address.trim() || !formData.localityId || !formData.ownerId}
           >
-            {!saving ? 'Creando...' : 'Crear Negocio'}
+            {saving ? 'Creando...' : 'Crear Negocio'}
           </button>
         </div>
       </form>

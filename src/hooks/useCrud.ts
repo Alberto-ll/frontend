@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
+import { errorHandler } from "../types/apiError";
 
-export function useCrud<T>(serviceMethod : () => Promise<T>, options={manual : false}){
+export function useCrud<T, Args extends unknown[] = []>(serviceMethod : (...args: Args) => Promise<T>, options={manual : false}){
     const [data, setData] = useState<T | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const execute = async () => {
+    const execute = async (...args: Args) => {
         setLoading(true)
         try{
             setError(null)
-            const result = await serviceMethod()
+            const result = await serviceMethod(...args)
             setData(result)
+            return
         }catch(err : unknown){
-            if (err instanceof Error) {
-                setError(err.message);
-            } 
-            else if (typeof err === "string") {
-                setError(err);
-            } 
-            else {
-                setError("Ocurrió un error inesperado");
-            }
+            setError(errorHandler(err))
+            throw err
         }finally{
             setLoading(false)
         }
@@ -28,7 +23,7 @@ export function useCrud<T>(serviceMethod : () => Promise<T>, options={manual : f
 
     useEffect(() => { 
         if(!options.manual){
-            execute()
+            execute(...([] as unknown as Args)).catch(() => {})
         }
     }, [])
 
