@@ -1,0 +1,619 @@
+/* Contenedores envolventes: bloque blanco central amplio con franjas oscuras laterales */
+.business-list-container,
+.business-detail-container {
+  width: 92%;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+  background: #ffffff;
+  padding: 2.5rem 3rem;
+  box-sizing: border-box;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+}
+
+.business-list-page,
+.business-detail-page {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Header de la sección */
+.business-page-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.business-page-title {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.business-page-subtitle {
+  font-size: 1.15rem;
+  color: #6b7280;
+  max-width: 750px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Barra de Filtros y Búsqueda */
+.business-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background-color: #f9fafb;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+
+.business-search-input-wrapper {
+  flex: 1 1 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.business-search-icon {
+  position: absolute;
+  left: 1rem;
+  color: #6b7280;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.business-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  font-size: 0.95rem;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+}
+
+.business-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.business-search-input:focus {
+  border-color: #16a34a;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.business-locality-select-wrapper {
+  flex: 0 1 240px;
+}
+
+.business-locality-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #ffffff;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.business-locality-select option {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+.business-locality-select:focus {
+  border-color: #16a34a;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.business-filter-counter {
+  color: #4b5563;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* Grilla de Negocios */
+.business-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.75rem;
+}
+
+/* Tarjeta individual de Negocio */
+.business-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.business-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  border-color: #bbf7d0;
+}
+
+.business-card-top {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.business-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.business-card-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.business-card-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fefce8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #fef08a;
+  white-space: nowrap;
+}
+
+.business-card-rating-num {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ca8a04;
+}
+
+.business-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+}
+
+.business-status-badge.open {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.business-status-badge.closed {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.business-card-body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  flex: 1;
+}
+
+.business-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.business-info-icon {
+  color: #16a34a;
+  margin-top: 0.15rem;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.business-deposit-badge {
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #1e40af;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.business-card-footer {
+  padding: 1rem 1.5rem 1.5rem;
+  background-color: #fafafa;
+  border-top: 1px solid #f3f4f6;
+}
+
+.business-action-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #16a34a;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.business-action-btn:hover {
+  background-color: #15803d;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+}
+
+/* ========================================================
+   VISTA DETALLE DEL NEGOCIO (/businesses/:id)
+   ======================================================== */
+
+.business-detail-back-bar {
+  margin-bottom: 1.5rem;
+}
+
+.business-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.business-back-link:hover {
+  background-color: #f3f4f6;
+  color: #16a34a;
+}
+
+.business-detail-header-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.business-detail-main-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.business-detail-title-group h1 {
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.business-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  color: #4b5563;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.business-detail-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.business-detail-meta-item .icon {
+  color: #16a34a;
+}
+
+/* Horarios en detalle */
+.business-schedule-section {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 1.5rem;
+}
+
+.business-schedule-section h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.business-schedule-days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.business-schedule-day-box {
+  padding: 0.75rem 0.5rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.business-schedule-day-box.is-today {
+  border-color: #16a34a;
+  background-color: #f0fdf4;
+}
+
+.business-schedule-day-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4b5563;
+  margin-bottom: 0.35rem;
+}
+
+.business-schedule-day-box.is-today .business-schedule-day-name {
+  color: #15803d;
+}
+
+.business-schedule-day-hours {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.business-schedule-day-hours.closed {
+  color: #9ca3af;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Sección de canchas del negocio */
+.business-pitches-section {
+  margin-top: 2rem;
+}
+
+.business-pitches-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.business-pitches-subtitle {
+  color: #4b5563;
+  font-size: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.business-pitches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.75rem;
+}
+
+/* Cancha Card específica para detalle */
+.pitch-card-item {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pitch-card-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.pitch-card-item-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background-color: #f3f4f6;
+}
+
+.pitch-card-item-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.pitch-card-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pitch-card-item-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.pitch-card-item-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+  color: #4b5563;
+}
+
+.pitch-spec-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pitch-card-item-bottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.pitch-price-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.pitch-price-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.pitch-price-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.pitch-reserve-button {
+  background-color: #16a34a;
+  color: #ffffff;
+  padding: 0.65rem 1.3rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pitch-reserve-button:hover {
+  background-color: #15803d;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+}
+
+/* Estados Vacíos y Loading */
+.business-loading-container {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: transparent;
+  color: #4b5563;
+}
+
+.business-loading-container p {
+  color: #4b5563;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.business-empty-container {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  color: #4b5563;
+}
+
+.business-empty-container h3 {
+  color: #111827;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.business-empty-container p {
+  color: #6b7280;
+  margin: 0;
+}
+
+.business-loading-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #16a34a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1.25rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .business-list-container,
+  .business-detail-container {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .business-filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .business-locality-select-wrapper {
+    flex: 1 1 auto;
+  }
+  
+  .business-page-title {
+    font-size: 1.8rem;
+  }
+  
+  .business-detail-header-card {
+    padding: 1.5rem;
+  }
+  
+  .business-detail-title-group h1 {
+    font-size: 1.8rem;
+  }
+}

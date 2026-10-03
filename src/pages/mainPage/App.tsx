@@ -52,6 +52,8 @@ import BusinessReservations from '../businessManagment/getReservations.tsx';
 import ReservePitchPageMakeReservation from '../reservationPage/reservationPage.tsx';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NotFound from '../../components/NotFound';
+import BusinessListPage from '../businessList/BusinessListPage';
+import BusinessDetailPage from '../businessList/BusinessDetailPage';
 
 function App() {
   return (
@@ -65,6 +67,8 @@ function App() {
           <Route path='registerBusiness/' element={<ProtectedRoute><RegisterBusinessPage/></ProtectedRoute>}/>
           <Route path='reservation/' element={<ProtectedRoute><CourtsPage/></ProtectedRoute>}/>
           <Route path='reserve-pitch/' element={<ProtectedRoute><ReservePitchPage/></ProtectedRoute>}/>
+          <Route path='businesses/' element={<ProtectedRoute><BusinessListPage/></ProtectedRoute>}/>
+          <Route path='businesses/:id' element={<ProtectedRoute><BusinessDetailPage/></ProtectedRoute>}/>
           <Route path='myReservations/' element={<ProtectedRoute><MyReservations/></ProtectedRoute>}/>
           <Route path='myBusiness/' element={<ProtectedRoute requiredRoles={['business_owner', 'admin']}><BusinessPitchHome /></ProtectedRoute>}>
             <Route path='getAll/' element={<BusinessPitchGetAll />} />

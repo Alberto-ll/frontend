@@ -37,6 +37,9 @@ export function HomePageNav({ showNotification, simple = false }: HomePageNavPro
                         <li>
                             <Link to="/reserve-pitch">Lista de Canchas</Link>
                         </li>
+                        <li>
+                            <Link to="/businesses">Negocios</Link>
+                        </li>
                         {(userData?.category === 'admin') &&
                         <li>
                             <Link to="/admin">Admin Dashboard</Link>
