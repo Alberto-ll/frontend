@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import '../../static/css/App.css'
 import {AdminLayout} from '../../layout/AdminLayout.tsx';
 import LocalityHome from '../adminPages/localityPages/localityHome.tsx';
@@ -34,7 +34,6 @@ import LocalityCreate from '../adminPages/localityPages/localityCreate.tsx';
 import BusinessHome from '../adminPages/business/businessHome.tsx';
 import BusinessGetAll from '../adminPages/business/businessGetAll.tsx';
 
-import CourtsPage from '../reservationPage/CourtsPage.tsx';
 import { RegisterBusinessPage } from '../registerBusiness.tsx';
 import InactiveBusinesses from '../adminPages/inactiveBusinesses/inactiveBusinesses.tsx';
 import BusinessCreate from '../adminPages/business/businessCreate.tsx';
@@ -65,7 +64,7 @@ function App() {
           <Route path='makeReservation/:id' element={<ProtectedRoute><ReservePitchPageMakeReservation/></ProtectedRoute>} />
           <Route path='about/' element={<AboutUs/>}/>
           <Route path='registerBusiness/' element={<ProtectedRoute><RegisterBusinessPage/></ProtectedRoute>}/>
-          <Route path='reservation/' element={<ProtectedRoute><CourtsPage/></ProtectedRoute>}/>
+          <Route path='reservation/' element={<Navigate to="/reserve-pitch" replace />}/>
           <Route path='reserve-pitch/' element={<ProtectedRoute><ReservePitchPage/></ProtectedRoute>}/>
           <Route path='businesses/' element={<ProtectedRoute><BusinessListPage/></ProtectedRoute>}/>
           <Route path='businesses/:id' element={<ProtectedRoute><BusinessDetailPage/></ProtectedRoute>}/>

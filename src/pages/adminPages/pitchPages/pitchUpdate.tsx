@@ -152,7 +152,8 @@ export default function PitchUpdate(){
         const selectedImage = imageValue instanceof File && imageValue.size > 0 ? imageValue : null;
 
         // Verificar que al menos un campo se va a actualizar
-        const { id, ...fieldsToUpdate } = pitch;
+        const { id: _id, ...fieldsToUpdate } = pitch;
+        void _id;
         if (Object.keys(fieldsToUpdate).length === 0) {
             showNotification('Debe completar al menos un campo para actualizar', 'warning');
             return;

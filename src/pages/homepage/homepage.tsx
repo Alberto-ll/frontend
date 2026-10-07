@@ -31,10 +31,6 @@ export default function Homepage() {
                         </div>
                     </div>
                 </div>
-
-                <div className="About-us">
-                    
-                </div>
             </main>
         </div>
 

@@ -50,7 +50,12 @@ export function useAuth() {
     return roles.includes(userData.category);
   }, [userData]);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  }, []);
+
   const isAuthenticated = !!token;
 
-  return { userData, token, isLoading, checkAuth, hasRole, isAuthenticated };
+  return { userData, token, isLoading, checkAuth, hasRole, isAuthenticated, logout };
 }

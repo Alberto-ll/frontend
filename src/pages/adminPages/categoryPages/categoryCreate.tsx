@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router";
-import '../../../static/css/categories/categoryCreate.css';
 import { categoryService } from '../../../services/index.ts';
 
 const CategoryCreate = () => {

@@ -1,0 +1,305 @@
+/* adminDashboard.css */
+.admin-dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    font-family: inherit;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header / Hero */
+.admin-dashboard-hero {
+    background: linear-gradient(135deg, var(--dark-color, #2c3e50) 0%, #34495e 100%);
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 1.75rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.15);
+    border-left: 5px solid var(--primary-color, #2ecc71);
+}
+
+.admin-hero-text h1 {
+    font-size: 1.85rem;
+    margin: 0 0 0.4rem 0;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.admin-hero-text p {
+    margin: 0;
+    color: #bdc3c7;
+    font-size: 0.95rem;
+}
+
+.admin-hero-badge {
+    background: rgba(46, 204, 113, 0.18);
+    border: 1px solid var(--primary-color, #2ecc71);
+    color: var(--primary-color, #2ecc71);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Quick Metrics Row */
+.admin-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.admin-metric-card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 1.25rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+}
+
+.admin-metric-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.admin-metric-icon.green {
+    background: rgba(46, 204, 113, 0.15);
+    color: #27ae60;
+}
+
+.admin-metric-icon.blue {
+    background: rgba(52, 152, 219, 0.15);
+    color: #2980b9;
+}
+
+.admin-metric-icon.orange {
+    background: rgba(243, 156, 18, 0.15);
+    color: #d35400;
+}
+
+.admin-metric-icon.purple {
+    background: rgba(155, 89, 182, 0.15);
+    color: #8e44ad;
+}
+
+.admin-metric-icon.red {
+    background: rgba(231, 76, 60, 0.15);
+    color: #c0392b;
+}
+
+.admin-metric-icon.teal {
+    background: rgba(26, 188, 156, 0.15);
+    color: #16a085;
+}
+
+.admin-metric-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.2;
+}
+
+.admin-metric-label {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Quick Actions Section */
+.admin-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-actions-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.admin-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.15rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: #ffffff;
+    background: var(--primary-color, #2ecc71);
+    transition: background 0.2s ease, transform 0.15s ease;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.25);
+}
+
+.admin-action-btn:hover {
+    background: var(--primary-hover, #27ae60);
+    transform: translateY(-2px);
+    color: #ffffff;
+}
+
+.admin-action-btn.secondary {
+    background: var(--secondary-color, #3498db);
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.25);
+}
+
+.admin-action-btn.secondary:hover {
+    background: var(--secondary-hover, #2980b9);
+}
+
+/* Modules Hub Grid */
+.admin-modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+}
+
+.admin-module-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-module-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+}
+
+.admin-module-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.admin-module-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.admin-module-title {
+    margin: 0 0 0.35rem 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.admin-module-description {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.88rem;
+    line-height: 1.4;
+}
+
+.admin-module-links {
+    display: flex;
+    gap: 0.5rem;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 1rem;
+}
+
+.admin-module-link {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.admin-module-link:hover {
+    background: var(--dark-color, #2c3e50);
+    color: #ffffff;
+    border-color: var(--dark-color, #2c3e50);
+}
+
+.admin-module-link.primary {
+    background: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+    border-color: rgba(46, 204, 113, 0.3);
+}
+
+.admin-module-link.primary:hover {
+    background: var(--primary-color, #2ecc71);
+    color: #ffffff;
+    border-color: var(--primary-color, #2ecc71);
+}
+
+@media (max-width: 768px) {
+    .admin-dashboard-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.25rem;
+    }
+    
+    .admin-modules-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -131,7 +131,7 @@ export default function BusinessReservations() {
       
       return formattedDate;
       
-    } catch (error) {
+    } catch {
       const dateMatch = dateString.match(/\d{4}-\d{2}-\d{2}/);
       return dateMatch ? dateMatch[0] : dateString;
     }
@@ -159,7 +159,7 @@ export default function BusinessReservations() {
       
       return timeString;
       
-    } catch (error) {
+    } catch {
       return timeString;
     }
   };
@@ -482,7 +482,7 @@ export default function BusinessReservations() {
         day: '2-digit'
       });
       
-    } catch (error) {
+    } catch {
       return dateTimeString || 'Fecha inválida';
     }
   };

@@ -9,6 +9,7 @@ interface HomePageNavProps {
 }
 
 export function HomePageNav({ showNotification, simple = false }: HomePageNavProps){
+    void showNotification;
     const navigate = useNavigate()
     
     const {userData} = useAuth();
@@ -17,9 +18,10 @@ export function HomePageNav({ showNotification, simple = false }: HomePageNavPro
         navigate('/')
     }
     
-    const handleLogout = () => {
+    const handleLogout = (e: React.MouseEvent) => {
+        e.preventDefault();
         localStorage.removeItem('user');
-        showNotification("Sesión cerrada con éxito", "success");
+        window.location.href = '/';
     }
     
     return(
