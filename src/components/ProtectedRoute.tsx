@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { useLocation, useOutletContext } from 'react-router';
-import { useAuth } from './Auth';
+import { useAuth } from '../hooks/useAuth';
 import LoginRequired from './LoginRequired';
 import AccessDenied from './AccessDenied';
 import '../static/css/authMessages.css';

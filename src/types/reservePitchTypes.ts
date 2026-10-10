@@ -1,23 +1,12 @@
 // Types for the Reserve Pitch feature
+import type { Pitch, PitchBusiness } from './pitchType';
 
-export interface PitchBusiness {
-  id: number;
-  businessName: string;
-}
+export type { PitchBusiness };
 
-export interface ReservePitch {
-  id: number;
-  rating: number;
-  size: "pequeño" | "mediano" | "grande";
-  groundType: "césped natural" | "césped sintético" | "cemento" | "arcilla";
-  roof: boolean;
-  price: number;
-  imageUrl?: string;
-  driveFileId?: string;
-  createdAt: string;
-  updatedAt: string;
-  business: PitchBusiness;
-}
+/**
+ * @deprecated Use Pitch from pitchType instead
+ */
+export type ReservePitch = Pitch;
 
 export interface ReservePitchFilters {
   roof: 'all' | 'covered' | 'uncovered';

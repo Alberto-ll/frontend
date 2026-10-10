@@ -1,5 +1,5 @@
-import type { Pitch } from "./pitchType.ts";
-import type { UserData } from "./userData.ts";
+import type { Pitch } from "./pitchType";
+import type { UserData } from "./userData";
 
 export type Reservation = {
   id: number;

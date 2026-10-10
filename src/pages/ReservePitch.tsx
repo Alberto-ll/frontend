@@ -4,9 +4,9 @@ import type { ReservePitch, ReservePitchFilters } from '../types/reservePitchTyp
 import PitchFilters from '../components/filters/PitchFilters';
 import PitchCard from '../components/pitches/PitchCard';
 import '../static/css/ReservePitch.css';
-import { useAuth } from '../components/Auth';
+import { useAuth } from '../hooks/useAuth';
 import { pitchService } from '../services';
-import { errorHandler } from '../types/apiError';
+import { errorHandler } from '../utils/errorHandler';
 
 const ReservePitchPage: React.FC = () => {
   const navigate = useNavigate();
@@ -67,10 +67,10 @@ const ReservePitchPage: React.FC = () => {
         });
       }
     } catch (err) {
-      if ((err as any)?.name === 'AbortError') return;
-      if ((err as any)?._status === 404) {
-        const errorData = err as any;
-        if (errorData.error && errorData.error.includes('No pitches from active businesses')) {
+      const maybeError = err as { name?: string; _status?: number; error?: string };
+      if (maybeError?.name === 'AbortError') return;
+      if (maybeError?._status === 404) {
+        if (typeof maybeError.error === 'string' && maybeError.error.includes('No pitches from active businesses')) {
           setPitches([]);
           setLoading(false);
           return;

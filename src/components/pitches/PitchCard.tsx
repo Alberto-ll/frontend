@@ -23,7 +23,10 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, onReserve }) => {
   };
 
   // Safe access to business name
-  const businessName = pitch.business?.businessName || 'Cancha';
+  const businessName =
+    typeof pitch.business === 'object' && pitch.business !== null && 'businessName' in pitch.business
+      ? pitch.business.businessName
+      : 'Cancha';
 
   return (
     <div className="pitch-card">

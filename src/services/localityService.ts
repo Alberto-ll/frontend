@@ -1,11 +1,5 @@
 import { api } from './api';
-
-interface Locality {
-  id: number;
-  name: string;
-  postal_code: number;
-  province: string;
-}
+import type { Locality } from '../types/localityType';
 
 export async function getAll(): Promise<Locality[]> {
   return api.get<Locality[]>('/api/localities/getAll');

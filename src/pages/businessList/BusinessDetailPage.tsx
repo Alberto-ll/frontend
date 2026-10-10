@@ -11,7 +11,7 @@ import {
 import type { BusinessData } from '../../types/businessType';
 import type { Pitch } from '../../types/pitchType';
 import { businessService, pitchService } from '../../services';
-import { errorHandler } from '../../types/apiError';
+import { errorHandler } from '../../utils/errorHandler';
 import { SCHEDULE_DAYS } from '../../utils/scheduleUtils';
 import StarRating from '../../components/StarRating';
 import '../../static/css/businessList.css';

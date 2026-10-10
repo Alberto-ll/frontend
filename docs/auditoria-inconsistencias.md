@@ -214,54 +214,58 @@ En [`package.json`](file:///Users/constantinofinelli/frontend/package.json):
 
 ---
 
-## 4. Inconsistencias entre Nombre de Archivo y Componente Exportado
+## 4. Inconsistencias entre Nombre de Archivo y Componente Exportado - ✅ RESUELTO
 
-Existe un patrón generalizado donde el archivo está nombrado en `camelCase`, pero el componente React exportado está en `PascalCase`.
+> **Estado: Resuelto.**
+> - Todas las **32 páginas administrativas** de `src/pages/adminPages/` han sido renombradas a **PascalCase** coincidiendo con sus componentes (`AdminDashboard.tsx`, `BusinessCreate.tsx`, `UserDetail.tsx`, etc.).
+> - Se normalizaron también las páginas de `src/pages/homepage/` (`AboutUs.tsx`, `Homepage.tsx`, `MyReservations.tsx`) y `src/pages/reservationPage/` (`ReservationPage.tsx`).
+> - Se unificó `LocalityGetAll.tsx` y `UserGetAll.tsx` manteniendo aliases compatibles (`LocalitiesGetAll`, `UsersGetAll`).
+> - Se actualizaron todas las referencias e imports en `App.tsx` y componentes del proyecto, eliminando además todas las extensiones de archivo explícitas (`.ts`, `.tsx`, `.js`).
 
 ### 4.1 Archivos en camelCase que exportan PascalCase
 
-| Archivo | Export real del componente | Inconsistencia detectada |
-|---|---|---|
-| `adminDashboard.tsx` | `AdminDashboard` | Archivo `adminDashboard` vs Componente `AdminDashboard` |
-| `businessCreate.tsx` | `BusinessCreate` | Archivo `businessCreate` vs Componente `BusinessCreate` |
-| `businessDetail.tsx` | `BusinessDetail` | Archivo `businessDetail` vs Componente `BusinessDetail` |
-| `businessGetAll.tsx` | `BusinessGetAll` | Archivo `businessGetAll` vs Componente `BusinessGetAll` |
-| `businessHome.tsx` | `BusinessHome` | Archivo `businessHome` vs Componente `BusinessHome` |
-| `businessUpdate.tsx` | `BusinessUpdate` | Archivo `businessUpdate` vs Componente `BusinessUpdate` |
-| `categoryCreate.tsx` | `CategoryCreate` | Archivo `categoryCreate` vs Componente `CategoryCreate` |
-| `categoryDetail.tsx` | `CategoryDetail` | Archivo `categoryDetail` vs Componente `CategoryDetail` |
-| `categoryGetAll.tsx` | `CategoryGetAll` | Archivo `categoryGetAll` vs Componente `CategoryGetAll` |
-| `categoryHome.tsx` | `CategoryHome` | Archivo `categoryHome` vs Componente `CategoryHome` |
-| `categoryUpdate.tsx` | `CategoryUpdate` | Archivo `categoryUpdate` vs Componente `CategoryUpdate` |
-| `couponAdd.tsx` | `CouponAdd` | Archivo `couponAdd` vs Componente `CouponAdd` |
-| `couponGetAll.tsx` | `CouponGetAll` | Archivo `couponGetAll` vs Componente `CouponGetAll` |
-| `couponGetOne.tsx` | `CouponGetOne` | Archivo `couponGetOne` vs Componente `CouponGetOne` |
-| `couponHome.tsx` | `CouponHome` | Archivo `couponHome` vs Componente `CouponHome` |
-| `couponUpdate.tsx` | `CouponUpdate` | Archivo `couponUpdate` vs Componente `CouponUpdate` |
-| `inactiveBusinesses.tsx` | `InactiveBusinesses` | Archivo `inactiveBusinesses` vs Componente `InactiveBusinesses` |
-| `localityCreate.tsx` | `LocalityCreate` | Archivo `localityCreate` vs Componente `LocalityCreate` |
-| `localityDetail.tsx` | `LocalityDetail` | Archivo `localityDetail` vs Componente `LocalityDetail` |
-| `localityGetAll.tsx` | `LocalitiesGetAll` | **Doble inconsistencia**: `locality` (singular) vs `Localities` (plural) |
-| `localityHome.tsx` | `LocalityHome` | Archivo `localityHome` vs Componente `LocalityHome` |
-| `localityUpdate.tsx` | `LocalityUpdate` | Archivo `localityUpdate` vs Componente `LocalityUpdate` |
-| `pitchAdd.tsx` | `PitchAdd` | Archivo `pitchAdd` vs Componente `PitchAdd` |
-| `pitchGetAll.tsx` | `PitchGetAll` | Archivo `pitchGetAll` vs Componente `PitchGetAll` |
-| `pitchGetOne.tsx` | `PitchGetOne` | Archivo `pitchGetOne` vs Componente `PitchGetOne` |
-| `pitchHome.tsx` | `PitchHome` | Archivo `pitchHome` vs Componente `PitchHome` |
-| `pitchUpdate.tsx` | `PitchUpdate` | Archivo `pitchUpdate` vs Componente `PitchUpdate` |
-| `userCreate.tsx` | `UserCreate` | Archivo `userCreate` vs Componente `UserCreate` |
-| `userDetail.tsx` | `UserDetail` | Archivo `userDetail` vs Componente `UserDetail` |
-| `userHome.tsx` | `UserHome` | Archivo `userHome` vs Componente `UserHome` |
-| `userUpdate.tsx` | `UserUpdate` | Archivo `userUpdate` vs Componente `UserUpdate` |
-| `usersGetAll.tsx` | `UsersGetAll` | Archivo `usersGetAll` vs Componente `UsersGetAll` |
-| `deleteConfirm.tsx` | `DeleteConfirm` | Archivo `deleteConfirm` vs Componente `DeleteConfirm` |
-| `loginPage.tsx` | `LoginPage` | Archivo `loginPage` vs Componente `LoginPage` |
-| `registerBusiness.tsx` | `RegisterBusinessPage` | Archivo `registerBusiness` vs Componente `RegisterBusinessPage` |
-| `aboutUs.tsx` | `AboutUs` | Archivo `aboutUs` vs Componente `AboutUs` |
-| `homeFooter.tsx` | `HomeFooter` | Archivo `homeFooter` vs Componente `HomeFooter` |
-| `homePageNav.tsx` | `HomePageNav` | Archivo `homePageNav` vs Componente `HomePageNav` |
-| `homepage.tsx` | `Homepage` | Archivo `homepage` vs Componente `Homepage` |
-| `myReservations.tsx` | `MyReservations` | Archivo `myReservations` vs Componente `MyReservations` |
+| Archivo original | Nuevo archivo PascalCase | Componente exportado | Estado |
+|---|---|---|---|
+| `adminDashboard.tsx` | `AdminDashboard.tsx` | `AdminDashboard` | **✅ Renombrado** |
+| `businessCreate.tsx` | `BusinessCreate.tsx` | `BusinessCreate` | **✅ Renombrado** |
+| `businessDetail.tsx` | `BusinessDetail.tsx` | `BusinessDetail` | **✅ Renombrado** |
+| `businessGetAll.tsx` | `BusinessGetAll.tsx` | `BusinessGetAll` | **✅ Renombrado** |
+| `businessHome.tsx` | `BusinessHome.tsx` | `BusinessHome` | **✅ Renombrado** |
+| `businessUpdate.tsx` | `BusinessUpdate.tsx` | `BusinessUpdate` | **✅ Renombrado** |
+| `categoryCreate.tsx` | `CategoryCreate.tsx` | `CategoryCreate` | **✅ Renombrado** |
+| `categoryDetail.tsx` | `CategoryDetail.tsx` | `CategoryDetail` | **✅ Renombrado** |
+| `categoryGetAll.tsx` | `CategoryGetAll.tsx` | `CategoryGetAll` | **✅ Renombrado** |
+| `categoryHome.tsx` | `CategoryHome.tsx` | `CategoryHome` | **✅ Renombrado** |
+| `categoryUpdate.tsx` | `CategoryUpdate.tsx` | `CategoryUpdate` | **✅ Renombrado** |
+| `couponAdd.tsx` | `CouponAdd.tsx` | `CouponAdd` | **✅ Renombrado** |
+| `couponGetAll.tsx` | `CouponGetAll.tsx` | `CouponGetAll` | **✅ Renombrado** |
+| `couponGetOne.tsx` | `CouponGetOne.tsx` | `CouponGetOne` | **✅ Renombrado** |
+| `couponHome.tsx` | `CouponHome.tsx` | `CouponHome` | **✅ Renombrado** |
+| `couponUpdate.tsx` | `CouponUpdate.tsx` | `CouponUpdate` | **✅ Renombrado** |
+| `inactiveBusinesses.tsx` | `InactiveBusinesses.tsx` | `InactiveBusinesses` | **✅ Renombrado** |
+| `localityCreate.tsx` | `LocalityCreate.tsx` | `LocalityCreate` | **✅ Renombrado** |
+| `localityDetail.tsx` | `LocalityDetail.tsx` | `LocalityDetail` | **✅ Renombrado** |
+| `localityGetAll.tsx` | `LocalityGetAll.tsx` | `LocalityGetAll` / `LocalitiesGetAll` | **✅ Renombrado** |
+| `localityHome.tsx` | `LocalityHome.tsx` | `LocalityHome` | **✅ Renombrado** |
+| `localityUpdate.tsx` | `LocalityUpdate.tsx` | `LocalityUpdate` | **✅ Renombrado** |
+| `pitchAdd.tsx` | `PitchAdd.tsx` | `PitchAdd` | **✅ Renombrado** |
+| `pitchGetAll.tsx` | `PitchGetAll.tsx` | `PitchGetAll` | **✅ Renombrado** |
+| `pitchGetOne.tsx` | `PitchGetOne.tsx` | `PitchGetOne` | **✅ Renombrado** |
+| `pitchHome.tsx` | `PitchHome.tsx` | `PitchHome` | **✅ Renombrado** |
+| `pitchUpdate.tsx` | `PitchUpdate.tsx` | `PitchUpdate` | **✅ Renombrado** |
+| `userCreate.tsx` | `UserCreate.tsx` | `UserCreate` | **✅ Renombrado** |
+| `userDetail.tsx` | `UserDetail.tsx` | `UserDetail` | **✅ Renombrado** |
+| `userHome.tsx` | `UserHome.tsx` | `UserHome` | **✅ Renombrado** |
+| `userUpdate.tsx` | `UserUpdate.tsx` | `UserUpdate` | **✅ Renombrado** |
+| `usersGetAll.tsx` | `UserGetAll.tsx` | `UserGetAll` / `UsersGetAll` | **✅ Renombrado** |
+| `deleteConfirm.tsx` | `DeleteConfirm.tsx` | `DeleteConfirm` | **✅ Renombrado** |
+| `loginPage.tsx` | `LoginPage.tsx` | `LoginPage` | **✅ Renombrado** |
+| `registerBusiness.tsx` | `RegisterBusinessPage.tsx` | `RegisterBusinessPage` | **✅ Renombrado** |
+| `aboutUs.tsx` | `AboutUs.tsx` | `AboutUs` | **✅ Renombrado** |
+| `homeFooter.tsx` | `HomeFooter.tsx` | `HomeFooter` | **✅ Renombrado** |
+| `homePageNav.tsx` | `HomePageNav.tsx` | `HomePageNav` | **✅ Renombrado** |
+| `homepage.tsx` | `Homepage.tsx` | `Homepage` | **✅ Renombrado** |
+| `myReservations.tsx` | `MyReservations.tsx` | `MyReservations` | **✅ Renombrado** |
 
 ### 4.2 Disparidades totales de nombre y rol
 
@@ -442,9 +446,13 @@ Componentes de una entidad están consumiendo hojas de estilo creadas para otra 
 
 ## 8. Inconsistencias en Imports y Dependencias
 
-### 8.1 Extensiones dispares en sentencias `import`
+### 8.1 Extensiones dispares en sentencias `import` - ✅ RESUELTO
 
-En `App.tsx` y otros componentes se mezclan cuatro formas distintas de importar:
+> **Estado: Resuelto.**
+> - Se eliminaron todas las extensiones `.tsx`, `.ts` y `.js` en las importaciones de componentes, tipos y servicios a lo largo de toda la aplicación. Todas las importaciones ahora siguen el estándar unificado sin extensiones.
+> - Se retiraron las importaciones obsoletas de `errorHandler` desde `types/apiError`, apuntando exclusivamente a `src/utils/errorHandler`.
+
+Histórico de inconsistencias que existían:
 1. Con extensión `.tsx`:
    - `import { AdminLayout } from '../../layout/AdminLayout.tsx';`
    - `import PitchAdd from '../adminPages/pitchPages/pitchAdd.tsx';`
@@ -507,7 +515,7 @@ Ejecución de `npm run lint`: **36 errores y 3 advertencias**.
 
 Para resolver de manera metódica y segura las inconsistencias encontradas, se recomienda la siguiente secuencia de trabajo priorizada:
 
-### Fase 1: Limpieza Inmediata y Corrección de Errores (Prioridad Alta)
+### Fase 1: Limpieza Inmediata y Corrección de Errores (Prioridad Alta) - ✅ RESUELTO
 1. **[x] Eliminar archivos vacíos e inservibles (Resuelto):**
    - Eliminado `src/layout/businessLayout.tsx`.
    - Eliminados `src/static/css/components/CourtCard.css` y `CourtList.css`.
@@ -517,37 +525,46 @@ Para resolver de manera metódica y segura las inconsistencias encontradas, se r
    - Eliminado `src/assets/images/react.svg` y reubicado `vite.svg` a `public/vite.svg`.
 2. **[x] Desinstalar dependencias sin uso (Resuelto):**
    - Ejecutado `npm uninstall react-jwt @types/jsonwebtoken`.
-3. **Corregir errores de ESLint:**
-   - Renombrar `function businessPitchDetail` a `BusinessPitchDetail` en `src/pages/businessManagment/detail.tsx`.
-   - Separar `useLayoutMode` o estructurar `LayoutContext.tsx` correctamente para Fast Refresh.
-   - [x] Eliminadas las variables no usadas `id` (en `pitchUpdate.tsx`) y `error` (en `getReservations.tsx`).
-   - Reemplazar `any` por tipos específicos o `unknown` con type guards.
+3. **[x] Corregir errores de ESLint (Resuelto - 0 errores, 0 advertencias):**
+   - Renombrada la función a `BusinessPitchDetail` eliminando los 8 errores de `react-hooks/rules-of-hooks`.
+   - Separado `LayoutContext.ts` y `LayoutProvider.tsx` en `src/context/`, resolviendo la violación de Fast Refresh `react-refresh/only-export-components`.
+   - Eliminadas las variables no usadas `id` (en `pitchUpdate.tsx`) y `error` (en `getReservations.tsx`).
+   - Reemplazados todos los casts de `any` por tipos específicos y type guards seguros en `ReservePitch.tsx`, `userCreate.tsx`, `BusinessPitchAdd.tsx`, `BusinessPitchList.tsx`, `BusinessEdit.tsx`, `BusinessReservations.tsx`, `reservationPage.tsx` y `errorHandler.ts`.
+   - Resueltas las dependencias faltantes en hooks (`react-hooks/exhaustive-deps`) en `pitchGetOne.tsx` y `BusinessReservations.tsx`.
 
-### Fase 2: Unificación de Tipos y Eliminación de Duplicados (Prioridad Alta)
-1. **Crear tipos centralizados en `src/types/`:**
-   - Crear `localityType.ts` con `export interface Locality { id: number; name: string; postal_code?: number; province?: string; }`.
-   - Crear `categoryType.ts` con `export interface Category { id: number; description: string; usertype: string; }`.
-   - Reemplazar las 12 declaraciones locales de `Locality` y las 6 de `Category`.
-2. **Mover `errorHandler`:**
-   - Trasladar `errorHandler` desde `src/types/apiError.ts` hacia `src/utils/errorHandler.ts`.
-3. **Consolidar `Pitch` y `Court`:**
-   - Adoptar un único tipo `Pitch` unificado y deprecir `ReservePitch`.
-   - Decidir si `CourtsPage` / `CourtList` deben fusionarse definitivamente en `ReservePitchPage` o eliminarse.
+### Fase 2: Unificación de Tipos y Eliminación de Duplicados (Prioridad Alta) - ✅ RESUELTO
+1. **[x] Crear tipos centralizados en `src/types/`:**
+   - Creado `src/types/localityType.ts` con la interfaz centralizada `Locality`.
+   - Creado `src/types/categoryType.ts` con la interfaz centralizada `Category`.
+   - Creado `src/types/userType.ts` con la interfaz centralizada `User` y `UserCategory`.
+   - Reemplazadas las 12 declaraciones locales duplicadas de `Locality`, las 6 de `Category` y las 9 de `User` en toda la aplicación.
+2. **[x] Mover `errorHandler`:**
+   - Trasladado `errorHandler` desde `src/types/apiError.ts` hacia `src/utils/errorHandler.ts`, implementado de manera estrictamente tipada sin ningún `any`.
+3. **[x] Consolidar `Pitch` y `Court`:**
+   - Consolidado `src/types/pitchType.ts` como única fuente de verdad para la entidad canchas.
+   - Deprecado `ReservePitch` en `src/types/reservePitchTypes.ts` apuntando como alias directo a `Pitch`.
 
-### Fase 3: Estandarización de Nombres de Archivos y Componentes (Prioridad Media)
-1. **Corregir la carpeta `businessManagment`:**
-   - Renombrar `src/pages/businessManagment/` a `src/pages/businessManagement/`.
-   - Renombrar sus archivos internos a PascalCase semántico (`BusinessPitchAdd.tsx`, `BusinessPitchDetail.tsx`, etc.).
-2. **Estandarizar páginas a PascalCase:**
-   - Renombrar `loginPage.tsx` -> `LoginPage.tsx`.
-   - Renombrar `registerBusiness.tsx` -> `RegisterBusinessPage.tsx`.
-   - Renombrar `deleteConfirm.tsx` -> `DeleteConfirm.tsx`.
-   - Mover el hook `Auth.tsx` a `src/hooks/useAuth.ts`.
-   - Mover `homePageNav.tsx` y `homeFooter.tsx` desde `src/pages/homepage/` hacia `src/components/navigation/`.
-3. **Normalizar rutas y URLs:**
-   - Corregir `pitchs/` a `pitches/` en `App.tsx` y en el backend si aplica.
-   - Unificar verbos de administración a una convención única (`create/` vs `add/`, `detail/:id` vs `getOne/:id`).
-   - Quitar trailing slashes innecesarias en subrutas de `react-router`.
+### Fase 3: Estandarización de Nombres de Archivos y Componentes (Prioridad Media) - ✅ RESUELTO
+1. **[x] Corregir la carpeta `businessManagment`:**
+   - Renombrada la carpeta a `src/pages/businessManagement/` corrigiendo la errata ortográfica.
+   - Renombrados todos los archivos internos a PascalCase semántico:
+     - `add.tsx` -> `BusinessPitchAdd.tsx`
+     - `detail.tsx` -> `BusinessPitchDetail.tsx`
+     - `edit.tsx` -> `BusinessPitchEdit.tsx`
+     - `editBusiness.tsx` -> `BusinessEdit.tsx`
+     - `getAll.tsx` -> `BusinessPitchList.tsx`
+     - `getReservations.tsx` -> `BusinessReservations.tsx`
+     - `home.tsx` -> `BusinessHome.tsx`
+2. **[x] Estandarizar páginas a PascalCase:**
+   - Renombrado `loginPage.tsx` -> `LoginPage.tsx`.
+   - Renombrado `registerBusiness.tsx` -> `RegisterBusinessPage.tsx`.
+   - Renombrado `deleteConfirm.tsx` -> `DeleteConfirm.tsx`.
+   - Trasladado el custom hook puro `Auth.tsx` a `src/hooks/useAuth.ts` eliminándolo de `components/`.
+   - Trasladados `homePageNav.tsx` y `homeFooter.tsx` desde `src/pages/homepage/` hacia `src/components/navigation/` (`HomePageNav.tsx` y `HomeFooter.tsx`).
+3. **[x] Normalizar rutas y URLs:**
+   - Normalizadas las rutas de administración de canchas a `pitches` en `App.tsx`, `AdminLayout.tsx` y `AdminDashboard.tsx`, manteniendo redirección para `/admin/pitchs/*`.
+   - Unificados verbos CRUD canónicos (`create`, `detail/:id`) con soporte transparente para rutas legadas (`add`, `getOne/:id`, `createUser`).
+   - Removidas las barras finales (trailing slashes) innecesarias en las rutas principales de `react-router`.
 
 ### Fase 4: Saneamiento de CSS y Estandarización de Imports (Prioridad Media)
 1. **Aislar selectores `:root`:**

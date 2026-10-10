@@ -3,14 +3,10 @@ import { useOutletContext } from 'react-router';
 import { FaSearch, FaFutbol } from 'react-icons/fa';
 import type { BusinessData } from '../../types/businessType';
 import { businessService, localityService } from '../../services';
-import { errorHandler } from '../../types/apiError';
+import { errorHandler } from '../../utils/errorHandler';
+import type { Locality } from '../../types/localityType';
 import BusinessCard from '../../components/business/BusinessCard';
 import '../../static/css/businessList.css';
-
-interface Locality {
-  id: number;
-  name: string;
-}
 
 export const BusinessListPage: React.FC = () => {
   const [businesses, setBusinesses] = useState<BusinessData[]>([]);

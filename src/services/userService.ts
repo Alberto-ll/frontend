@@ -1,15 +1,6 @@
 import { api } from './api';
 
-interface User {
-  id: number;
-  name: string;
-  surname: string;
-  email: string;
-  phoneNumber?: string;
-  category?: number | { id: number; usertype?: string };
-  createdAt?: string;
-  updatedAt?: string;
-}
+import type { User } from '../types/userType';
 
 export async function findAll(): Promise<User[]> {
   return api.get<User[]>('/api/users/findAll');
@@ -19,11 +10,11 @@ export async function findOne(id: number | string): Promise<User> {
   return api.get<User>(`/api/users/findOne/${id}`);
 }
 
-export async function add(data: Partial<User>): Promise<User> {
+export async function add(data: Partial<User> | Record<string, unknown>): Promise<User> {
   return api.post<User>('/api/users/add', data);
 }
 
-export async function update(id: number | string, data: Partial<User>): Promise<User> {
+export async function update(id: number | string, data: Partial<User> | Record<string, unknown>): Promise<User> {
   return api.put<User>(`/api/users/update/${id}`, data);
 }
 

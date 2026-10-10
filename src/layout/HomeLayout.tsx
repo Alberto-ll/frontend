@@ -1,10 +1,11 @@
 import { Outlet, useNavigate } from "react-router";
-import { HomePageNav } from "../pages/homepage/homePageNav";
+import { HomePageNav } from "../components/navigation/HomePageNav";
 import { useCallback, useEffect, useState } from "react";
-import HomeFooter from "../pages/homepage/homeFooter";
+import HomeFooter from "../components/navigation/HomeFooter";
 import Toast from "../components/Toast";
 import { readStoredAuthSession } from "../services/authSession";
-import { LayoutProvider, useLayoutMode } from "../components/LayoutContext";
+import { useLayoutMode } from "../context/LayoutContext";
+import { LayoutProvider } from "../context/LayoutProvider";
 
 function HomeLayoutInner() {
   const { headerMode, setHeaderMode } = useLayoutMode();

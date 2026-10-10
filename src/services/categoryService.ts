@@ -1,10 +1,5 @@
 import { api } from './api';
-
-interface Category {
-  id: number;
-  description: string;
-  usertype: string;
-}
+import type { Category } from '../types/categoryType';
 
 export async function getAll(): Promise<Category[]> {
   return api.get<Category[]>('/api/category/getAll');

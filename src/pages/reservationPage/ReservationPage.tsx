@@ -1,0 +1,808 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import type { BusinessData, ScheduleItem } from '../../types/businessType';
+import '../../static/css/reservationPage.css';
+import { useAuth } from '../../hooks/useAuth';
+import { pitchService, reservationService } from '../../services';
+import { errorHandler } from '../../utils/errorHandler';
+
+interface OccupiedSlot {
+  ReservationDate: string;
+  ReservationTime: string;
+}
+
+interface Business extends BusinessData {
+  name?: string;
+}
+
+interface PitchWithReservations {
+  id: number;
+  rating: number;
+  size: string;
+  groundType: string;
+  roof: boolean;
+  price: number;
+  business?: Business;
+  imageUrl: string;
+  driveFileId: string;
+  createdAt: string;
+  updatedAt: string;
+  reservations?: OccupiedSlot[];
+}
+
+interface TimeSlot {
+  time: string;
+  label: string;
+}
+
+export default function ReservePitchPageMakeReservation() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { userData, token } = useAuth();
+
+  const [pitch, setPitch] = useState<PitchWithReservations | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
+
+  const [date, setDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [dayStatus, setDayStatus] = useState<'closed' | 'unavailable' | 'ok' | null>(null);
+
+  const getScheduleForDate = useCallback((schedule: ScheduleItem[] | undefined, dateStr: string): { open: string; close: string } | null => {
+    if (!schedule || schedule.length !== 7 || !dateStr) return null;
+    const date = new Date(dateStr + 'T00:00:00');
+    const jsDay = date.getDay(); // 0=dom, 1=lun, ..., 6=sab
+    const scheduleDay = jsDay === 0 ? 7 : jsDay; // 1=lun, 7=dom
+    const daySchedule = schedule.find(s => s.day === scheduleDay);
+    if (!daySchedule || daySchedule.open === null || daySchedule.close === null) return null;
+    return { open: daySchedule.open, close: daySchedule.close };
+  }, []);
+
+  const generateTimeSlots = useCallback((openingAt: string, closingAt: string): TimeSlot[] => {
+    // Parse estricto HH:MM; ante datos inválidos se devuelve array vacío (sin fallback hardcoded)
+    const parseHour = (time: string): number | null => {
+      if (!time || typeof time !== 'string') return null;
+      const match = time.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+      if (!match) return null;
+      return parseInt(match[1], 10);
+    };
+
+    const openHour = parseHour(openingAt);
+    const closeHour = parseHour(closingAt);
+
+    if (openHour === null || closeHour === null) {
+      console.warn('Horarios de negocio inválidos:', { openingAt, closingAt });
+      return [];
+    }
+
+    // open === close → día sin turnos útiles
+    if (openHour === closeHour) {
+      return [];
+    }
+
+    const formatHour = (hour: number): string => hour.toString().padStart(2, '0');
+
+    const slots: TimeSlot[] = [];
+
+    if (openHour < closeHour) {
+      // Horario normal: 10-18 → 10,11,12,13,14,15,16,17
+      for (let hour = openHour; hour < closeHour; hour++) {
+        const startTime = formatHour(hour);
+        const endTime = formatHour(hour + 1);
+        slots.push({
+          time: startTime,
+          label: `${startTime}:00 - ${endTime}:00`,
+        });
+      }
+    } else {
+      // Cruza medianoche: 22-02 → 22,23,00,01
+      for (let hour = openHour; hour < 24; hour++) {
+        const startTime = formatHour(hour);
+        const endTime = formatHour(hour + 1 === 24 ? 0 : hour + 1);
+        slots.push({
+          time: startTime,
+          label: `${startTime}:00 - ${endTime}:00`,
+        });
+      }
+      for (let hour = 0; hour < closeHour; hour++) {
+        const startTime = formatHour(hour);
+        const endTime = formatHour(hour + 1);
+        slots.push({
+          time: startTime,
+          label: `${startTime}:00 - ${endTime}:00`,
+        });
+      }
+    }
+
+    return slots;
+  }, []);
+
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const isTimeSlotAvailable = useCallback((selectedDate: string, time: string): boolean => {
+    if (!selectedDate || !time) {
+      return true;
+    }
+
+    if (occupiedSlots.length === 0) {
+      return true;
+    }
+
+    const isOccupied = occupiedSlots.some(slot => {
+      const slotDate = new Date(slot.ReservationDate);
+      const formattedSlotDate = formatDate(slotDate);
+      
+      let slotTime = slot.ReservationTime;
+      
+      if (slotTime && slotTime.includes(':')) {
+        const timeParts = slotTime.split(':');
+        slotTime = `${timeParts[0].padStart(2, '0')}`;
+      }
+      
+      const isSameDay = formattedSlotDate === selectedDate;
+      const isSameTime = slotTime === time;
+      
+      return isSameDay && isSameTime;
+    });
+
+    return !isOccupied;
+  }, [occupiedSlots]);
+
+  const fetchOccupiedSlots = useCallback(async (pitchId: string) => {
+    try {
+      const slots = await reservationService.findOccupiedSlotsByPitch(pitchId) as OccupiedSlot[];
+      setOccupiedSlots(slots);
+      return slots;
+    } catch (error) {
+      console.error('Error obteniendo horarios ocupados:', error);
+      return [];
+    }
+  }, []);
+
+  const fetchPitch = useCallback(async (pitchId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!pitchId) throw new Error('ID de cancha faltante');
+
+      const pitchData = await pitchService.getOne(pitchId) as PitchWithReservations;
+
+      setPitch(pitchData);
+
+      // Time slots will be generated when a date is selected
+
+      await fetchOccupiedSlots(pitchId);
+
+    } catch (err) {
+      console.error('Error en fetchPitch:', err);
+      setError(errorHandler(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchOccupiedSlots]);
+
+  useEffect(() => {
+    if (!id) {
+      setError('ID de cancha inválida');
+      setLoading(false);
+      return;
+    }
+    
+    fetchPitch(id);
+  }, [id, fetchPitch]);
+
+  useEffect(() => {
+    if (date) {
+      setSelectedTime('');
+      const schedule = pitch?.business?.schedule;
+
+      // Schedule ausente o incompleto → no hay slots (sin fallback)
+      if (!schedule || schedule.length !== 7) {
+        setTimeSlots([]);
+        setDayStatus('unavailable');
+        return;
+      }
+
+      const dayHours = getScheduleForDate(schedule, date);
+      if (!dayHours) {
+        // Día cerrado (null/null) o sin configuración para ese día
+        setTimeSlots([]);
+        setDayStatus('closed');
+        return;
+      }
+
+      const generatedSlots = generateTimeSlots(dayHours.open, dayHours.close);
+      setTimeSlots(generatedSlots);
+      // Vacío por open===close o datos inválidos → "Horario no disponible"
+      setDayStatus(generatedSlots.length === 0 ? 'unavailable' : 'ok');
+    } else {
+      setDayStatus(null);
+    }
+  }, [date, pitch?.business?.schedule, getScheduleForDate, generateTimeSlots]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pitch) return;
+    if (!date || !selectedTime) {
+      setError('Selecciona fecha y horario para la reserva');
+      return;
+    }
+    
+    if (id && token) {
+      await fetchOccupiedSlots(id);
+    }
+    
+    if (!isTimeSlotAvailable(date, selectedTime)) {
+      setError('Este horario ya no está disponible. Alguien más lo reservó. Por favor selecciona otro horario.');
+      return;
+    }
+
+    if (!userData) {
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      // selectedTime puede ser "15" o "15:00" — manejar ambos formatos
+      const timeParts = selectedTime.split(':');
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = timeParts[1] ? parseInt(timeParts[1], 10) : 0;
+      const datetime = new Date(date + 'T00:00:00');
+      datetime.setHours(hours, minutes, 0, 0);
+
+      if (isNaN(datetime.getTime())) {
+        throw new Error('Fecha u hora inválida');
+      }
+
+      const now = new Date();
+
+      if (datetime <= now) {
+        throw new Error('El horario de reserva ya pasó. Por favor seleccioná una fecha y hora futuras.');
+      }
+
+      const body = {
+        ReservationDate: date,
+        ReservationTime: `${selectedTime}:00`,
+        pitch: pitch.id,
+        user: userData.id,
+        status: 'pendiente'
+      };
+
+      await reservationService.add(body);
+
+      if (id) {
+        await fetchOccupiedSlots(id);
+      }
+
+      alert('Reserva creada correctamente');
+      navigate('/myReservations');
+    } catch (err) {
+      const errObj = err as { _status?: number };
+      let msg = errorHandler(err);
+      
+      if (errObj?._status === 409 || msg.includes('already reserved') || msg.includes('conflicto') || msg.includes('ocupado')) {
+        msg = 'Este horario ya fue reservado por otro usuario. Por favor selecciona otro horario.';
+      }
+      
+      if (msg.includes('User not found')) {
+        msg = 'Error en el sistema: usuario no encontrado. Por favor contacta con soporte.';
+      }
+      
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getBusyTimesForSelectedDate = useCallback((): string[] => {
+    if (!date || occupiedSlots.length === 0) return [];
+
+    return occupiedSlots
+      .filter(slot => {
+        const slotDate = new Date(slot.ReservationDate);
+        return formatDate(slotDate) === date;
+      })
+      .map(slot => {
+        const slotTime = slot.ReservationTime;
+        return `${slotTime}`;
+      })
+      .sort();
+  }, [date, occupiedSlots]);
+
+  const busyTimes = getBusyTimesForSelectedDate();
+
+  const formatSpanishDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="reserve-pitch-loading">
+        <div className="loading-spinner"></div>
+        <p className="loading-text">Cargando información de la cancha...</p>
+      </div>
+    );
+  }
+
+  if (error && !error.includes('no está disponible')) {
+    return (
+      <div className="reserve-pitch-error">
+        <div className="error-message">
+          <h3>Error al cargar cancha</h3>
+          <p>{error}</p>
+        </div>
+        <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
+          <button onClick={() => fetchPitch(id!)} className="retry-button">
+            Reintentar
+          </button>
+          <button onClick={() => navigate('/login')} className="secondary-button">
+            Iniciar Sesión Nuevamente
+          </button>
+          <button onClick={() => navigate('/reserve-pitch')} className="secondary-button">
+            Volver a canchas
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pitch) {
+    return (
+      <div className="reserve-pitch-error">
+        <div className="error-message">
+          <h3>No se encontró la cancha</h3>
+          <p>La cancha solicitada no existe o no está disponible.</p>
+        </div>
+        <button onClick={() => navigate('/reserve-pitch')} className="retry-button">
+          Volver a canchas
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="reserve-pitch-container">
+      <div className="reserve-pitch-header">
+        <button 
+          onClick={() => navigate('/reserve-pitch')} 
+          className="back-button"
+        >
+          Volver a canchas
+        </button>
+        <h1 className="reserve-pitch-title">Reservar Cancha</h1>
+        <p className="reserve-pitch-subtitle">
+          Completa los datos para realizar tu reserva
+        </p>
+      </div>
+
+      {userData && (
+        <div style={{
+          background: '#e8f4fd',
+          padding: '10px 15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          borderLeft: '4px solid #3498db'
+        }}>
+          <strong>Usuario:</strong> {userData.email || userData.name || 'Usuario'} 
+          {userData.category && <span style={{marginLeft: '10px'}}>| Categoria: {userData.category}</span>}
+          <span style={{marginLeft: '10px'}}>| ID: {userData.id}</span>
+        </div>
+      )}
+
+      <div className="reservation-content">
+        <div className="pitch-card-large">
+          <div className="pitch-image-section">
+            <img
+              src={pitch.imageUrl || 'https://via.placeholder.com/600x400?text=Cancha+Deportiva'}
+              alt={`Cancha ${pitch.id}`}
+              className="pitch-image-large"
+            />
+            <div className="pitch-badges">
+              <span className="pitch-id-badge">Cancha #{pitch.id}</span>
+              {pitch.roof && <span className="feature-badge covered">Cubierta</span>}
+              <span className="feature-badge size">{pitch.size}</span>
+              <span className="feature-badge ground">{pitch.groundType}</span>
+              {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
+                <span className="feature-badge hours">
+                  {(() => {
+                    const openDays = pitch.business.schedule.filter(s => s.open !== null).length;
+                    if (date) {
+                      const dayHours = getScheduleForDate(pitch.business.schedule, date);
+                      return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado';
+                    }
+                    return `${openDays} días/semana`;
+                  })()}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          <div className="pitch-details-section">
+            <div className="pitch-header">
+              <h2>{pitch.business?.businessName || pitch.business?.name || 'Negocio'}</h2>
+              <div className="price-tag">
+                <span className="price-label">Precio por hora</span>
+                <span className="price-amount">${pitch.price}</span>
+              </div>
+            </div>
+
+            <div className="detail-item">
+              <span className="detail-icon">.</span>
+              <div className="detail-content">
+                <strong>Dirección:</strong>
+                <span>{pitch.business?.address || 'Dirección no disponible'}</span>
+              </div>
+            </div>
+
+            {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
+              <div className="detail-item">
+                <span className="detail-icon">.</span>
+                <div className="detail-content">
+                  <strong>Horario de atención:</strong>
+                  <span>
+                    {(() => {
+                      if (date) {
+                        const dayHours = getScheduleForDate(pitch.business!.schedule, date);
+                        return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado este día';
+                      }
+                      const openDays = pitch.business!.schedule.filter(s => s.open !== null).length;
+                      return `${openDays} días/semana`;
+                    })()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="availability-info">
+              <div className="availability-header">
+                <span className="availability-icon">.</span>
+                <strong>Disponibilidad del día</strong>
+              </div>
+              <div className="availability-stats">
+                {date ? (
+                  <span className="stat-item">
+                    Horarios ocupados hoy: <strong>{busyTimes.length}</strong> de {timeSlots.length}
+                  </span>
+                ) : (
+                  <span className="stat-item">
+                    Selecciona una fecha para ver disponibilidad
+                  </span>
+                )}
+              </div>
+              {date && timeSlots.length > 0 && (
+                <div className="availability-details">
+                  <div className="availability-progress">
+                    <div
+                      className="progress-bar"
+                      style={{
+                        width: `${(busyTimes.length / timeSlots.length) * 100}%`,
+                        backgroundColor: busyTimes.length === 0 ? '#2ecc71' :
+                                       busyTimes.length === timeSlots.length ? '#e74c3c' : '#f39c12'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="availability-status">
+                    {busyTimes.length === 0 && (
+                      <span className="status-available">Totalmente disponible</span>
+                    )}
+                    {busyTimes.length > 0 && busyTimes.length < timeSlots.length && (
+                      <span className="status-partial">Parcialmente ocupada</span>
+                    )}
+                    {busyTimes.length === timeSlots.length && (
+                      <span className="status-full">Completamente ocupada</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">.</div>
+                <div className="feature-info">
+                  <div className="feature-label">Cubierta</div>
+                  <div className="feature-value">{pitch.roof ? 'Sí' : 'No'}</div>
+                </div>
+              </div>
+
+              <div className="feature-card">
+                <div className="feature-icon">.</div>
+                <div className="feature-info">
+                  <div className="feature-label">Tamaño</div>
+                  <div className="feature-value">{pitch.size || 'No especificado'}</div>
+                </div>
+              </div>
+
+              <div className="feature-card">
+                <div className="feature-icon">.</div>
+                <div className="feature-info">
+                  <div className="feature-label">Tipo de suelo</div>
+                  <div className="feature-value">{pitch.groundType || 'No especificado'}</div>
+                </div>
+              </div>
+
+              <div className="feature-card">
+                <div className="feature-icon">.</div>
+                <div className="feature-info">
+                  <div className="feature-label">Horarios disponibles</div>
+                  <div className="feature-value">{timeSlots.length} turnos</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="reservation-form-container">
+          <div className="form-header">
+            <h3>Selecciona fecha y horario</h3>
+            <p>Elige cuándo quieres reservar esta cancha (turnos de 1 hora)</p>
+            {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
+              <p style={{fontSize: '0.9rem', color: '#3498db', marginTop: '5px'}}>
+                Horario del negocio: {
+                  date ? (() => {
+                    const dayHours = getScheduleForDate(pitch.business!.schedule, date);
+                    return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado este día';
+                  })() : `${pitch.business!.schedule.filter(s => s.open !== null).length} días/semana`
+                }
+              </p>
+            )}
+          </div>
+          
+          <form onSubmit={handleSubmit} className="reservation-form">
+            <div className="form-group">
+              <label className="form-label">
+                <span className="label-icon">.</span>
+                Fecha de reserva
+              </label>
+              <input 
+                type="date" 
+                value={date} 
+                onChange={(e) => setDate(e.target.value)} 
+                className="form-input"
+                min={new Date().toLocaleDateString('en-CA')}
+                required 
+              />
+            </div>
+
+            {date && (
+              <div className="form-group">
+                <label className="form-label">
+                  <span className="label-icon">.</span>
+                  Horario disponible (1 hora)
+                  {timeSlots.length > 0 && (
+                    <span style={{fontSize: '0.8rem', color: '#7f8c8d', marginLeft: '8px'}}>
+                      ({timeSlots.length} turnos disponibles)
+                    </span>
+                  )}
+                </label>
+                {timeSlots.length === 0 ? (
+                  <div style={{
+                    padding: '20px',
+                    background: '#f8d7da',
+                    border: '1px solid #f5c6cb',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    color: '#721c24'
+                  }}>
+                    <p style={{margin: 0, fontWeight: 'bold'}}>
+                      {dayStatus === 'closed' ? 'Negocio cerrado este día' : 'Horario no disponible'}
+                    </p>
+                    <p style={{margin: '10px 0 0 0', fontSize: '0.9rem'}}>
+                      {dayStatus === 'closed'
+                        ? 'El negocio está cerrado. Por favor selecciona otra fecha.'
+                        : 'No hay turnos configurados para este horario. Por favor selecciona otra fecha.'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="time-slots-grid">
+                      {timeSlots.map((slot) => {
+                        const isAvailable = isTimeSlotAvailable(date, slot.time);
+                        const isSelected = selectedTime === slot.time;
+                        
+                        return (
+                          <button
+                            key={slot.time}
+                            type="button"
+                            className={`time-slot ${isSelected ? 'time-slot-selected' : ''} ${
+                              isAvailable ? 'time-slot-available' : 'time-slot-unavailable'
+                            }`}
+                            onClick={() => {
+                              if (isAvailable) {
+                                setSelectedTime(slot.time);
+                              }
+                            }}
+                            disabled={!isAvailable}
+                            title={isAvailable ? 'Horario disponible' : 'Horario ocupado'}
+                          >
+                            <div className="time-slot-content">
+                              <div className="time-slot-label">{slot.label}</div>
+                              <div className="time-slot-status">
+                                {isAvailable ? 'Disponible' : 'Ocupado'}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedTime && (
+                      <div className="selected-time-info">
+                        <strong>Horario seleccionado:</strong> {timeSlots.find(slot => slot.time === selectedTime)?.label}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {date && busyTimes.length > 0 && (
+              <div className="busy-times-warning">
+                <div className="warning-header">
+                  <span className="warning-icon">.</span>
+                  <strong>Horarios ocupados para el {formatSpanishDate(date)}:</strong>
+                </div>
+                <div className="busy-times-list">
+                  {busyTimes.map((busyTime, index) => (
+                    <span key={index} className="busy-time-badge">
+                      {busyTime} hs
+                    </span>
+                  ))}
+                </div>
+                <p className="warning-text">Estos horarios no están disponibles para reservar</p>
+              </div>
+            )}
+
+            {date && dayStatus === 'closed' && (
+              <div className="closed-day-warning" style={{
+                background: '#fee',
+                border: '2px solid #c33',
+                padding: '15px',
+                borderRadius: '8px',
+                marginTop: '15px'
+              }}>
+                <div className="warning-header" style={{color: '#c33', marginBottom: '10px'}}>
+                  <span className="warning-icon">⚠️</span>
+                  <strong>Negocio cerrado este día</strong>
+                </div>
+                <p style={{color: '#600', margin: '5px 0'}}>
+                  Lo sentimos, el negocio no abre los {formatSpanishDate(date).split(',')[0]}.
+                  Por favor selecciona otro día para realizar tu reserva.
+                </p>
+              </div>
+            )}
+
+            {date && dayStatus === 'unavailable' && (
+              <div className="closed-day-warning" style={{
+                background: '#fff3cd',
+                border: '2px solid #ffc107',
+                padding: '15px',
+                borderRadius: '8px',
+                marginTop: '15px'
+              }}>
+                <div className="warning-header" style={{color: '#856404', marginBottom: '10px'}}>
+                  <span className="warning-icon">⚠️</span>
+                  <strong>Horario no disponible</strong>
+                </div>
+                <p style={{color: '#856404', margin: '5px 0'}}>
+                  No se pudieron generar turnos para el horario configurado de este día.
+                  Por favor selecciona otra fecha o contactá al negocio.
+                </p>
+              </div>
+            )}
+
+            {date && timeSlots.length > 0 && busyTimes.length === 0 && occupiedSlots.length > 0 && (
+              <div className="available-times-info">
+                <div className="info-header">
+                  <span className="info-icon">.</span>
+                  <strong>Todos los horarios disponibles para el {formatSpanishDate(date)}!</strong>
+                </div>
+                <p className="info-text">Puedes seleccionar cualquier horario para este día.</p>
+              </div>
+            )}
+
+            {error && (
+              <div className={`error-message ${error.includes('no está disponible') ? 'warning-message' : ''}`}>
+                <span className="error-icon">.</span>
+                <div className="error-content">
+                  <strong>{error.includes('no está disponible') ? 'Horario no disponible:' : 'Error:'}</strong>
+                  <span>{error}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="reservation-summary">
+              <div className="summary-item">
+                <span>Cancha:</span>
+                <strong>#{pitch.id} - {pitch.business?.businessName || 'Negocio'}</strong>
+              </div>
+              <div className="summary-item">
+                <span>Precio por hora:</span>
+                <strong>${pitch.price}</strong>
+              </div>
+              {pitch.business?.schedule && pitch.business.schedule.some(s => s.open !== null) && (
+                <div className="summary-item">
+                  <span>Horario negocio:</span>
+                  <strong>
+                    {(() => {
+                      if (date) {
+                        const dayHours = getScheduleForDate(pitch.business!.schedule, date);
+                        return dayHours ? `${dayHours.open} - ${dayHours.close}` : 'Cerrado';
+                      }
+                      const openDays = pitch.business!.schedule.filter(s => s.open !== null).length;
+                      return `${openDays} días/semana`;
+                    })()}
+                  </strong>
+                </div>
+              )}
+              {date && selectedTime && (
+                <>
+                  <div className="summary-item">
+                    <span>Fecha seleccionada:</span>
+                    <strong>{formatSpanishDate(date)}</strong>
+                  </div>
+                  <div className="summary-item">
+                    <span>Horario seleccionado:</span>
+                    <strong>{timeSlots.find(slot => slot.time === selectedTime)?.label}</strong>
+                  </div>
+                  <div className="summary-item availability-status">
+                    <span>Disponibilidad:</span>
+                    <strong className="available">
+                      Disponible
+                    </strong>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="form-actions">
+              <button 
+                type="button" 
+                onClick={() => navigate('/reserve-pitch')} 
+                className="btn btn-secondary"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                disabled={submitting || !date || !selectedTime || !isTimeSlotAvailable(date, selectedTime) || timeSlots.length === 0}
+              >
+                {submitting ? (
+                  <>
+                    <span className="button-spinner"></span>
+                    Procesando reserva...
+                  </>
+                ) : timeSlots.length === 0 ? (
+                  <>
+                    <span className="button-icon">⚠️</span>
+                    {dayStatus === 'closed' ? 'Negocio cerrado este día' : 'Horario no disponible'}
+                  </>
+                ) : (
+                  <>
+                    <span className="button-icon">.</span>
+                    Confirmar Reserva - ${pitch.price}
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
