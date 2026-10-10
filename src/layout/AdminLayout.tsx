@@ -70,7 +70,7 @@ export function AdminLayout() {
               <div className="nav-text">Dashboard</div>
             </NavLink>
             <NavLink
-              to="users"
+              to="users/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -82,7 +82,7 @@ export function AdminLayout() {
             </NavLink>
 
             <NavLink
-              to="localities"
+              to="localities/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -94,7 +94,7 @@ export function AdminLayout() {
             </NavLink>
 
             <NavLink
-              to="coupons"
+              to="coupons/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -105,7 +105,7 @@ export function AdminLayout() {
               <div className="nav-text">Cupones</div>
             </NavLink>
             <NavLink
-              to="categories"
+              to="categories/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -116,7 +116,7 @@ export function AdminLayout() {
               <div className="nav-text">Categorías</div>
             </NavLink>
             <NavLink
-              to="business"
+              to="business/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -127,7 +127,7 @@ export function AdminLayout() {
               <div className="nav-text">Business</div>
             </NavLink>
             <NavLink
-              to="pitches"
+              to="pitches/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -157,7 +157,7 @@ export function AdminLayout() {
         <div className={`mobile-sidebar ${mobileMenuOpen ? "active" : ""}`}>
           <nav className="sidebar-nav">
             <NavLink
-              to="users"
+              to="users/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -170,7 +170,7 @@ export function AdminLayout() {
             </NavLink>
 
             <NavLink
-              to="localities"
+              to="localities/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -183,7 +183,7 @@ export function AdminLayout() {
             </NavLink>
 
             <NavLink
-              to="coupons"
+              to="coupons/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -195,7 +195,7 @@ export function AdminLayout() {
               <div className="nav-text">Cupones</div>
             </NavLink>
             <NavLink
-              to="categories"
+              to="categories/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -207,7 +207,7 @@ export function AdminLayout() {
               <div className="nav-text">Categorías</div>
             </NavLink>
             <NavLink
-              to="business"
+              to="business/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -219,7 +219,7 @@ export function AdminLayout() {
               <div className="nav-text">Business</div>
             </NavLink>
             <NavLink
-              to="pitches"
+              to="pitches/getAll"
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }

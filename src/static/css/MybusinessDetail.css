@@ -33,12 +33,12 @@
 
 /* MybusinessDetail.css */
 
-.detail-item span {
-  color: black;
+.crud-form-container .detail-item span {
+  color: #1e293b;
   font-size: 1.1rem;
   font-weight: 500;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #475569;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .image-container {

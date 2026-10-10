@@ -189,14 +189,14 @@ export default function PitchGetAll() {
                                             <td className="table-cell">
                                                 <div className="action-buttons">
                                                     <Link
-                                                        to={`/admin/pitchs/getOne/${pitch.id}`}
+                                                        to={`/admin/pitches/detail/${pitch.id}`}
                                                         className="action-button view-button"
                                                         title="Ver detalles"
                                                     >
                                                         Ver
                                                     </Link>
                                                     <Link
-                                                        to={`/admin/pitchs/update/${pitch.id}`}
+                                                        to={`/admin/pitches/update/${pitch.id}`}
                                                         className="action-button edit-button"
                                                         title="Editar cancha"
                                                     >
