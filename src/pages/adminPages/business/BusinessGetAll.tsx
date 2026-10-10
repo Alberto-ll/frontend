@@ -5,19 +5,7 @@ import DeleteConfirm from '../../../components/DeleteConfirm';
 import { localityService, userService, businessService } from '../../../services';
 import type { Locality } from '../../../types/localityType';
 import type { User } from '../../../types/userType';
-
-interface Business {
-  id?: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt?: Date;
-  schedule: { day: number; open: string | null; close: string | null }[];
-  locality: number | Locality; // Puede ser ID u objeto
-  owner: number | User; // Puede ser ID u objeto
-}
+import type { Business } from '../../../types/businessType';
 
 const BusinessGetAll = () => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -33,9 +21,9 @@ const BusinessGetAll = () => {
 
   const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-  const getLocalityName = (locality: number | Locality): string => {
+  const getLocalityName = (locality: Business['locality']): string => {
     if (typeof locality === 'object' && locality !== null) {
-      return locality.name;
+      return locality.name || 'N/A';
     } else if (typeof locality === 'number') {
       const foundLocality = localities.find(l => l.id === locality);
       return foundLocality?.name || 'N/A';
@@ -43,9 +31,9 @@ const BusinessGetAll = () => {
     return 'N/A';
   };
 
-  const getOwnerName = (owner: number | User): string => {
+  const getOwnerName = (owner?: Business['owner']): string => {
     if (typeof owner === 'object' && owner !== null) {
-      return owner.name || owner.email || 'N/A';
+      return owner.name || ('email' in owner ? owner.email : undefined) || 'N/A';
     } else if (typeof owner === 'number') {
       const foundOwner = owners.find(o => o.id === owner);
       return foundOwner?.name || foundOwner?.email || 'N/A';

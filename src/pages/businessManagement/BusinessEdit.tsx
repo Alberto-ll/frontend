@@ -3,23 +3,11 @@ import { useNavigate, useOutletContext, Navigate } from "react-router";
 import '../../static/css/categories/categoryUpdate.css';
 import { businessService, localityService } from '../../services';
 import { ScheduleEditor } from '../../components/ScheduleEditor';
-import type { ScheduleItem } from '../../types/businessType';
+import type { ScheduleItem, Business } from '../../types/businessType';
 import { createDefaultSchedule, isDayInvalid } from '../../utils/scheduleUtils';
 import { useAuth } from '../../hooks/useAuth';
 import { errorHandler } from '../../utils/errorHandler';
 import type { Locality } from '../../types/localityType';
-
-interface Business {
-  id: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  schedule: ScheduleItem[];
-  locality: number | { id: number; name: string };
-  owner: number | { id: number; name: string; email: string };
-}
 
 const BusinessEdit = () => {
   const navigate = useNavigate();

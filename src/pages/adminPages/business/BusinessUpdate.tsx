@@ -3,22 +3,9 @@ import { useParams, useNavigate, useOutletContext } from "react-router";
 import '../../../static/css/categories/categoryUpdate.css';
 import { businessService, localityService, userService } from '../../../services';
 import { ScheduleEditor } from '../../../components/ScheduleEditor';
-import type { ScheduleItem } from '../../../types/businessType';
+import type { ScheduleItem, Business } from '../../../types/businessType';
 import type { Locality } from '../../../types/localityType';
 import type { User } from '../../../types/userType';
-
-interface Business {
-  id: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt?: Date;
-  schedule: ScheduleItem[];
-  locality: number | { id: number; name: string };
-  owner: number | { id: number; name: string; email: string };
-}
 
 const BusinessUpdate = () => {
   const { id } = useParams<{ id: string }>();
@@ -188,9 +175,9 @@ const BusinessUpdate = () => {
   };
 
   // Función para obtener el nombre de la localidad
-  const getLocalityName = (locality: number | { id: number; name: string }): string => {
+  const getLocalityName = (locality: Business['locality']): string => {
     if (typeof locality === 'object' && locality !== null) {
-      return locality.name;
+      return locality.name || `ID: ${locality.id}`;
     } else if (typeof locality === 'number') {
       const foundLocality = localities.find(l => l.id === locality);
       return foundLocality?.name || `ID: ${locality}`;
@@ -199,9 +186,9 @@ const BusinessUpdate = () => {
   };
 
   // Función para obtener el nombre del dueño
-  const getOwnerName = (owner: number | { id: number; name: string; email: string }): string => {
+  const getOwnerName = (owner?: Business['owner']): string => {
     if (typeof owner === 'object' && owner !== null) {
-      return owner.name || owner.email || 'N/A';
+      return owner.name || ('email' in owner ? owner.email : undefined) || `ID: ${owner.id}`;
     } else if (typeof owner === 'number') {
       const foundOwner = owners.find(o => o.id === owner);
       return foundOwner?.name || foundOwner?.email || `ID: ${owner}`;

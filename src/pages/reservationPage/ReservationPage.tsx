@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { BusinessData, ScheduleItem } from '../../types/businessType';
+import type { Business, ScheduleItem } from '../../types/businessType';
 import '../../static/css/reservationPage.css';
 import { useAuth } from '../../hooks/useAuth';
 import { pitchService, reservationService } from '../../services';
@@ -9,10 +9,6 @@ import { errorHandler } from '../../utils/errorHandler';
 interface OccupiedSlot {
   ReservationDate: string;
   ReservationTime: string;
-}
-
-interface Business extends BusinessData {
-  name?: string;
 }
 
 interface PitchWithReservations {

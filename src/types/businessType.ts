@@ -1,17 +1,33 @@
+import type { Locality } from "./localityType";
+import type { User } from "./userType";
+
 export type ScheduleItem = {
   day: number;
   open: string | null;
   close: string | null;
 };
 
-export type BusinessData = {
+export type BusinessOwner =
+  | number
+  | User
+  | { id: number; name?: string; email?: string };
+export type BusinessLocality =
+  | number
+  | Locality
+  | { id: number; name?: string };
+
+export interface Business {
   id: number;
-  owner: number | { id: number; name?: string } | undefined;
   businessName: string;
+  name?: string;
   address: string;
-  averageRating: number; 
+  averageRating: number;
   reservationDepositPercentage: number;
   active: boolean;
-  locality: number | { id: number; name?: string };
+  activatedAt?: Date | string;
   schedule: ScheduleItem[];
-};
+  locality: BusinessLocality;
+  owner?: BusinessOwner;
+}
+
+export type BusinessData = Business;

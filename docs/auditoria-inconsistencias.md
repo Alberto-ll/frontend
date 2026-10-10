@@ -310,24 +310,17 @@ El término para "cancha de fútbol" se implementó con dos vocabularios distint
 
 Además, en [`BusinessDetailPage.tsx`](file:///Users/constantinofinelli/frontend/src/pages/businessList/BusinessDetailPage.tsx#L208-L230) se creó una **tercera tarjeta de cancha** escrita directamente inline con clases `.pitch-card-item`.
 
-### 5.2 Verbos CRUD: "Add" vs "Create" vs "CreateUser"
+### 5.2 Verbos CRUD: "Add" vs "Create" vs "CreateUser" - ✅ RESUELTO
 
-En las rutas de administración de `App.tsx` y nombres de archivo:
-- Para Cupones: `couponAdd.tsx` -> ruta `coupons/add/`
-- Para Canchas: `pitchAdd.tsx` -> ruta `pitchs/add/`
-- Para Negocios: `businessCreate.tsx` -> ruta `business/create/`
-- Para Localidades: `localityCreate.tsx` -> ruta `localities/create/`
-- Para Categorías: `categoryCreate.tsx` -> ruta `categories/create/`
-- Para Usuarios: `userCreate.tsx` -> ruta `users/createUser/` (¡inconsistente con todas las demás!)
+> **Estado: Resuelto.**
+> - Las rutas de administración admiten tanto la convención canónica `create` como los alias de retrocompatibilidad (`add`, `createUser`).
+> - Las páginas de cupones se adaptaron para usar el formulario unificado de creación (`CouponAdd` / `CouponCreate`).
 
-### 5.3 Vistas individuales: "GetOne" vs "Detail"
+### 5.3 Vistas individuales: "GetOne" vs "Detail" - ✅ RESUELTO
 
-- Cupones: `couponGetOne.tsx` -> ruta `coupons/getOne/`
-- Canchas: `pitchGetOne.tsx` -> ruta `pitchs/getOne/:id`
-- Localidades: `localityDetail.tsx` -> ruta `localities/getOne/:id` (el archivo dice `Detail`, la ruta dice `getOne`)
-- Negocios: `businessDetail.tsx` -> ruta `business/detail/:id`
-- Categorías: `categoryDetail.tsx` -> ruta `categories/detail/:id`
-- Usuarios: `userDetail.tsx` -> ruta `users/detail/:id`
+> **Estado: Resuelto.**
+> - Todas las entidades de administración soportan la ruta canónica `detail/:id` con soporte retrocompatible para `getOne/:id`.
+> - Las vistas individuales de cupones (`CouponGetOne` / `CouponDetail`) se alinearon al diseño de tarjetas de detalle con botones de acción ("Volver a la lista", "Editar" y "Eliminar").
 
 ### 5.4 Plurales y errores ortográficos en rutas
 
@@ -363,8 +356,15 @@ Al no existir archivos centralizados en `src/types/`, las mismas interfaces se r
    - [`src/pages/businessList/BusinessListPage.tsx#L10`](file:///Users/constantinofinelli/frontend/src/pages/businessList/BusinessListPage.tsx#L10)
 2. **`interface Category`** se declara en **6 archivos**:
    - `categoryService.ts`, `categoryDetail.tsx`, `userCreate.tsx`, `categoryGetAll.tsx`, `categoryUpdate.tsx`, `userUpdate.tsx`.
-3. **`interface User`** se declara en **9 archivos**, compitiendo con `UserData` de `userData.ts`.
-4. **`interface Reservation`** tiene definiciones disonantes:
+3. **`interface User`** se declara en **9 archivos**, compitiendo con `UserData` de `userData.ts`. (Resuelto con `src/types/userType.ts`).
+4. **`interface Business`** se redeclaraba localmente en **5 archivos**:
+   - `src/pages/adminPages/business/BusinessGetAll.tsx`
+   - `src/pages/adminPages/business/BusinessUpdate.tsx`
+   - `src/pages/adminPages/business/BusinessDetail.tsx`
+   - `src/pages/businessManagement/BusinessEdit.tsx`
+   - `src/pages/reservationPage/ReservationPage.tsx`
+   (Resuelto centralizando `Business` y `BusinessData` en [`src/types/businessType.ts`](file:///Users/constantinofinelli/frontend/src/types/businessType.ts)).
+5. **`interface Reservation`** tiene definiciones disonantes:
    - En [`reservationType.ts`](file:///Users/constantinofinelli/frontend/src/types/reservationType.ts#L4): `pitch: Pitch; user: UserData;`.
    - En [`reservationService.ts`](file:///Users/constantinofinelli/frontend/src/services/reservationService.ts#L3): `pitch?: number | { id: number }; user?: number | { id: number; name?: string };`.
    - En [`reservePitchTypes.ts`](file:///Users/constantinofinelli/frontend/src/types/reservePitchTypes.ts#L37): `pitch: number; user: number;`.
@@ -543,6 +543,9 @@ Para resolver de manera metódica y segura las inconsistencias encontradas, se r
 3. **[x] Consolidar `Pitch` y `Court`:**
    - Consolidado `src/types/pitchType.ts` como única fuente de verdad para la entidad canchas.
    - Deprecado `ReservePitch` en `src/types/reservePitchTypes.ts` apuntando como alias directo a `Pitch`.
+4. **[x] Consolidar `Business` y `BusinessData`:**
+   - Centralizado el modelo `Business` y su alias `BusinessData` en `src/types/businessType.ts`.
+   - Eliminadas todas las redeclaraciones locales de `interface Business` en `BusinessGetAll.tsx`, `BusinessUpdate.tsx`, `BusinessDetail.tsx`, `BusinessEdit.tsx` y `ReservationPage.tsx`.
 
 ### Fase 3: Estandarización de Nombres de Archivos y Componentes (Prioridad Media) - ✅ RESUELTO
 1. **[x] Corregir la carpeta `businessManagment`:**

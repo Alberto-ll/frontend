@@ -7,19 +7,7 @@ import { errorHandler } from '../../../utils/errorHandler';
 import StarRating from '../../../components/StarRating';
 import type { Locality } from '../../../types/localityType';
 import type { User } from '../../../types/userType';
-
-interface Business {
-  id: number;
-  businessName: string;
-  address: string;
-  averageRating: number;
-  reservationDepositPercentage: number;
-  active: boolean;
-  activatedAt?: Date;
-  schedule: { day: number; open: string | null; close: string | null }[];
-  locality: number | { id: number; name: string };
-  owner: number | { id: number; name: string; email: string };
-}
+import type { Business } from '../../../types/businessType';
 
 const BusinessDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,9 +43,9 @@ const BusinessDetail = () => {
     }
   };
 
-  const getLocalityName = (locality: number | { id: number; name: string }): string => {
+  const getLocalityName = (locality: Business['locality']): string => {
     if (typeof locality === 'object' && locality !== null) {
-      return locality.name;
+      return locality.name || `ID: ${locality.id}`;
     } else if (typeof locality === 'number') {
       const foundLocality = localities.find(l => l.id === locality);
       return foundLocality?.name || `ID: ${locality}`;
@@ -65,9 +53,9 @@ const BusinessDetail = () => {
     return 'N/A';
   };
 
-  const getOwnerName = (owner: number | { id: number; name: string; email: string }): string => {
+  const getOwnerName = (owner?: Business['owner']): string => {
     if (typeof owner === 'object' && owner !== null) {
-      return owner.name || owner.email || 'N/A';
+      return owner.name || ('email' in owner ? owner.email : undefined) || `ID: ${owner.id}`;
     } else if (typeof owner === 'number') {
       const foundOwner = owners.find(o => o.id === owner);
       return foundOwner?.name || foundOwner?.email || `ID: ${owner}`;
@@ -139,7 +127,7 @@ const BusinessDetail = () => {
     return `${(percentage * 100).toFixed(1)}%`;
   };
 
-  const formatDate = (dateString?: Date) => {
+  const formatDate = (dateString?: Date | string) => {
     if (!dateString) return 'No activado';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {

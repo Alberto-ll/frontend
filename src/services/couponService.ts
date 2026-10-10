@@ -1,11 +1,5 @@
 import { api } from './api';
-
-interface Coupon {
-  id: number;
-  discount: number;
-  expiringDate: string;
-  status: string;
-}
+import type { Coupon } from '../types/couponType';
 
 export async function getAll(): Promise<Coupon[]> {
   return api.get<Coupon[]>('/api/coupons/getAll');
