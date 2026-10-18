@@ -1,69 +1,299 @@
-/* Header específico de Homepage */
+/* ========================================================
+   HomePageNav — alineado con el patrón unificado
+   (businessList.css / PitchCard.css / ReservePitch.css)
+   Verde primario #16a34a · hover #15803d · acento #bbf7d0
+   ======================================================== */
+
 .homeHeader {
-    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
-    padding: 1rem 0;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  padding: 0.75rem 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
 }
 
-.Nav{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 0px 10px;
+.Nav {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
+
+/* ---------- Logo ---------- */
+.Nav .companyName {
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.Nav .companyName:hover {
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+.companyName .navIcon {
+  color: #bbf7d0;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- Lista de links ---------- */
 .Nav ul {
-    display: flex;
-    justify-content: flex-end;
-    list-style: none;
-    padding: 0 2rem;
-}
-
-.Nav .companyName{
-    margin: 0;
-    cursor: pointer;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  height: 60px;
+  width: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .Nav li {
-    margin-left: 2rem;
-    margin-top: 1.2rem;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
+/* ---------- Links base ---------- */
 .Nav a {
-    color: white;
-    text-decoration: none;
-    font-weight: 600;
-    padding: 1.5rem 1rem;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-    position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: clamp(0.875rem, 1vw, 1rem);
+  padding: 0 0.85rem;
+  height: 42px;
+  width: auto;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.2s ease;
 }
 
-.Nav a:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-}
+/* Subrayado animado (reemplaza línea amarilla) */
 .Nav a::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
-    left: 50%;
-    background-color: #ffc107;
-    transition: all 0.3s ease;
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 3px;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* ---------- Hover ---------- */
+.Nav a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .Nav a:hover::after {
-    width: 80%;
-    left: 10%;
+  width: calc(100% - 1.5rem);
+  background-color: rgba(187, 247, 208, 0.7);
 }
 
-.Nav .companyName{
+/* ---------- Activo (página actual) ---------- */
+.Nav a.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+}
+
+.Nav a.active::after {
+  width: calc(100% - 1.5rem);
+  background-color: #bbf7d0;
+}
+
+/* ---------- CTA Login ---------- */
+.Nav a.nav-cta {
+  background-color: #bbf7d0;
+  color: #166534;
+  font-weight: 700;
+  height: 40px;
+  width: auto;
+}
+
+.Nav a.nav-cta:hover {
+  background-color: #ffffff;
+  color: #14532d;
+}
+
+.Nav a.nav-cta::after {
+  display: none;
+}
+
+/* ---------- Logout (ghost) ---------- */
+.Nav a.nav-logout {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  height: 40px;
+  width: auto;
+}
+
+.Nav a.nav-logout:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(187, 247, 208, 0.5);
+}
+
+.Nav a.nav-logout::after {
+  display: none;
+}
+
+/* ---------- Chip de usuario ---------- */
+.Nav li.nav-user-item {
+  flex: 0 1 auto;
+  height: auto;
+}
+
+.nav-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(187, 247, 208, 0.35);
+  border-radius: 20px;
+  padding: 0.35rem 0.85rem;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Toggle hamburguesa ---------- */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 1.15rem;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(187, 247, 208, 0.5);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .nav-toggle {
     display: flex;
-    flex-direction: row;
+  }
+
+  .Nav ul {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    display: none;
+    z-index: 200;
+  }
+
+  .Nav ul.open {
+    display: flex;
+  }
+
+  .Nav li {
+    width: 100%;
+    height: auto;
+  }
+
+  .Nav a {
+    color: #1f2937;
+    justify-content: flex-start;
+    height: auto;
+    padding: 0.7rem 1rem;
+    width: 100%;
+  }
+
+  .Nav a::after {
+    display: none;
+  }
+
+  .Nav a:hover {
+    background-color: #f9fafb;
+  }
+
+  /* Activo = estilo is-today (businessList.css) */
+  .Nav a.active {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border-left: 3px solid #16a34a;
+  }
+
+  .Nav a.nav-cta {
+    background-color: #16a34a;
+    color: #ffffff;
+    justify-content: center;
+  }
+
+  .Nav a.nav-cta:hover {
+    background-color: #15803d;
+  }
+
+  .Nav a.nav-logout {
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    justify-content: center;
+  }
+
+  .Nav a.nav-logout:hover {
+    background-color: #f9fafb;
+    border-color: #bbf7d0;
+    color: #15803d;
+  }
+
+  .nav-user-chip {
+    background: #f9fafb;
+    border-color: #bbf7d0;
+    color: #1f2937;
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+  }
 }
 
-.companyName .navIcon{
-    margin-top: 5px;
-}
+@media (max-width: 480px) {
+  .Nav {
+    padding: 0 1rem;
+  }
 
+  .Nav .companyName {
+    font-size: 1.2rem;
+  }
+}

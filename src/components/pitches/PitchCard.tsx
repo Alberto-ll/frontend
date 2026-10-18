@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaRulerVertical, FaLeaf, FaHome, FaStar } from 'react-icons/fa';
 import type { ReservePitch } from '../../types/reservePitchTypes';
 import '../../static/css/components/PitchCard.css';
 import StarRating from '../StarRating';
@@ -41,7 +42,7 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, onReserve }) => {
         />
         <div className="pitch-card-badge">
           <span className="pitch-card-rating">
-            ⭐ {pitch.rating.toFixed(1)}
+            <FaStar size={12} /> {pitch.rating.toFixed(1)}
           </span>
         </div>
       </div>
@@ -54,17 +55,17 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, onReserve }) => {
 
         <div className="pitch-card-details">
           <div className="pitch-detail-row">
-            <span className="pitch-detail-icon">📏</span>
+            <FaRulerVertical className="pitch-detail-icon" size={14} />
             <span className="pitch-detail-text">Tamaño: {pitch.size}</span>
           </div>
           <div className="pitch-detail-row">
-            <span className="pitch-detail-icon">🌿</span>
+            <FaLeaf className="pitch-detail-icon" size={14} />
             <span className="pitch-detail-text">
               {pitch.groundType.charAt(0).toUpperCase() + pitch.groundType.slice(1)}
             </span>
           </div>
           <div className="pitch-detail-row">
-            <span className="pitch-detail-icon">🏠</span>
+            <FaHome className="pitch-detail-icon" size={14} />
             <span className="pitch-detail-text">
               {pitch.roof ? 'Con techo' : 'Sin techo'}
             </span>

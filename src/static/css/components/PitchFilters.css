@@ -20,6 +20,9 @@
 }
 
 .pitch-filters-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.25rem;
   font-weight: 700;
   color: #1f2937;
@@ -27,11 +30,14 @@
 }
 
 .pitch-clear-filters-btn {
-  background: #ef4444;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #6b7280;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -39,7 +45,7 @@
 }
 
 .pitch-clear-filters-btn:hover {
-  background: #dc2626;
+  background: #4b5563;
   transform: translateY(-1px);
 }
 
@@ -67,7 +73,7 @@
   padding: 0.625rem;
   border: 1px solid #d1d5db;
   color: black;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s;
   background: white;
@@ -76,8 +82,8 @@
 .pitch-filter-input:focus,
 .pitch-filter-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
 }
 
 .pitch-price-filter-group {

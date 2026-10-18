@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaSearch, FaEraser } from 'react-icons/fa';
 import type { ReservePitchFilters } from '../../types/reservePitchTypes';
 import '../../static/css/components/PitchFilters.css';
 
@@ -46,9 +47,11 @@ const PitchFilters: React.FC<PitchFiltersProps> = ({
   return (
     <div className="pitch-filters-container">
       <div className="pitch-filters-header">
-        <h3 className="pitch-filters-title">🔍 Filtros de búsqueda</h3>
+        <h3 className="pitch-filters-title">
+          <FaSearch size={16} /> Filtros de búsqueda
+        </h3>
         <button onClick={onClearFilters} className="pitch-clear-filters-btn">
-          🧹 Limpiar
+          <FaEraser size={13} /> Limpiar
         </button>
       </div>
 

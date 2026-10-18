@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { FaFutbol } from 'react-icons/fa';
 import type { ReservePitch, ReservePitchFilters } from '../types/reservePitchTypes';
 import PitchFilters from '../components/filters/PitchFilters';
 import PitchCard from '../components/pitches/PitchCard';
@@ -123,10 +124,7 @@ const ReservePitchPage: React.FC = () => {
         </p>
           <div className="reserve-pitch-stats">
           <span className="stat-badge">
-            Total: <strong>{pitches.length}</strong> canchas
-          </span>
-          <span className="stat-badge">
-            Mostrando: <strong>{pitches.length}</strong> canchas
+            <strong>{pitches.length}</strong> canchas disponibles
           </span>
         </div>
       </div>
@@ -158,7 +156,7 @@ const ReservePitchPage: React.FC = () => {
             </div>
           ) : renderError ? (
             <div className="no-results">
-              <p className="no-results-icon">!</p>
+              <FaFutbol className="no-results-icon" size={56} />
               <h3 className="no-results-title">Error al mostrar canchas</h3>
               <p className="no-results-text">{renderError}</p>
               <button onClick={() => { setRenderError(null); fetchPitches(filters); }} className="retry-button">
@@ -167,7 +165,7 @@ const ReservePitchPage: React.FC = () => {
             </div>
           ) : pitches.length === 0 ? (
             <div className="no-results">
-              <p className="no-results-icon">!</p>
+              <FaFutbol className="no-results-icon" size={56} />
               <h3 className="no-results-title">No hay canchas disponibles</h3>
               <p className="no-results-text">
                 Actualmente no hay canchas que coincidan con los filtros seleccionados.
