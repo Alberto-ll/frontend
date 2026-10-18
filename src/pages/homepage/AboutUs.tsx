@@ -58,7 +58,7 @@ export default function AboutUs() {
                                 <div className="tech-list">
                                     <span className="tech-item">Node.js</span>
                                     <span className="tech-item">Express.js</span>
-                                    <span className="tech-item">MySQL</span>
+                                    <span className="tech-item">PostgreSQL</span>
                                     <span className="tech-item">JWT Authentication</span>
                                     <span className="tech-item">RESTful API</span>
                                 </div>
@@ -69,7 +69,7 @@ export default function AboutUs() {
                                     <span className="tech-item">Git & GitHub</span>
                                     <span className="tech-item">Postman</span>
                                     <span className="tech-item">VS Code</span>
-                                    <span className="tech-item">MySQL</span>
+                                    <span className="tech-item">PostgreSQL</span>
                                 </div>
                             </div>
                         </div>
