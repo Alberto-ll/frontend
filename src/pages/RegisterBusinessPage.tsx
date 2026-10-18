@@ -7,6 +7,7 @@ import { userService, localityService, businessService } from '../services';
 import { errorHandler } from '../utils/errorHandler';
 import { ScheduleEditor } from '../components/ScheduleEditor';
 import type { Locality } from '../types/localityType';
+import { FaStore, FaMapMarkerAlt, FaCity, FaPercent, FaPaperPlane, FaTimes, FaInfoCircle } from 'react-icons/fa';
 
 export function RegisterBusinessPage(){
     const [localidad, setLocalidad] = useState("")
@@ -113,19 +114,22 @@ export function RegisterBusinessPage(){
 
     return(
         <div className="registerMainContent">
-            <h1 className='formTitle'>Registrar negocio</h1>
+            <header className="formHeader">
+                <h1 className='formTitle'>Registrar negocio</h1>
+                <p className="formSubtitle">Completá los datos de tu negocio deportivo para empezar a recibir reservas</p>
+            </header>
             <form className='registerForm' onSubmit={handleRegisterSubmit}>
                 {!loading && <div className="inputs">
                     <div className='input'>
-                        <label htmlFor="businessName">Nombre del negocio</label>
+                        <label htmlFor="businessName"><FaStore /> Nombre del negocio</label>
                         <input type='text' required id="businessName" name="businessName"/>
                     </div>
                     <div className='input'>
-                        <label htmlFor='businessAdress'>Dirección del negocio</label>
+                        <label htmlFor='businessAdress'><FaMapMarkerAlt /> Dirección del negocio</label>
                         <input type='text' required id="businessAdress" name="businessAdress"/>
                     </div>
                     <div className="input">
-                    <label htmlFor="businessLocality">Localidad del negocio</label>
+                    <label htmlFor="businessLocality"><FaCity /> Localidad del negocio</label>
                     <select
                         required
                         id="businessLocality"
@@ -140,8 +144,16 @@ export function RegisterBusinessPage(){
                             </select>
                     </div>
                     <div className='input'>
-                        <label htmlFor="businessPercentage">Porcentaje de reserva</label>
+                        <label htmlFor="businessPercentage"><FaPercent /> Porcentaje de reserva/seña</label>
                         <input type='number' required id="businessPercentage" step="0.01" name="businessPercentage" max={0.5} />
+                        <p className="helpText">
+                            <FaInfoCircle />
+                            <span>
+                                Es el porcentaje del precio total que se cobra como seña al reservar.
+                                Ingresá un valor entre 0 y 0.5 en formato decimal (ej: 0.20 = 20% del precio).
+                                Define el monto anticipado que garantiza la reserva del cliente.
+                            </span>
+                        </p>
                     </div>
                     <div className='input'>
                         <ScheduleEditor value={schedule} onChange={setSchedule} />
@@ -149,8 +161,8 @@ export function RegisterBusinessPage(){
                 </div>}
                 {loading && <div>Cargando...</div>}
                 <div className="submit">
-                    <button type="button" className="secondary">Cancelar</button>
-                    <button type="submit" className="primary">Enviar formulario</button>
+                    <button type="button" className="secondary"><FaTimes /> Cancelar</button>
+                    <button type="submit" className="primary"><FaPaperPlane /> Enviar formulario</button>
                 </div>
             </form>
         </div>

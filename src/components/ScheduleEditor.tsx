@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { ScheduleItem } from '../types/businessType';
 import { SCHEDULE_DAYS, createDefaultSchedule, isDayInvalid, isNullish } from '../utils/scheduleUtils';
+import { FaClock } from 'react-icons/fa';
+import '../static/css/components/ScheduleEditor.css';
 
 interface ScheduleEditorProps {
     value: ScheduleItem[];
@@ -55,8 +57,19 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
     };
 
     return (
-        <div className="schedule-editor" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <h4 style={{ margin: 0 }}>Horarios de atención</h4>
+        <div className="schedule-editor">
+            <h4 className="schedule-editor__title">
+                <FaClock /> Horarios de atención
+            </h4>
+
+            <div className="schedule-editor__header" aria-hidden="true">
+                <span />
+                <span className="schedule-editor__col-open">Desde</span>
+                <span />
+                <span className="schedule-editor__col-close">Hasta</span>
+                <span />
+            </div>
+
             {SCHEDULE_DAYS.map(({ day, name }) => {
                 const item = schedule.find(s => s.day === day);
                 const isOpen = item?.open != null && item?.close != null;
@@ -66,78 +79,60 @@ export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
                 return (
                     <div
                         key={day}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem',
-                            padding: '0.5rem 0.75rem',
-                            border: invalid ? '2px solid #dc2626' : '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            backgroundColor: invalid ? '#fef2f2' : isOpen ? '#f0fdf4' : '#fef2f2',
-                        }}
+                        className={[
+                            'schedule-day',
+                            !isOpen && !invalid ? 'schedule-day--closed' : '',
+                            invalid ? 'schedule-day--invalid' : '',
+                        ].filter(Boolean).join(' ')}
                     >
-                        <label
-                            style={{
-                                minWidth: '100px',
-                                fontWeight: 600,
-                                fontSize: '0.9rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                            }}
-                        >
+                        <label className="schedule-day__toggle">
                             <input
                                 type="checkbox"
                                 checked={isOpen}
                                 onChange={() => toggleDay(day)}
-                                style={{ cursor: 'pointer' }}
                             />
                             {name}
                         </label>
 
                         {isOpen ? (
                             <>
-                                <input
-                                    type="time"
-                                    value={item?.open || ''}
-                                    onChange={e => updateDay(day, 'open', e.target.value)}
-                                    style={{
-                                        padding: '0.35rem 0.5rem',
-                                        borderRadius: '4px',
-                                        border: invalid ? '2px solid #dc2626' : '1px solid #d1d5db',
-                                    }}
-                                />
-                                <span style={{ color: '#6b7280' }}>a</span>
-                                <input
-                                    type="time"
-                                    value={item?.close || ''}
-                                    onChange={e => updateDay(day, 'close', e.target.value)}
-                                    style={{
-                                        padding: '0.35rem 0.5rem',
-                                        borderRadius: '4px',
-                                        border: invalid ? '2px solid #dc2626' : '1px solid #d1d5db',
-                                    }}
-                                />
+                                <div className="schedule-day__open">
+                                    <input
+                                        type="time"
+                                        className="schedule-day__time"
+                                        value={item?.open || ''}
+                                        aria-label={`Hora de apertura de ${name}`}
+                                        onChange={e => updateDay(day, 'open', e.target.value)}
+                                    />
+                                </div>
+                                <span className="schedule-day__sep">a</span>
+                                <div className="schedule-day__close">
+                                    <input
+                                        type="time"
+                                        className="schedule-day__time"
+                                        value={item?.close || ''}
+                                        aria-label={`Hora de cierre de ${name}`}
+                                        onChange={e => updateDay(day, 'close', e.target.value)}
+                                    />
+                                </div>
                             </>
                         ) : (
-                            <span style={{ color: '#9ca3af', fontStyle: 'italic', marginLeft: '0.5rem' }}>
-                                Cerrado
-                            </span>
+                            <div className="schedule-day__status">
+                                <span className="schedule-day__chip schedule-day__chip--closed">Cerrado</span>
+                            </div>
                         )}
 
-                        {invalid && (
-                            <span style={{
-                                color: '#dc2626',
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                marginLeft: 'auto',
-                            }}>
-                                {openEqualClose
-                                    ? 'Horario de apertura y cierre iguales'
-                                    : 'Estado inválido: open y close deben ser ambos nulos o ambos con hora'}
-                            </span>
-                        )}
+                        <div className="schedule-day__note">
+                            {invalid ? (
+                                <span className="schedule-day__error">
+                                    {openEqualClose
+                                        ? 'Horario de apertura y cierre iguales'
+                                        : 'Estado inválido: open y close deben ser ambos nulos o ambos con hora'}
+                                </span>
+                            ) : isOpen ? (
+                                <span className="schedule-day__chip schedule-day__chip--open">Abierto</span>
+                            ) : null}
+                        </div>
                     </div>
                 );
             })}

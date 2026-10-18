@@ -1,118 +1,208 @@
+/* Register Business Styles — unificados con Vista A (businessList.css / ReservePitch.css) */
+
 :root {
-    --primary-color: #2ecc71;
-    --secondary-color: #3498db;
-    --dark-color: #2c3e50;
-    --light-color: #ecf0f1;
-    --text-color: #333;
-    --sidebar-width: 280px;
-    
-    /* Variaciones adicionales */
-    --primary-hover: #27ae60;
-    --secondary-hover: #2980b9;
-    --success: #2ecc71;
-    --danger: #e74c3c;
-    --warning: #f39c12;
+    --primary: #16a34a;
+    --primary-hover: #15803d;
+    --text: #1f2937;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    --border: #d1d5db;
+    --border-light: #e5e7eb;
     --surface: #ffffff;
-    --border: #bdc3c7;
 }
 
-.registerMainContent{
+.registerMainContent {
     display: flex;
-    align-items: center;
     flex-direction: column;
+    align-items: center;
     gap: 1rem;
-    background-color: var(--surface);
-    color: var(--text-color);
-    padding: 2rem;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.1);
-    max-width: 600px;
-    margin: 10rem auto;
+    width: 92%;
+    max-width: 1600px;
+    margin: 2rem auto;
+    padding: 2.5rem 3rem;
+    box-sizing: border-box;
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 16px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
 }
 
-.registerForm{
-    border-radius: 10px;
+/* Header de la sección */
+.formHeader {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.formTitle {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+}
+
+.formSubtitle {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.registerForm {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 20px;
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 800px;
     height: fit-content;
 }
 
-.input{
-  display: flex;
-  flex-direction: column;
+.inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.input {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.input label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.input label svg {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
+/* Texto de ayuda bajo un campo */
+.helpText {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin: 0.15rem 0 0;
+    max-width: 540px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.helpText svg {
+    color: var(--primary);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
 }
 
 .registerMainContent input,
 .registerMainContent select,
 .registerMainContent textarea {
-  padding: 0.575rem 1rem;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  background-color: var(--surface);
-  color: var(--text-color);
-  font-size: 1rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  transition: all 0.2s ease-in-out;
-  outline: none;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .registerMainContent input:focus,
 .registerMainContent select:focus,
 .registerMainContent textarea:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
 }
 
 .registerMainContent input:hover:not(:focus),
 .registerMainContent select:hover:not(:focus),
-.registerMainContenttextarea:hover:not(:focus) {
-  border-color: var(--primary-hover);
+.registerMainContent textarea:hover:not(:focus) {
+    border-color: var(--primary-hover);
 }
 
 .submit {
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid var(--border);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-light);
+    width: 100%;
 }
 
 .submit button {
-  color: var(--text-color);
-  padding: 0.875rem 2rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 140px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 140px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .submit button.primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  color: white;
-  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
 
 .submit button.primary:hover {
-  background: linear-gradient(135deg, var(--primary-hover), #1e8449);
-  box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+    background: var(--primary-hover);
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
 
 .submit button.secondary {
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-  color: white;
-  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+    box-shadow: none;
 }
 
 .submit button.secondary:hover {
-  background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
-  box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
+    background: #f9fafb;
 }
 
+@media (max-width: 768px) {
+    .registerMainContent {
+        padding: 1.5rem;
+        margin: 1.5rem auto;
+    }
+
+    .formTitle {
+        font-size: 1.8rem;
+    }
+
+    .formSubtitle {
+        font-size: 0.95rem;
+    }
+
+    .submit {
+        flex-direction: column-reverse;
+    }
+
+    .submit button {
+        width: 100%;
+    }
+}

@@ -1,16 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { Reservation } from '../../types/reservationType';
 import { useOutletContext } from 'react-router';
+import { FaCalendarCheck, FaExclamationTriangle, FaPaperPlane, FaTimes } from 'react-icons/fa';
 import { errorHandler } from '../../utils/errorHandler';
 import '../../static/css/myReservations.css';
 import { useAuth } from '../../hooks/useAuth';
 import { reservationService } from '../../services';
 import StarRating from '../../components/StarRating';
+import ReservationCard from '../../components/reservations/ReservationCard';
 
 export default function MyReservations() {
     const [data, setData] = useState<Reservation[] | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
-    const [ error, setError ] = useState<boolean>(false);
+    const [error, setError] = useState<boolean>(false);
     const [ratingModal, setRatingModal] = useState<{id: number, rating: number} | null>(null);
     const { userData } = useAuth();
 
@@ -24,7 +26,6 @@ export default function MyReservations() {
             }catch(error){
                 showNotification(errorHandler(error), 'error');
                 setError(true);
-                setLoading(false)
             }finally{
                 setLoading(false)
             }
@@ -35,25 +36,22 @@ export default function MyReservations() {
                 findAllFromUser(userData.id);
             }
         }, [error, findAllFromUser, userData]);
-    
 
-    const remove = async (id:number) =>{
-            try{
-                setLoading(true)
-                await reservationService.cancel(id)
-                showNotification('Reserva cancelada con éxito!', 'success')
-            }catch(error){
-                 showNotification(errorHandler(error), 'error');
+    const handleCancel = useCallback(async (id: number) => {
+        if (!confirm("¿Estas seguro que quieres cancelar la reserva?")) return;
+        try {
+            setLoading(true);
+            await reservationService.cancel(id);
+            showNotification('Reserva cancelada con éxito!', 'success');
+            if (userData?.id) {
+                await findAllFromUser(userData.id);
             }
+        } catch (error) {
+            showNotification(errorHandler(error), 'error');
+        } finally {
+            setLoading(false);
         }
-        
-  const handleDeleteSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
-        if(confirm("¿Estas seguro que quieres cancelar la reserva?")){
-            if(e.currentTarget.value) {
-                remove(Number(e.currentTarget.value));
-            }
-        }
-      };
+    }, [findAllFromUser, showNotification, userData]);
 
   const handleRateClick = (id: number) => {
     setRatingModal({ id, rating: 0 });
@@ -72,86 +70,92 @@ export default function MyReservations() {
       showNotification(errorHandler(error), 'error');
     }
   };
-    
-  return (
-    <div className='crud-home-container'>
-         {!loading && <pre className='content-area'>
-            <h1>Mis Reservas</h1>
-            <table className='crudTable'>
-                <thead>
-                    <tr>
-                        <th>ID de reserva</th>
-                        <th>Negocio</th>
-                        <th>ID Cancha</th>
-                        <th>Fecha y hora de reserva</th>
-                        <th>Calificación</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data?.
-      filter((reservation: Reservation) => reservation.status !== 'cancelada')
-      .map((reservation: Reservation) => (
-        <tr key={reservation.id}>
-          <td>{reservation.id}</td>
-          <td>{typeof(reservation.pitch.business) === "object" && reservation.pitch.business.businessName}</td>
-          <td>{reservation.pitch.id}</td>  
-          <td>{reservation.ReservationTime}</td>
-          <td>
-            {reservation.status === 'completada' && reservation.pitchRating ? (
-              <StarRating rating={reservation.pitchRating} size="small" />
-            ) : reservation.status === 'completada' && !reservation.pitchRating ? (
-              <button
-                className='action-button custom'
-                onClick={() => handleRateClick(reservation.id)}
-              >
-                Calificar
-              </button>
-            ) : null}
-          </td>
-          <td>
-            <button
-              className='action-button delete'
-              value={reservation.id}
-              onClick={handleDeleteSubmit}
-            >
-              Cancelar
-            </button>
-          </td>
-        </tr>
-      ))}
-                </tbody>
-            </table>
-        </pre>}
-        {loading && <h3>Loading...</h3>}
 
-        {ratingModal && (
-          <div className="rating-modal-overlay" onClick={() => setRatingModal(null)}>
-            <div className="rating-modal" onClick={(e) => e.stopPropagation()}>
-              <h3>Calificar cancha</h3>
-              <div className="rating-modal-stars">
-                <StarRating
-                  rating={ratingModal.rating}
-                  interactive={true}
-                  size="large"
-                  onRate={(r) => setRatingModal(prev => prev ? { ...prev, rating: r } : null)}
-                />
+  const handleRetry = () => {
+    setError(false);
+  };
+
+  const visibleReservations = (data ?? []).filter(r => r.status !== 'cancelada');
+
+  return (
+    <div className='my-reservations-page'>
+        <div className='my-reservations-container'>
+            <header className='my-reservations-header'>
+                <h1>Mis reservas</h1>
+                <p>Gestioná tus reservas de canchas</p>
+            </header>
+
+            {loading && (
+                <div className='my-reservations-state'>
+                    <div className='my-reservations-spinner' />
+                    <p>Cargando tus reservas...</p>
+                </div>
+            )}
+
+            {!loading && error && (
+                <div className='my-reservations-state my-reservations-state--error'>
+                    <div className='my-reservations-state-icon'>
+                        <FaExclamationTriangle size={36} />
+                    </div>
+                    <h3>Error al cargar tus reservas</h3>
+                    <p>Ocurrió un problema al obtener tus reservas. Intentá nuevamente.</p>
+                    <button className='my-reservations-retry-btn' onClick={handleRetry}>
+                        Reintentar
+                    </button>
+                </div>
+            )}
+
+            {!loading && !error && data && visibleReservations.length === 0 && (
+                <div className='my-reservations-state'>
+                    <div className='my-reservations-state-icon'>
+                        <FaCalendarCheck size={36} />
+                    </div>
+                    <h3>No tenés reservas todavía</h3>
+                    <p>Explorá negocios y reservá una cancha para que aparezca acá.</p>
+                </div>
+            )}
+
+            {!loading && !error && visibleReservations.length > 0 && (
+                <div className='reservations-grid'>
+                    {visibleReservations.map(r => (
+                        <ReservationCard
+                            key={r.id}
+                            reservation={r}
+                            onCancel={handleCancel}
+                            onRate={handleRateClick}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {ratingModal && (
+              <div className="rating-modal-overlay" onClick={() => setRatingModal(null)}>
+                <div className="rating-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Calificar cancha</h3>
+                  <div className="rating-modal-stars">
+                    <StarRating
+                      rating={ratingModal.rating}
+                      interactive={true}
+                      size="large"
+                      onRate={(r) => setRatingModal(prev => prev ? { ...prev, rating: r } : null)}
+                    />
+                  </div>
+                  <div className="rating-modal-actions">
+                    <button className="rating-modal-cancel" onClick={() => setRatingModal(null)}>
+                      <FaTimes size={13} /> Cancelar
+                    </button>
+                    <button
+                      className="rating-modal-submit"
+                      onClick={submitRating}
+                      disabled={ratingModal.rating === 0}
+                    >
+                      <FaPaperPlane size={13} /> Enviar
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="rating-modal-actions">
-                <button className="action-button delete" onClick={() => setRatingModal(null)}>
-                  Cancelar
-                </button>
-                <button
-                  className="action-button custom"
-                  onClick={submitRating}
-                  disabled={ratingModal.rating === 0}
-                >
-                  Enviar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+            )}
+        </div>
     </div>
   );
 }
