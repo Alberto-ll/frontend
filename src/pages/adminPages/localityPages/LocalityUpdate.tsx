@@ -64,7 +64,7 @@ const LocalityUpdate = () => {
 
       const updateData = {
         name: formData.name.trim(),
-        postal_code: parseInt(formData.postal_code),
+        postal_code: formData.postal_code.trim(),
         province: formData.province.trim()
       };
 

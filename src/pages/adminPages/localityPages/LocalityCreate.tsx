@@ -39,18 +39,13 @@ const LocalityCreate = () => {
         throw new Error('El código postal es obligatorio');
       }
 
-      const postalCode = parseInt(formData.postal_code);
-      if (isNaN(postalCode) || postalCode <= 0) {
-        throw new Error('El código postal debe ser un número válido');
-      }
-      
       if (!formData.province.trim()) {
         throw new Error('La provincia es obligatoria');
       }
 
       const createData = {
         name: formData.name.trim(),
-        postal_code: postalCode,
+        postal_code: formData.postal_code.trim(),
         province: formData.province.trim()
       };
 
