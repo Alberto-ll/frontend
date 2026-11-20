@@ -7,6 +7,7 @@ interface Reservation {
   status: string;
   user?: number | { id: number; name?: string };
   pitch?: number | { id: number };
+  paymentExpiresAt?: string;
   createdAt?: string;
 }
 
@@ -43,6 +44,14 @@ export async function update(id: number | string, data: Partial<Reservation>): P
 
 export async function cancel(id: number | string): Promise<Reservation> {
   return api.put<Reservation>(`/api/reservations/cancel/${id}`);
+}
+
+/**
+ * Confirmación manual TEMPORAL del hold de pago.
+ * Se reemplazará por el webhook de Mercado Pago en la iteración de pagos.
+ */
+export async function confirm(id: number | string): Promise<Reservation> {
+  return api.put<Reservation>(`/api/reservations/confirm/${id}`);
 }
 
 export async function remove(id: number | string): Promise<void> {

@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FaExclamationTriangle } from 'react-icons/fa';
 import type { Business, ScheduleItem } from '../../types/businessType';
 import '../../static/css/reservationPage.css';
 import { useAuth } from '../../hooks/useAuth';
-import { pitchService, reservationService } from '../../services';
+import { pitchService, reservationService, paymentService } from '../../services';
 import { errorHandler } from '../../utils/errorHandler';
+import { parseLocalDate } from '../../utils/date';
+import { resolvePaymentError } from '../../utils/paymentError';
 
 interface OccupiedSlot {
   ReservationDate: string;
@@ -46,6 +49,24 @@ export default function ReservePitchPageMakeReservation() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [dayStatus, setDayStatus] = useState<'closed' | 'unavailable' | 'ok' | null>(null);
+
+  // Hold de pago: reserva recién creada pendiente del pago de la seña.
+  // `expiresAt` proviene de `paymentExpiresAt` (el backend define el hold;
+  // el frontend no inventa una duración propia).
+  const [createdReservation, setCreatedReservation] = useState<{
+    id: number;
+    expiresAt: string | null;
+    createdAtMs: number;
+    depositAmount: number | null;
+  } | null>(null);
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [paying, setPaying] = useState<boolean>(false);
+  const [holdError, setHoldError] = useState<string | null>(null);
+  // URL del checkout de MercadoPago pre-creada apenas existe la reserva.
+  // Tenerla lista permite abrir la pestaña de forma sincrónica con el clic
+  // (los navegadores bloquean `window.open` diferido).
+  const [prepaymentUrl, setPrepaymentUrl] = useState<string | null>(null);
+  const [preparingPayment, setPreparingPayment] = useState<boolean>(false);
 
   const getScheduleForDate = useCallback((schedule: ScheduleItem[] | undefined, dateStr: string): { open: string; close: string } | null => {
     if (!schedule || schedule.length !== 7 || !dateStr) return null;
@@ -222,6 +243,80 @@ export default function ReservePitchPageMakeReservation() {
     }
   }, [date, pitch?.business?.schedule, getScheduleForDate, generateTimeSlots]);
 
+  // Pre-creación de la preferencia de pago: al entrar en el hold se pide la
+  // preferencia en segundo plano y se guarda su URL. Si falla, no se muestra
+  // error (el clic en "Pagar seña" vuelve a intentarlo).
+  const createdReservationId = createdReservation?.id ?? null;
+
+  useEffect(() => {
+    if (createdReservationId === null) {
+      setPrepaymentUrl(null);
+      setPreparingPayment(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPrepaymentUrl(null);
+    setPreparingPayment(true);
+
+    paymentService
+      .createDepositPreference(createdReservationId)
+      .then((preference) => {
+        if (cancelled) return;
+        const url = preference.sandbox_init_point ?? preference.init_point;
+        if (url) {
+          setPrepaymentUrl(url);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn('[payment] No se pudo pre-crear la preferencia de la seña:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setPreparingPayment(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createdReservationId]);
+
+  // Countdown del hold de pago — usa el vencimiento informado por el backend
+  useEffect(() => {
+    if (!createdReservation) {
+      setRemainingMs(null);
+      return;
+    }
+
+    const expiresAt = createdReservation.expiresAt;
+    if (!expiresAt) {
+      // El backend no informó vencimiento: no se inventa una duración.
+      setRemainingMs(null);
+      return;
+    }
+
+    const target = new Date(expiresAt).getTime();
+    if (!Number.isFinite(target)) {
+      setRemainingMs(null);
+      return;
+    }
+
+    const tick = () => setRemainingMs(Math.max(0, target - Date.now()));
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [createdReservation]);
+
+  // Si el hold vence, liberar la pantalla y avisar en Mis reservas
+  useEffect(() => {
+    if (createdReservation && remainingMs !== null && remainingMs <= 0) {
+      navigate('/myReservations', {
+        state: { reservationMessage: 'La reserva expiró porque no se pagó la seña a tiempo.' },
+      });
+    }
+  }, [createdReservation, remainingMs, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pitch) return;
@@ -269,17 +364,25 @@ export default function ReservePitchPageMakeReservation() {
         ReservationTime: `${selectedTime}:00`,
         pitch: pitch.id,
         user: userData.id,
-        status: 'pendiente'
+        status: 'pendiente_pago'
       };
 
-      await reservationService.add(body);
+      const created = await reservationService.add(body) as unknown as {
+        id: number;
+        paymentExpiresAt?: string;
+        depositAmount?: number;
+      };
 
       if (id) {
         await fetchOccupiedSlots(id);
       }
 
-      alert('Reserva creada correctamente');
-      navigate('/myReservations');
+      setCreatedReservation({
+        id: created.id,
+        expiresAt: created.paymentExpiresAt ?? null,
+        createdAtMs: Date.now(),
+        depositAmount: typeof created.depositAmount === 'number' ? created.depositAmount : null,
+      });
     } catch (err) {
       const errObj = err as { _status?: number };
       let msg = errorHandler(err);
@@ -296,6 +399,56 @@ export default function ReservePitchPageMakeReservation() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Abre el checkout en una pestaña nueva. Si el navegador bloquea el popup
+  // devuelve `null`, en ese caso se navega en la pestaña actual como último
+  // recurso para no dejar al usuario sin forma de pagar.
+  const openPaymentTab = (url: string): void => {
+    const paymentWindow = window.open(url, '_blank');
+    if (!paymentWindow) {
+      console.warn(
+        '[payment] window.open devolvió null (popup bloqueado por el navegador). ' +
+        'Se usará la navegación en la pestaña actual como fallback.'
+      );
+      window.location.href = url;
+      return;
+    }
+    paymentWindow.focus();
+  };
+
+  const handlePayDeposit = () => {
+    if (!createdReservation || paying) return;
+
+    setHoldError(null);
+
+    // Caso ideal: la preferencia ya está pre-creada, así que la apertura es
+    // sincrónica con el gesto del usuario y no la bloquea el navegador.
+    if (prepaymentUrl) {
+      openPaymentTab(prepaymentUrl);
+      return;
+    }
+
+    // La preferencia todavía no llegó: se crea ahora y se abre al recibirla.
+    setPaying(true);
+    paymentService
+      .createDepositPreference(createdReservation.id)
+      .then((preference) => {
+        const url = preference.sandbox_init_point ?? preference.init_point;
+        if (!url) {
+          throw new Error('No se recibió URL de redirección de MercadoPago');
+        }
+        setPrepaymentUrl(url);
+        openPaymentTab(url);
+      })
+      .catch((err) => {
+        const { message, expired } = resolvePaymentError(err);
+        setHoldError(message);
+        if (expired) {
+          setRemainingMs(0);
+        }
+      })
+      .finally(() => setPaying(false));
   };
 
   const getBusyTimesForSelectedDate = useCallback((): string[] => {
@@ -316,7 +469,7 @@ export default function ReservePitchPageMakeReservation() {
   const busyTimes = getBusyTimesForSelectedDate();
 
   const formatSpanishDate = (dateString: string): string => {
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     return date.toLocaleDateString('es-ES', {
       weekday: 'long',
       year: 'numeric',
@@ -324,6 +477,127 @@ export default function ReservePitchPageMakeReservation() {
       day: 'numeric'
     });
   };
+
+  // Pantalla de hold: reserva creada, esperando el pago dentro del plazo del backend
+  if (createdReservation) {
+    const expiresAtMs = createdReservation.expiresAt
+      ? new Date(createdReservation.expiresAt).getTime()
+      : null;
+    const deadlineMs = expiresAtMs !== null && Number.isFinite(expiresAtMs) ? expiresAtMs : null;
+    // Ventana total del hold según el backend; se usa solo como referencia de la barra
+    const holdWindowMs = deadlineMs !== null
+      ? Math.max(0, deadlineMs - createdReservation.createdAtMs)
+      : 0;
+    const totalMs = deadlineMs !== null
+      ? Math.max(0, remainingMs ?? deadlineMs - Date.now())
+      : null;
+    const totalSeconds = totalMs !== null ? Math.ceil(totalMs / 1000) : null;
+    const minutes = totalSeconds !== null ? String(Math.floor(totalSeconds / 60)).padStart(2, '0') : null;
+    const seconds = totalSeconds !== null ? String(totalSeconds % 60).padStart(2, '0') : null;
+    const progress = totalMs === null
+      ? 0
+      : holdWindowMs > 0
+        ? Math.min(100, Math.max(0, (totalMs / holdWindowMs) * 100))
+        : 100;
+    const holdExpired = totalMs !== null && totalMs <= 0;
+
+    return (
+      <div className="reserve-pitch-container">
+        <div className="reserve-pitch-header">
+          <h1 className="reserve-pitch-title">Pagá tu reserva</h1>
+          <p className="reserve-pitch-subtitle">
+            Bloqueamos el horario mientras se completa el pago. Aboná la seña con Mercado Pago para confirmarla; si no pagás dentro del plazo, se libera automáticamente.
+          </p>
+        </div>
+
+        <div className="hold-card">
+          <div className={`hold-timer ${holdExpired ? 'hold-timer--expired' : ''}`}>
+            <span className="hold-timer__label">Tiempo restante</span>
+            <span className="hold-timer__value">
+              {minutes !== null && seconds !== null ? `${minutes}:${seconds}` : '--:--'}
+            </span>
+            <div className="hold-timer__bar">
+              <div className="hold-timer__bar-fill" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="reservation-summary">
+            <div className="summary-item">
+              <span>Cancha:</span>
+              <strong>#{pitch?.id} - {pitch?.business?.businessName || 'Negocio'}</strong>
+            </div>
+            {date && (
+              <div className="summary-item">
+                <span>Fecha:</span>
+                <strong>{formatSpanishDate(date)}</strong>
+              </div>
+            )}
+            {selectedTime && (
+              <div className="summary-item">
+                <span>Horario:</span>
+                <strong>{timeSlots.find(slot => slot.time === selectedTime)?.label ?? selectedTime}</strong>
+              </div>
+            )}
+            <div className="summary-item">
+              <span>Total:</span>
+              <strong>${pitch?.price}</strong>
+            </div>
+            {createdReservation.depositAmount !== null && (
+              <div className="summary-item">
+                <span>Seña a pagar:</span>
+                <strong>${createdReservation.depositAmount}</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="deposit-notice" role="note">
+            <FaExclamationTriangle className="deposit-notice__icon" aria-hidden="true" />
+            <p className="deposit-notice__text">
+              La seña no es reembolsable en caso de cancelación.
+            </p>
+          </div>
+
+          {holdError && (
+            <div className="error-message">
+              <span className="error-icon">.</span>
+              <div className="error-content">
+                <strong>No se pudo iniciar el pago:</strong>
+                <span>{holdError}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => navigate('/myReservations')}
+              disabled={paying}
+            >
+              Ver mis reservas
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handlePayDeposit}
+              disabled={paying || preparingPayment || holdExpired || createdReservation.depositAmount === null}
+            >
+              {paying || preparingPayment ? (
+                <>
+                  <span className="button-spinner"></span>
+                  {paying ? 'Iniciando pago...' : 'Preparando pago...'}
+                </>
+              ) : createdReservation.depositAmount !== null ? (
+                `Pagar seña ($${createdReservation.depositAmount})`
+              ) : (
+                'Pagar seña'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -762,6 +1036,13 @@ export default function ReservePitchPageMakeReservation() {
                   </div>
                 </>
               )}
+            </div>
+
+            <div className="deposit-notice" role="note">
+              <FaExclamationTriangle className="deposit-notice__icon" aria-hidden="true" />
+              <p className="deposit-notice__text">
+                La seña no es reembolsable en caso de cancelación.
+              </p>
             </div>
 
             <div className="form-actions">

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, type ChangeEvent } from 'react';
 import { useOutletContext, Navigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
+import { parseLocalDate } from '../../utils/date';
 import { errorHandler } from '../../utils/errorHandler';
 import { useAuth } from '../../hooks/useAuth'; 
 import { businessService, reservationService } from '../../services';
@@ -30,7 +31,124 @@ interface Reservation {
   };
 }
 
-type FilterType = 'all' | 'today' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
+/**
+ * Estados del dominio, espejo de `RESERVATION_STATUS` en
+ * backend/src/reservation/reservationStateMachine.ts.
+ *
+ * La UI usa directamente estos valores (sin token interno intermedio) para
+ * evitar el doble mapeo backend → token → backend que generaba transiciones
+ * rechazadas con 400 por el backend.
+ */
+const RESERVATION_STATUS = {
+  PENDING_PAYMENT: 'pendiente_pago',
+  CONFIRMED: 'confirmada',
+  READY_TO_PAY: 'listo_pagar',
+  IN_PROGRESS: 'en curso',
+  COMPLETED: 'completada',
+  CANCELLED: 'cancelada',
+  ABSENT: 'ausente',
+  EXPIRED: 'expirada',
+  PAYMENT_REJECTED: 'pago_rechazado',
+} as const;
+
+type ReservationStatus = (typeof RESERVATION_STATUS)[keyof typeof RESERVATION_STATUS];
+
+const STATUS_VALUES: readonly string[] = Object.values(RESERVATION_STATUS);
+
+const STATUS_LABELS: Record<ReservationStatus, string> = {
+  [RESERVATION_STATUS.PENDING_PAYMENT]: 'Pendiente de pago',
+  [RESERVATION_STATUS.CONFIRMED]: 'Confirmada',
+  [RESERVATION_STATUS.READY_TO_PAY]: 'Lista para pagar',
+  [RESERVATION_STATUS.IN_PROGRESS]: 'En Curso',
+  [RESERVATION_STATUS.COMPLETED]: 'Completada',
+  [RESERVATION_STATUS.CANCELLED]: 'Cancelada',
+  [RESERVATION_STATUS.ABSENT]: 'Ausente',
+  [RESERVATION_STATUS.EXPIRED]: 'Expirada',
+  [RESERVATION_STATUS.PAYMENT_REJECTED]: 'Pago rechazado',
+};
+
+const STATUS_COLOR_CLASS: Record<ReservationStatus, string> = {
+  [RESERVATION_STATUS.PENDING_PAYMENT]: 'status-pending-payment',
+  [RESERVATION_STATUS.CONFIRMED]: 'status-confirmed',
+  [RESERVATION_STATUS.READY_TO_PAY]: 'status-ready-to-pay',
+  [RESERVATION_STATUS.IN_PROGRESS]: 'status-in-progress',
+  [RESERVATION_STATUS.COMPLETED]: 'status-completed',
+  [RESERVATION_STATUS.CANCELLED]: 'status-cancelled',
+  [RESERVATION_STATUS.ABSENT]: 'status-absent',
+  [RESERVATION_STATUS.EXPIRED]: 'status-expired',
+  [RESERVATION_STATUS.PAYMENT_REJECTED]: 'status-rejected',
+};
+
+interface StatusAction {
+  value: ReservationStatus;
+  label: string;
+  successMessage: string;
+}
+
+/**
+ * Transiciones manuales aceptadas por `PUT /reservations/update/:id` para
+ * OWNER/ADMIN. El resto de cambios de estado no se ofrece en esta pantalla:
+ * - Los estados de pago (`pendiente_pago`, `confirmada`, `listo_pagar`,
+ *   `en curso`) los define el webhook de Mercado Pago (400 desde /update).
+ * - La cancelación tiene su propio endpoint (`PUT /reservations/cancel/:id`),
+ *   que además invalida los pagos pendientes en Mercado Pago.
+ */
+const STATUS_ACTIONS: Partial<Record<ReservationStatus, StatusAction[]>> = {
+  [RESERVATION_STATUS.READY_TO_PAY]: [
+    {
+      value: RESERVATION_STATUS.ABSENT,
+      label: 'Marcar ausente',
+      successMessage: 'Reservación marcada como ausente',
+    },
+  ],
+  [RESERVATION_STATUS.IN_PROGRESS]: [
+    {
+      value: RESERVATION_STATUS.COMPLETED,
+      label: 'Marcar completada',
+      successMessage: 'Reservación completada',
+    },
+  ],
+};
+
+/** Normaliza datos previos a la migración ('pendiente' → 'pendiente_pago'). */
+function normalizeStatus(status: string): string {
+  return status === 'pendiente' ? RESERVATION_STATUS.PENDING_PAYMENT : status;
+}
+
+function isReservationStatus(value: string): value is ReservationStatus {
+  return STATUS_VALUES.includes(value);
+}
+
+function getStatusActions(status: string): StatusAction[] {
+  const normalized = normalizeStatus(status);
+  return isReservationStatus(normalized) ? (STATUS_ACTIONS[normalized] ?? []) : [];
+}
+
+function getStatusText(status: string): string {
+  const normalized = normalizeStatus(status);
+  return isReservationStatus(normalized) ? STATUS_LABELS[normalized] : status;
+}
+
+function getStatusColor(status: string): string {
+  const normalized = normalizeStatus(status);
+  return isReservationStatus(normalized)
+    ? STATUS_COLOR_CLASS[normalized]
+    : 'status-pending-payment';
+}
+
+type FilterType = 'all' | 'today' | ReservationStatus;
+
+const FILTER_BUTTONS: { filter: FilterType; label: string }[] = [
+  { filter: 'all', label: 'Todas' },
+  { filter: 'today', label: 'Hoy' },
+  { filter: RESERVATION_STATUS.PENDING_PAYMENT, label: 'Pendientes de pago' },
+  { filter: RESERVATION_STATUS.CONFIRMED, label: 'Confirmadas' },
+  { filter: RESERVATION_STATUS.READY_TO_PAY, label: 'Listas para pagar' },
+  { filter: RESERVATION_STATUS.IN_PROGRESS, label: 'En Curso' },
+  { filter: RESERVATION_STATUS.COMPLETED, label: 'Completadas' },
+  { filter: RESERVATION_STATUS.ABSENT, label: 'Ausentes' },
+  { filter: RESERVATION_STATUS.CANCELLED, label: 'Canceladas' },
+];
 
 export default function BusinessReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -86,28 +204,6 @@ export default function BusinessReservations() {
       throw error;
     }
   }, [userData?.id, showNotification]);
-
-  const mapStatusToBackend = (frontendStatus: string): string => {
-    const statusMap: Record<string, string> = {
-      'pending': 'pendiente',
-      'confirmed': 'en curso',
-      'completed': 'completada',
-      'cancelled': 'cancelada'
-    };
-    
-    return statusMap[frontendStatus] || frontendStatus;
-  };
-
-  const mapStatusFromBackend = (backendStatus: string): string => {
-    const statusMap: Record<string, string> = {
-      'pendiente': 'pending',
-      'en curso': 'confirmed', 
-      'completada': 'completed',
-      'cancelada': 'cancelled'
-    };
-    
-    return statusMap[backendStatus] || backendStatus;
-  };
 
   const formatDateForBackend = (dateString: string): string => {
     try {
@@ -165,19 +261,33 @@ export default function BusinessReservations() {
     }
   };
 
-  const updateReservationStatus = async (reservationId: number, newStatus: string) => {
+  const updateReservationStatus = async (reservationId: number, newStatus: ReservationStatus) => {
+    const currentReservation = reservations.find(r => r.id === reservationId);
+    if (!currentReservation) {
+      showNotification('No se encontró la reservación', 'error');
+      return;
+    }
+
+    const currentStatus = currentReservation.status;
+    const allowedActions = getStatusActions(currentStatus);
+    const action = allowedActions.find(a => a.value === newStatus);
+
+    // Guarda defensiva: nunca enviar al backend una transición que rechazaría.
+    if (!action) {
+      showNotification(
+        `No se puede cambiar una reservación de "${getStatusText(currentStatus)}" a "${getStatusText(newStatus)}" desde esta pantalla.`,
+        'error'
+      );
+      return;
+    }
+
     try {
       setUpdatingReservation(reservationId);
-      
-      const currentReservation = reservations.find(r => r.id === reservationId);
-      if (!currentReservation) {
-        throw new Error('No se encontró la reservación');
-      }
 
       const updateBody = {
         ReservationDate: formatDateForBackend(currentReservation.ReservationDate),
         ReservationTime: formatTimeForBackend(currentReservation.ReservationTime),
-        status: mapStatusToBackend(newStatus),
+        status: newStatus,
         pitch: currentReservation.pitchId || (currentReservation.pitch?.id),
         user: currentReservation.userId || (currentReservation.user?.id),
         ...(currentReservation.totalPrice && { totalPrice: currentReservation.totalPrice })
@@ -198,14 +308,7 @@ export default function BusinessReservations() {
 
       await reservationService.update(reservationId, updateBody);
       
-      const statusMessages: Record<string, string> = {
-        'pending': 'Reservación marcada como pendiente!',
-        'confirmed': 'Reservación en curso!',
-        'completed': 'Reservación completada!',
-        'cancelled': 'Reservación cancelada!'
-      };
-      
-      showNotification(statusMessages[newStatus] || 'Estado actualizado!', 'success');
+      showNotification(action.successMessage, 'success');
       
       setReservations(prev => prev.map(res => 
         res.id === reservationId ? { ...res, status: newStatus } : res
@@ -217,6 +320,9 @@ export default function BusinessReservations() {
       let errorMessage = 'Error al actualizar la reservación';
       if (error instanceof Error) {
         errorMessage = error.message;
+      } else {
+        const errObj = error as { error?: string; message?: string };
+        errorMessage = errObj?.error || errObj?.message || errorMessage;
       }
       
       showNotification(errorMessage, 'error');
@@ -286,7 +392,7 @@ export default function BusinessReservations() {
     
       const reservationsWithMappedStatus = json?.map(reservation => ({
         ...reservation,
-        status: mapStatusFromBackend(reservation.status)
+        status: normalizeStatus(reservation.status)
       })) || [];
 
       noReservationsNotifiedRef.current = false;
@@ -364,7 +470,7 @@ export default function BusinessReservations() {
   useEffect(() => {
     if (isLoading || !token) return;
 
-    const statusParam = searchParams.get('status');
+    const statusParam = normalizeStatus(searchParams.get('status') ?? '');
     const filterParam = searchParams.get('filter');
 
     const startParamInput = searchParams.get('startDate') || '';
@@ -375,25 +481,27 @@ export default function BusinessReservations() {
     const start = searchParams.get('startDate') || undefined;
     const end = searchParams.get('endDate') || undefined;
 
-    if (statusParam) {
-      setActiveFilter(mapStatusFromBackend(statusParam) as FilterType);
-    } else if (filterParam) {
-      setActiveFilter(filterParam as FilterType);
+    if (isReservationStatus(statusParam)) {
+      setActiveFilter(statusParam);
+    } else if (filterParam === 'today') {
+      setActiveFilter('today');
+    } else if (filterParam && isReservationStatus(normalizeStatus(filterParam))) {
+      setActiveFilter(normalizeStatus(filterParam) as ReservationStatus);
     } else {
       setActiveFilter('all');
     }
 
-    let backendStatus = statusParam || undefined;
+    let backendStatus: string | undefined = isReservationStatus(statusParam) ? statusParam : undefined;
     let s = start;
     let e = end;
 
     if (!backendStatus && filterParam) {
       if (filterParam === 'today') {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
         s = s || today;
         e = e || today;
-      } else {
-        backendStatus = mapStatusToBackend(filterParam);
+      } else if (isReservationStatus(normalizeStatus(filterParam))) {
+        backendStatus = normalizeStatus(filterParam);
       }
     }
 
@@ -414,19 +522,19 @@ export default function BusinessReservations() {
 
       const currentBusinessId = await getBusinessId();
       if (currentBusinessId) {
-        const statusParam = searchParams.get('status');
+        const statusParam = normalizeStatus(searchParams.get('status') ?? '');
         const filterParam = searchParams.get('filter');
-        let backendStatus = statusParam || undefined;
+        let backendStatus: string | undefined = isReservationStatus(statusParam) ? statusParam : undefined;
         let s = searchParams.get('startDate') || undefined;
         let e = searchParams.get('endDate') || undefined;
 
         if (!backendStatus && filterParam) {
           if (filterParam === 'today') {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA');
             s = s || today;
             e = e || today;
-          } else {
-            backendStatus = mapStatusToBackend(filterParam);
+          } else if (isReservationStatus(normalizeStatus(filterParam))) {
+            backendStatus = normalizeStatus(filterParam);
           }
         }
 
@@ -507,47 +615,22 @@ export default function BusinessReservations() {
     return timeString || 'Hora no disponible';
   };
 
-  const getStatusColor = (status: string = 'pending') => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return 'status-confirmed';
-      case 'pending':
-        return 'status-pending';
-      case 'cancelled':
-        return 'status-cancelled';
-      case 'completed':
-        return 'status-completed';
-      default:
-        return 'status-pending';
-    }
-  };
-
-  const getStatusText = (status: string = 'pending') => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return 'En Curso';
-      case 'pending':
-        return 'Pendiente';
-      case 'cancelled':
-        return 'Cancelada';
-      case 'completed':
-        return 'Completada';
-      default:
-        return 'Pendiente';
-    }
-  };
-
   const getStats = () => {
     const today = new Date().toDateString();
+    const countByStatus = (status: ReservationStatus) =>
+      reservations.filter(res => res.status === status).length;
     return {
       total: reservations.length,
       today: reservations.filter(res => 
-        new Date(res.ReservationDate).toDateString() === today
+        parseLocalDate(res.ReservationDate).toDateString() === today
       ).length,
-      pending: reservations.filter(res => res.status === 'pending').length,
-      confirmed: reservations.filter(res => res.status === 'confirmed').length,
-      cancelled: reservations.filter(res => res.status === 'cancelled').length,
-      completed: reservations.filter(res => res.status === 'completed').length,
+      pending: countByStatus(RESERVATION_STATUS.PENDING_PAYMENT),
+      confirmed: countByStatus(RESERVATION_STATUS.CONFIRMED),
+      readyToPay: countByStatus(RESERVATION_STATUS.READY_TO_PAY),
+      inProgress: countByStatus(RESERVATION_STATUS.IN_PROGRESS),
+      cancelled: countByStatus(RESERVATION_STATUS.CANCELLED),
+      completed: countByStatus(RESERVATION_STATUS.COMPLETED),
+      absent: countByStatus(RESERVATION_STATUS.ABSENT),
     };
   };
 
@@ -621,42 +704,15 @@ export default function BusinessReservations() {
             <button onClick={applyDateFilter} className="secondary-button">Aplicar</button>
             <button onClick={clearDateFilter} className="secondary-button">Limpiar</button>
           </div>
-          <button 
-            className={`filter-button ${activeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => applyFilter('all')}
-          >
-            Todas
-          </button>
-          <button 
-            className={`filter-button ${activeFilter === 'today' ? 'active' : ''}`}
-            onClick={() => applyFilter('today')}
-          >
-            Hoy
-          </button>
-          <button 
-            className={`filter-button ${activeFilter === 'pending' ? 'active' : ''}`}
-            onClick={() => applyFilter('pending')}
-          >
-            Pendientes
-          </button>
-          <button 
-            className={`filter-button ${activeFilter === 'confirmed' ? 'active' : ''}`}
-            onClick={() => applyFilter('confirmed')}
-          >
-            En Curso
-          </button>
-          <button 
-            className={`filter-button ${activeFilter === 'completed' ? 'active' : ''}`}
-            onClick={() => applyFilter('completed')}
-          >
-            Completadas
-          </button>
-          <button 
-            className={`filter-button ${activeFilter === 'cancelled' ? 'active' : ''}`}
-            onClick={() => applyFilter('cancelled')}
-          >
-            Canceladas
-          </button>
+          {FILTER_BUTTONS.map(({ filter, label }) => (
+            <button
+              key={filter}
+              className={`filter-button ${activeFilter === filter ? 'active' : ''}`}
+              onClick={() => applyFilter(filter)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
       
@@ -693,7 +749,9 @@ export default function BusinessReservations() {
               </tr>
             </thead>
             <tbody>
-              {filteredReservations.map((reservation) => (
+              {filteredReservations.map((reservation) => {
+                const statusActions = getStatusActions(reservation.status);
+                return (
                 <tr key={reservation.id}>
                   <td className="reservation-id">#{reservation.id}</td>
                   <td>
@@ -735,21 +793,31 @@ export default function BusinessReservations() {
                   </td>
                   <td>
                     <div className="action-buttons-container">
-                      <select 
-                        value={reservation.status}
-                        onChange={(e) => {
-                          if (e.target.value !== reservation.status) {
-                            updateReservationStatus(reservation.id, e.target.value);
-                          }
-                        }}
-                        disabled={updatingReservation === reservation.id}
-                        className="status-select"
-                      >
-                        <option value="pending">Pendiente</option>
-                        <option value="confirmed">En Curso</option>
-                        <option value="completed">Completada</option>
-                        <option value="cancelled">Cancelada</option>
-                      </select>
+                      {statusActions.length > 0 ? (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            if (next && isReservationStatus(next) && next !== reservation.status) {
+                              updateReservationStatus(reservation.id, next);
+                            }
+                          }}
+                          disabled={updatingReservation === reservation.id}
+                          className="status-select"
+                          aria-label={`Cambiar estado de la reservación ${reservation.id}`}
+                        >
+                          <option value="">Cambiar estado…</option>
+                          {statusActions.map(action => (
+                            <option key={action.value} value={action.value}>
+                              {action.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="no-status-actions">
+                          Sin cambios manuales de estado
+                        </span>
+                      )}
                       
                       {updatingReservation === reservation.id && (
                         <span style={{marginLeft: '8px', color: '#666'}}>Actualizando...</span>
@@ -761,7 +829,8 @@ export default function BusinessReservations() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -770,9 +839,12 @@ export default function BusinessReservations() {
       <div className="reservations-footer">
         <div className="reservations-stats">
           <span>Reservaciones hoy: {stats.today}</span>
-          <span> | Pendientes: {stats.pending}</span>
-          <span> | En Curso: {stats.confirmed}</span>
+          <span> | Pendientes de pago: {stats.pending}</span>
+          <span> | Confirmadas: {stats.confirmed}</span>
+          <span> | Listas para pagar: {stats.readyToPay}</span>
+          <span> | En Curso: {stats.inProgress}</span>
           <span> | Completadas: {stats.completed}</span>
+          <span> | Ausentes: {stats.absent}</span>
           <span> | Canceladas: {stats.cancelled}</span>
         </div>
         <button onClick={initializeData} className="refresh-button">

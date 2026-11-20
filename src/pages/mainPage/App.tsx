@@ -52,6 +52,7 @@ import ProtectedRoute from "../../components/ProtectedRoute";
 import NotFound from "../../components/NotFound";
 import BusinessListPage from "../businessList/BusinessListPage";
 import BusinessDetailPage from "../businessList/BusinessDetailPage";
+import PaymentResultPage from "../paymentResult/PaymentResultPage";
 
 function App() {
   return (
@@ -110,6 +111,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyReservations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="payment/result"
+            element={
+              <ProtectedRoute>
+                <PaymentResultPage />
               </ProtectedRoute>
             }
           />

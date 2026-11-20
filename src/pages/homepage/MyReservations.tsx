@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type { Reservation } from '../../types/reservationType';
 import { useOutletContext } from 'react-router';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FaCalendarCheck, FaExclamationTriangle, FaPaperPlane, FaTimes } from 'react-icons/fa';
 import { errorHandler } from '../../utils/errorHandler';
 import '../../static/css/myReservations.css';
@@ -8,6 +9,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { reservationService } from '../../services';
 import StarRating from '../../components/StarRating';
 import ReservationCard from '../../components/reservations/ReservationCard';
+import { usePaymentVerification } from '../../hooks/usePaymentVerification';
+import type { PaymentVerificationResult } from '../../hooks/usePaymentVerification';
+
+const PAYMENT_POLL_INTERVAL_MS = 5_000;
+const PAYMENT_POLL_TIMEOUT_MS = 30_000;
+
+/** Estados de reserva en los que todavía se espera un pago de MercadoPago. */
+const AWAITING_PAYMENT_STATUSES = ['pendiente_pago', 'listo_pagar'];
 
 export default function MyReservations() {
     const [data, setData] = useState<Reservation[] | null>(null);
@@ -15,19 +24,33 @@ export default function MyReservations() {
     const [error, setError] = useState<boolean>(false);
     const [ratingModal, setRatingModal] = useState<{id: number, rating: number} | null>(null);
     const { userData } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const messageShownRef = useRef(false);
 
     const { showNotification } = useOutletContext<{ showNotification: (m: string, t: 'success' | 'error' | 'warning' | 'info') => void }>();
 
-    const findAllFromUser = useCallback(async (id:number) =>{
+    // Mensaje proveniente de ReservationPage (confirmación exitosa o hold expirado)
+    useEffect(() => {
+        const state = location.state as { reservationMessage?: string } | null;
+        const message = state?.reservationMessage;
+        if (!message || messageShownRef.current) return;
+
+        messageShownRef.current = true;
+        showNotification(message, 'info');
+        navigate(location.pathname, { replace: true, state: null });
+    }, [location.state, location.pathname, navigate, showNotification]);
+
+    const findAllFromUser = useCallback(async (id:number, silent = false) =>{
             try{
-                setLoading(true)
+                if (!silent) setLoading(true)
                 const json = await reservationService.findAllFromUser(id) as unknown as Reservation[];
                 setData(json)
             }catch(error){
                 showNotification(errorHandler(error), 'error');
                 setError(true);
             }finally{
-                setLoading(false)
+                if (!silent) setLoading(false)
             }
         }, [showNotification])
 
@@ -36,6 +59,34 @@ export default function MyReservations() {
                 findAllFromUser(userData.id);
             }
         }, [error, findAllFromUser, userData]);
+
+    // MercadoPago no redirige de vuelta (no hay back_urls en la preferencia), así
+    // que el pago se confirma consultando el backend mientras el usuario está en
+    // esta pantalla. Solo se verifican reservas que todavía esperan un pago.
+    const pendingPaymentIds = useMemo(
+        () => (data ?? [])
+            .filter((reservation) => AWAITING_PAYMENT_STATUSES.includes(reservation.status ?? 'pendiente_pago'))
+            .map((reservation) => reservation.id),
+        [data]
+    );
+
+    const handlePaymentResolved = useCallback((result: PaymentVerificationResult) => {
+        if (result.state === 'approved') {
+            showNotification('¡Pago confirmado! Actualizamos tu reserva.', 'success');
+            if (userData?.id) void findAllFromUser(userData.id, true);
+            return;
+        }
+        // Rechazo o reserva que ya transicionó: refrescar para mostrar el estado real.
+        if (result.state === 'rejected' && userData?.id) {
+            void findAllFromUser(userData.id, true);
+        }
+    }, [findAllFromUser, showNotification, userData]);
+
+    const paymentVerifications = usePaymentVerification(pendingPaymentIds, {
+        intervalMs: PAYMENT_POLL_INTERVAL_MS,
+        timeoutMs: PAYMENT_POLL_TIMEOUT_MS,
+        onResolved: handlePaymentResolved,
+    });
 
     const handleCancel = useCallback(async (id: number) => {
         if (!confirm("¿Estas seguro que quieres cancelar la reserva?")) return;
@@ -123,6 +174,7 @@ export default function MyReservations() {
                             reservation={r}
                             onCancel={handleCancel}
                             onRate={handleRateClick}
+                            verifyingPayment={paymentVerifications[r.id]?.state === 'verifying'}
                         />
                     ))}
                 </div>

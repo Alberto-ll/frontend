@@ -1,15 +1,33 @@
-/* courtPages.css */
+/* Estilos de la página de reserva de canchas (formulario + hold de pago). */
+
+/* Paleta de la página. Se centraliza aquí para evitar colores hardcodeados
+   dispersos y facilitar ajustes visuales futuros. */
+:root {
+  --color-primary: #3498db;
+  --color-primary-dark: #2980b9;
+  --color-success: #2ecc71;
+  --color-success-dark: #27ae60;
+  --color-error: #e74c3c;
+  --color-error-bg: #ffeaea;
+  --color-warning: #f39c12;
+  --color-warning-bg: #fff3cd;
+  --color-text-dark: #2c3e50;
+  --color-text-muted: #7f8c8d;
+  --color-bg-light: #f8f9fa;
+  --color-border: #e9ecef;
+}
+
 .reserve-pitch-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
-  background: #f8f9fa;
+  background: var(--color-bg-light);
   min-height: 100vh;
 }
 
-/* Header Styles */
+/* Encabezado */
 .reserve-pitch-header {
   text-align: center;
   margin-bottom: 2.5rem;
@@ -38,17 +56,17 @@
 .reserve-pitch-title {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
-  color: #2c3e50;
+  color: var(--color-text-dark);
   font-weight: 700;
 }
 
 .reserve-pitch-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   margin-bottom: 0;
 }
 
-/* Loading States */
+/* Estados de carga */
 .reserve-pitch-loading,
 .reserve-pitch-error {
   display: flex;
@@ -64,7 +82,7 @@
   width: 50px;
   height: 50px;
   border: 5px solid #f3f3f3;
-  border-top: 5px solid #3498db;
+  border-top: 5px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1.5rem;
@@ -72,17 +90,22 @@
 
 .loading-text {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
 }
 
-/* Error States */
+/* Estados de error.
+   Definición única de `.error-message`: los estados de página completa y los
+   mensajes dentro del formulario / hold comparten colores y estructura; cada
+   contexto solo ajusta espaciado y disposición más abajo. */
 .error-message {
-  background: #ffeaea;
-  color: #e74c3c;
+  display: flex;
+  align-items: center;
+  background: var(--color-error-bg);
+  color: var(--color-error);
   padding: 1.5rem;
   border-radius: 12px;
   margin-bottom: 1.5rem;
-  border-left: 4px solid #e74c3c;
+  border-left: 4px solid var(--color-error);
 }
 
 .error-message h3 {
@@ -90,9 +113,23 @@
   margin-bottom: 0.5rem;
 }
 
+/* Estado de error de página completa: título y detalle apilados */
+.reserve-pitch-error .error-message {
+  display: block;
+  width: 100%;
+}
+
+/* Variante compacta: error dentro del formulario o del hold de pago */
+.reservation-form .error-message,
+.hold-card .error-message {
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 0;
+}
+
 .retry-button,
 .secondary-button {
-  background: #3498db;
+  background: var(--color-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -109,14 +146,14 @@
 }
 
 .retry-button:hover {
-  background: #2980b9;
+  background: var(--color-primary-dark);
 }
 
 .secondary-button:hover {
   background: #5a6268;
 }
 
-/* Main Content Layout */
+/* Layout del contenido principal */
 .reservation-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -142,7 +179,7 @@
   }
 }
 
-/* Pitch Card Large */
+/* Tarjeta grande de la cancha */
 .pitch-card-large {
   background: white;
   border-radius: 12px;
@@ -206,7 +243,7 @@
   margin: 0;
   flex: 1;
   font-size: 1.6rem;
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
 .price-tag {
@@ -216,14 +253,14 @@
 .price-label {
   display: block;
   font-size: 0.8rem;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   margin-bottom: 4px;
 }
 
 .price-amount {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #2ecc71;
+  color: var(--color-success);
 }
 
 .detail-item {
@@ -245,16 +282,16 @@
 .detail-content strong, .detail-content span {
   display: block;
   margin-bottom: 4px;
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
-/* Availability Info - MODIFICADO */
+/* Información de disponibilidad */
 .availability-info {
   background: #e8f4fd;
   padding: 1rem;
   border-radius: 8px;
   margin: 1rem 0;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--color-primary);
 }
 
 .availability-header {
@@ -276,10 +313,10 @@
 
 .stat-item {
   font-size: 0.9rem;
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
-/* Estilos para la disponibilidad del día - NUEVO */
+/* Detalle de la disponibilidad del día */
 .availability-details {
   margin-top: 10px;
 }
@@ -304,15 +341,15 @@
 }
 
 .status-available {
-  color: #27ae60;
+  color: var(--color-success-dark);
 }
 
 .status-partial {
-  color: #f39c12;
+  color: var(--color-warning);
 }
 
 .status-full {
-  color: #e74c3c;
+  color: var(--color-error);
 }
 
 .features-grid {
@@ -325,10 +362,10 @@
 .feature-card {
   display: flex;
   align-items: center;
-  background: #f8f9fa;
+  background: var(--color-bg-light);
   padding: 1rem;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--color-primary);
 }
 
 .feature-icon {
@@ -342,17 +379,17 @@
 
 .feature-label {
   font-size: 0.8rem;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   margin-bottom: 4px;
 }
 
 .feature-value {
   font-size: 1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
-/* Reservation Form */
+/* Formulario de reserva */
 .reservation-form-container {
   background: white;
   border-radius: 12px;
@@ -369,11 +406,11 @@
 .form-header h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
 .form-header p {
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -405,7 +442,7 @@
   align-items: center;
   margin-bottom: 0.7rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
 .label-icon {
@@ -415,7 +452,7 @@
 
 .form-input {
   padding: 12px 15px;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s, box-shadow 0.3s;
@@ -424,7 +461,7 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -436,20 +473,21 @@
   margin-top: 10px;
 }
 
+/* Borde base: las variantes (disponible / no disponible / hover / seleccionado)
+   solo sobrescriben `border-color`, por eso el borde se declara una única vez. */
 .time-slot {
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
-  border: none;
   font-family: inherit;
 }
 
 .time-slot:hover:not(:disabled) {
-  border-color: #3498db;
+  border-color: var(--color-primary);
   transform: translateY(-2px);
   box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
 }
@@ -467,7 +505,7 @@
 }
 
 .time-slot-selected {
-  border-color: #2ecc71;
+  border-color: var(--color-success);
   background: #f0f9f4;
   box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
 }
@@ -480,7 +518,7 @@
 
 .time-slot-label {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text-dark);
   font-size: 0.9rem;
 }
 
@@ -490,11 +528,11 @@
 }
 
 .time-slot-available .time-slot-status {
-  color: #27ae60;
+  color: var(--color-success-dark);
 }
 
 .time-slot-unavailable .time-slot-status {
-  color: #e74c3c;
+  color: var(--color-error);
 }
 
 .selected-time-info {
@@ -502,13 +540,13 @@
   padding: 12px;
   background: #e8f4fd;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--color-primary);
   font-size: 0.95rem;
 }
 
-/* Busy Times Warning */
+/* Aviso de horarios ocupados */
 .busy-times-warning {
-  background: #fff3cd;
+  background: var(--color-warning-bg);
   border: 1px solid #ffeaa7;
   border-radius: 8px;
   padding: 1rem;
@@ -533,7 +571,7 @@
 }
 
 .busy-time-badge {
-  background: #e74c3c;
+  background: var(--color-error);
   color: white;
   padding: 6px 12px;
   border-radius: 16px;
@@ -547,7 +585,7 @@
   margin: 0;
 }
 
-/* Available Times Info */
+/* Aviso de horarios disponibles */
 .available-times-info {
   background: #d1f2eb;
   border: 1px solid #a3e4d7;
@@ -572,20 +610,11 @@
   margin: 0;
 }
 
-/* Error Message in Form */
-.error-message {
-  display: flex;
-  align-items: center;
-  background: #ffeaea;
-  color: #e74c3c;
-  padding: 12px 15px;
-  border-radius: 8px;
-  border-left: 4px solid #e74c3c;
-}
-
+/* Icono y contenido de los mensajes de error */
 .error-icon {
   margin-right: 10px;
   font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .error-content {
@@ -597,12 +626,12 @@
   margin-bottom: 4px;
 }
 
-/* Reservation Summary */
+/* Resumen de la reserva */
 .reservation-summary {
-  background: #f8f9fa;
+  background: var(--color-bg-light);
   padding: 1.5rem;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--color-primary);
 }
 
 .summary-item {
@@ -610,7 +639,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .summary-item:last-child {
@@ -618,28 +647,31 @@
 }
 
 .summary-item span {
-  color: #7f8c8d;
+  color: var(--color-text-muted);
 }
 
 .summary-item strong {
-  color: #2c3e50;
+  color: var(--color-text-dark);
 }
 
 .availability-status .available {
-  color: #27ae60;
+  color: var(--color-success-dark);
 }
 
 .availability-status .unavailable {
-  color: #e74c3c;
+  color: var(--color-error);
 }
 
+/* Variante de advertencia del mensaje de error.
+   Se aplica junto a `.error-message` y va después en el archivo, por lo que
+   gana por orden de aparición sin recurrir a `!important`. */
 .warning-message {
-  background: #fff3cd !important;
-  border-left-color: #f39c12 !important;
-  color: #856404 !important;
+  background: var(--color-warning-bg);
+  border-left-color: var(--color-warning);
+  color: #856404;
 }
 
-/* Form Actions */
+/* Acciones del formulario */
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -665,30 +697,144 @@
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none !important;
+  transform: none;
 }
 
 .btn-primary {
-  background: #2ecc71;
+  background: var(--color-success);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #27ae60;
+  background: var(--color-success-dark);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
 }
 
 .btn-secondary {
-  background: #f8f9fa;
-  color: #7f8c8d;
-  border: 2px solid #e9ecef;
+  background: var(--color-bg-light);
+  color: var(--color-text-muted);
+  border: 2px solid var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #e9ecef;
+  background: var(--color-border);
   color: #495057;
   transform: translateY(-2px);
+}
+
+/* Pantalla de hold de pago */
+.hold-card {
+  max-width: 640px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.hold-timer {
+  text-align: center;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.hold-timer--expired {
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.hold-timer__label {
+  display: block;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.hold-timer__value {
+  display: block;
+  margin: 0.35rem 0 0.75rem;
+  font-size: 2.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #b45309;
+  line-height: 1;
+}
+
+.hold-timer--expired .hold-timer__value,
+.hold-timer--expired .hold-timer__label {
+  color: #6b7280;
+}
+
+.hold-timer__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  overflow: hidden;
+}
+
+.hold-timer__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #f59e0b;
+  transition: width 1s linear;
+}
+
+.hold-timer--expired .hold-timer__bar-fill {
+  background: #9ca3af;
+}
+
+/* Aviso informativo: la seña no es reembolsable.
+   Se usa tanto en el formulario como en el hold de pago; la única definición
+   evita duplicar declaraciones (no existen reglas de `.deposit-notice` en otros
+   stylesheets que puedan colapsarlo). */
+.deposit-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-left: 5px solid #b45309;
+}
+
+.deposit-notice__icon {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: #b45309;
+}
+
+.deposit-notice__text {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #78350f;
+}
+
+/* En pantallas angostas evitamos que el icono se separe del texto */
+@media (max-width: 480px) {
+  .deposit-notice {
+    align-items: flex-start;
+    padding: 0.85rem 0.9rem;
+  }
+
+  .deposit-notice__icon {
+    margin-top: 2px;
+  }
 }
 
 .button-spinner {
@@ -709,7 +855,7 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Responsive Design */
+/* Diseño responsive */
 @media (max-width: 768px) {
   .reserve-pitch-title {
     font-size: 2rem;
@@ -732,7 +878,7 @@
     flex-direction: column;
   }
 
-  /* Responsive para horarios */
+  /* Ajustes de horarios en pantallas medianas */
   .time-slots-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 8px;
@@ -768,7 +914,7 @@
     padding: 1rem;
   }
 
-  /* Responsive para horarios en móviles */
+  /* Ajustes de horarios en móviles */
   .time-slots-grid {
     grid-template-columns: repeat(2, 1fr);
   }

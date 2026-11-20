@@ -7,3 +7,4 @@ export * as categoryService from './categoryService';
 export * as localityService from './localityService';
 export * as couponService from './couponService';
 export * as userCouponService from './userCouponService';
+export * as paymentService from './paymentService';
